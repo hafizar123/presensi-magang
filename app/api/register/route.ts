@@ -29,20 +29,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Acak-acak password (Hashing) biar aman
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Simpen ke Database
-    // Note: User pertama kita set jadi ADMIN default-nya ya
-    // Nanti user kedua dst lo ubah codingan ini jadi "INTERN" atau set manual di DB
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: "ADMIN", // <--- INI PENTING BUAT AKUN PERTAMA
+        role: "INTERN", // <--- GANTI INI JADI INTERN
       },
     });
+    // ... kode bawahnya sama
 
     return NextResponse.json(
       { message: "User berhasil dibuat!", user },

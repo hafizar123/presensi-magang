@@ -35,15 +35,25 @@ model InternProfile {
   endHour     String   // Jam telat absen (contoh: "08:00")
 }
 
-// Data Absensi Harian
 model Attendance {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  date      DateTime @default(now()) // Tanggal absen
-  status    String   // Values: "HADIR", "TELAT", "IZIN", "ALFA"
-  checkIn   DateTime? // Jam real dia klik tombol
+  date      DateTime // Tanggal doang (jam 00:00:00)
+  time      String   // Jam doang (Format "07:30") <-- INI YANG DITUNGGU SAMA LOG.TIME
+  status    String   // HADIR, TELAT, dll
   
-  @@unique([userId, date]) // Biar ga bisa absen 2x sehari
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
 }
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String   // Judul: "Apel Pagi", "Libur Lebaran"
+  content   String   @db.Text // Isi pengumuman panjang
+  isActive  Boolean  @default(true) // Bisa di-unpublish kalo udah ga relevan
+  createdAt DateTime @default(now())
+}
+
