@@ -1,0 +1,49 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model User buat Login (Bisa Admin, Bisa Anak Magang)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  role          String    @default("INTERN") // Values: "ADMIN" or "INTERN"
+  createdAt     DateTime  @default(now())
+  
+  // Relasi
+  internProfile InternProfile?
+  attendances   Attendance[]
+}
+
+// Data detail khusus Anak Magang (Settingan Admin)
+model InternProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  
+  startDate   DateTime // Tanggal mulai magang
+  endDate     DateTime // Tanggal selesai magang
+  startHour   String   // Jam mulai absen (contoh: "07:00")
+  endHour     String   // Jam telat absen (contoh: "08:00")
+}
+
+// Data Absensi Harian
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  date      DateTime @default(now()) // Tanggal absen
+  status    String   // Values: "HADIR", "TELAT", "IZIN", "ALFA"
+  checkIn   DateTime? // Jam real dia klik tombol
+  
+  @@unique([userId, date]) // Biar ga bisa absen 2x sehari
+}
