@@ -9,18 +9,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Model User buat Login (Bisa Admin, Bisa Anak Magang)
 model User {
   id            String    @id @default(cuid())
+  name          String
   email         String    @unique
   password      String
-  name          String
-  role          String    @default("INTERN") // Values: "ADMIN" or "INTERN"
+  role          String    @default("INTERN")
   createdAt     DateTime  @default(now())
-  
-  // Relasi
+  updatedAt     DateTime  @default(now()) @updatedAt
+
   internProfile InternProfile?
-  attendances   Attendance[]
+  attendance    Attendance[]
+
+  leaveRequests LeaveRequest[] 
 }
 
 // Data detail khusus Anak Magang (Settingan Admin)
@@ -54,6 +55,19 @@ model Announcement {
   title     String   // Judul: "Apel Pagi", "Libur Lebaran"
   content   String   @db.Text // Isi pengumuman panjang
   isActive  Boolean  @default(true) // Bisa di-unpublish kalo udah ga relevan
+  createdAt DateTime @default(now())
+}
+
+model LeaveRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date      DateTime // Tanggal Izin (Satu hari spesifik)
+  reason    String   @db.Text
+  proofFile String?  // Nama file bukti (Opsional, jaga-jaga kalo izin biasa gapake surat)
+  status    String   @default("PENDING")
+  
   createdAt DateTime @default(now())
 }
 
