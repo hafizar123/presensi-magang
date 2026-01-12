@@ -78,7 +78,7 @@ export default async function HomePage() {
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-blue-100 text-xs">Selamat Pagi,</p>
+              <p className="text-blue-100 text-xs">Selamat Datang,</p>
               <h1 className="font-bold text-lg leading-tight">{session.user.name}</h1>
             </div>
           </div>

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Trash2, Loader2, UserPlus, Shield, User, Mail, Calendar } from "lucide-react";
+import { 
+  Plus, Search, Trash2, Loader2, UserPlus, Shield, User, Mail, Calendar, 
+  Pencil, CheckCircle2, Lock, AlertTriangle, X, Eye, EyeOff 
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +22,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -44,15 +58,31 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [openDialog, setOpenDialog] = useState(false);
+  
+  // State Modal
+  const [openAdd, setOpenAdd] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+  
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+
+  // Password Visibility State
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Form State
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "INTERN",
+    confirmPassword: "", 
+    role: "INTERN" as "ADMIN" | "INTERN",
   });
+  
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- FETCH DATA ---
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/admin/users");
@@ -69,21 +99,44 @@ export default function UserManagementPage() {
     fetchUsers();
   }, []);
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // --- RESET FORM HELPER ---
+  const resetForm = () => {
+    setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN" });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  // --- HANDLE ADD USER ---
+  const handleAddUser = async () => {
+    // Validasi
+    if(!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+        return alert("Waduh, isi semua datanya dulu bro!");
+    }
+    if(formData.password !== formData.confirmPassword) {
+        return alert("Password dan Konfirmasi Password Tidak Sesuai!");
+    }
+    
     setIsSaving(true);
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role
+        }),
       });
 
       if (res.ok) {
-        setOpenDialog(false);
-        setFormData({ name: "", email: "", password: "", role: "INTERN" }); 
-        fetchUsers(); 
-        alert("User berhasil ditambah!");
+        setAddSuccess(true);
+        fetchUsers();
+        resetForm();
+        setTimeout(() => {
+            setOpenAdd(false);
+            setTimeout(() => setAddSuccess(false), 300);
+        }, 1500);
       } else {
         alert("Gagal bro, cek email mungkin duplikat?");
       }
@@ -94,8 +147,71 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Yakin mau hapus user "${name}"? Data absennya bakal ilang juga lho!`)) {
+  // --- PREPARE EDIT ---
+  const openEditModal = (user: UserData) => {
+    setSelectedUser(user);
+    // Reset state visibility
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    
+    setFormData({
+        name: user.name,
+        email: user.email,
+        password: "", // Kosong defaultnya
+        confirmPassword: "",
+        role: user.role
+    });
+    setOpenEdit(true);
+  };
+
+  // --- HANDLE EDIT USER ---
+  const handleEditUser = async () => {
+    if(!selectedUser) return;
+
+    // Validasi Password (Kalo diisi doang)
+    if (formData.password && formData.password !== formData.confirmPassword) {
+        return alert("Password dan Konfrimasi Password Tidak Sesuai!");
+    }
+
+    setIsSaving(true);
+    try {
+        const payload: any = { 
+            id: selectedUser.id, 
+            name: formData.name,
+            email: formData.email,
+            role: formData.role
+        };
+
+        // Cuma kirim password kalo diisi
+        if (formData.password) {
+            payload.password = formData.password;
+        }
+
+        const res = await fetch("/api/admin/users", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+            setEditSuccess(true);
+            fetchUsers();
+            setTimeout(() => {
+                setOpenEdit(false);
+                setTimeout(() => setEditSuccess(false), 300);
+            }, 1500);
+        } else {
+            alert("Gagal update user");
+        }
+    } catch (error) {
+        alert("Error server");
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
+  // --- HANDLE DELETE USER ---
+  const handleDelete = async (id: string) => {
       try {
         const res = await fetch(`/api/admin/users?id=${id}`, {
           method: "DELETE",
@@ -106,7 +222,6 @@ export default function UserManagementPage() {
       } catch (error) {
         alert("Gagal hapus");
       }
-    }
   };
 
   const filteredUsers = users.filter((user) =>
@@ -123,7 +238,8 @@ export default function UserManagementPage() {
           <p className="text-slate-500 dark:text-slate-400">Tambah admin baru atau kelola akun anak magang.</p>
         </div>
         
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        {/* --- DIALOG TAMBAH USER --- */}
+        <Dialog open={openAdd} onOpenChange={(v) => {setOpenAdd(v); if(!v) resetForm();}}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 text-white transition-all">
               <UserPlus className="mr-2 h-4 w-4" />
@@ -131,79 +247,261 @@ export default function UserManagementPage() {
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-blue-600" />
-                Tambah Pengguna Baru
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddUser} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Nama Lengkap</Label>
-                <div className="relative">
-                    <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                      required 
-                      className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                      placeholder="Nama Lengkap" 
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    />
+          <DialogContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 sm:max-w-[500px] p-0 overflow-hidden gap-0">
+            {addSuccess ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in zoom-in-95">
+                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Berhasil Dibuat!</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data login sudah siap digunakan.</p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Email</Label>
-                <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                      required 
-                      type="email" 
-                      className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                      placeholder="email@dinas.go.id"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                    />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Password</Label>
-                <Input 
-                  required 
-                  type="password" 
-                  className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                  placeholder="••••••" 
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Role (Jabatan)</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(val) => setFormData({...formData, role: val})}
-                >
-                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
-                    <SelectValue placeholder="Pilih Role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                    <SelectItem value="INTERN" className="text-slate-700 dark:text-slate-300 focus:bg-slate-100 dark:focus:bg-slate-800">Anak Magang (Intern)</SelectItem>
-                    <SelectItem value="ADMIN" className="text-slate-700 dark:text-slate-300 focus:bg-slate-100 dark:focus:bg-slate-800">Admin / Pembimbing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={isSaving} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white shadow-md">
-                  {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...
-                      </>
-                  ) : "Simpan User"}
-                </Button>
-              </DialogFooter>
-            </form>
+            ) : (
+                <>
+                    <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                        <DialogHeader>
+                            <DialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-3 text-xl">
+                                <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                                    <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                Tambah User Baru
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-500 dark:text-slate-400">
+                                Isi formulir di bawah untuk mendaftarkan akun baru.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input 
+                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                    placeholder="Masukkan Nama Lengkap" 
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input 
+                                    type="email" 
+                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                    placeholder="Masukkan Email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* PASSWORD FIELD ADD */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input 
+                                        type={showPassword ? "text" : "password"}
+                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                        placeholder="••••••" 
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input 
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                        placeholder="••••••" 
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
+                            <Select 
+                                value={formData.role} 
+                                onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}
+                            >
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11">
+                                    <SelectValue placeholder="Pilih Role" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                                    <SelectItem value="INTERN">Anak Magang (Intern)</SelectItem>
+                                    <SelectItem value="ADMIN">Admin / Pembimbing</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setOpenAdd(false)}>Batal</Button>
+                        <Button 
+                            onClick={handleAddUser} 
+                            disabled={isSaving} 
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6"
+                        >
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan User"}
+                        </Button>
+                    </div>
+                </>
+            )}
           </DialogContent>
         </Dialog>
+
+        {/* --- DIALOG EDIT USER (UPDATED) --- */}
+        <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+          <DialogContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 sm:max-w-[500px] p-0 overflow-hidden gap-0">
+            {editSuccess ? (
+                <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in zoom-in-95">
+                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Update Berhasil!</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data user telah diperbarui.</p>
+                </div>
+            ) : (
+                <>
+                    <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                        <DialogHeader>
+                            <DialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-3 text-xl">
+                                <div className="p-2.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                                    <Pencil className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                </div>
+                                Edit Data User
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-500 dark:text-slate-400">
+                                Ubah informasi pengguna di sini. Password bersifat opsional.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input 
+                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input 
+                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        {/* PASSWORD FIELD EDIT (WITH CONFIRMATION) */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Password Baru</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input 
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Opsional"
+                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11 placeholder:text-slate-400"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input 
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Opsional"
+                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11 placeholder:text-slate-400"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
+                            <Select 
+                                value={formData.role} 
+                                onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}
+                            >
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11">
+                                    <SelectValue placeholder="Pilih Role" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                                    <SelectItem value="INTERN">Anak Magang (Intern)</SelectItem>
+                                    <SelectItem value="ADMIN">Admin / Pembimbing</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                        <Button variant="ghost" onClick={() => setOpenEdit(false)}>Batal</Button>
+                        <Button 
+                            onClick={handleEditUser} 
+                            disabled={isSaving} 
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg shadow-yellow-600/20 px-6"
+                        >
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update User"}
+                        </Button>
+                    </div>
+                </>
+            )}
+          </DialogContent>
+        </Dialog>
+
       </div>
 
       {/* Tabel Card */}
@@ -285,14 +583,52 @@ export default function UserManagementPage() {
                         </div>
                     </TableCell>
                     <TableCell className="text-right pr-6">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        onClick={() => handleDelete(user.id, user.name)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {/* TOMBOL EDIT */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-500 dark:hover:bg-yellow-900/20 transition-colors h-8 w-8"
+                            onClick={() => openEditModal(user)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+
+                        {/* TOMBOL DELETE (ALERT DIALOG) */}
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors h-8 w-8"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
+                                <AlertDialogHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
+                                            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" />
+                                        </div>
+                                        <AlertDialogTitle className="text-slate-900 dark:text-slate-100">Konfirmasi Penghapusan</AlertDialogTitle>
+                                    </div>
+                                    <AlertDialogDescription className="pl-[3.25rem] text-slate-500 dark:text-slate-400">
+                                        Yakin ingin menghapus <b>{user.name}</b>? Data absensi dan akunnya akan hilang permanen.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-2">
+                                    <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 border-0">Batal</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                        onClick={() => handleDelete(user.id)}
+                                    >
+                                        Ya, Hapus
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

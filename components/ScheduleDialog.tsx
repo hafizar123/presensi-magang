@@ -6,17 +6,24 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, Settings2 } from "lucide-react";
+import { 
+  Calendar, 
+  Clock, 
+  Settings2, 
+  CheckCircle2, 
+  Briefcase,
+  ArrowRight
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
-// Tipe data user biar ga error
+// Tipe data user
 interface UserProps {
   user: {
     id: string;
@@ -33,8 +40,8 @@ export default function ScheduleDialog({ user }: UserProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false); // State buat nampilin centang
 
-  // Ambil data lama kalo ada (biar form keisi)
   const [formData, setFormData] = useState({
     startDate: user.internProfile?.startDate ? new Date(user.internProfile.startDate).toISOString().split('T')[0] : "",
     endDate: user.internProfile?.endDate ? new Date(user.internProfile.endDate).toISOString().split('T')[0] : "",
@@ -55,9 +62,16 @@ export default function ScheduleDialog({ user }: UserProps) {
       });
 
       if (res.ok) {
-        alert("Jadwal Berhasil Disimpan!");
-        setOpen(false);
+        // TAMPILIN SUKSES STATE
+        setIsSuccess(true);
         router.refresh(); 
+        
+        // Tutup otomatis setelah 2 detik (opsional)
+        setTimeout(() => {
+            setOpen(false);
+            // Reset state pas nutup biar kalo dibuka lagi balik ke form
+            setTimeout(() => setIsSuccess(false), 300); 
+        }, 2000);
       } else {
         alert("Gagal simpan jadwal");
       }
@@ -69,9 +83,8 @@ export default function ScheduleDialog({ user }: UserProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if(!v) setIsSuccess(false); }}>
       <DialogTrigger asChild>
-        {/* BUTTON YANG TADI KEDAP KEDIP KITA UPDATE DISINI */}
         <Button 
             variant="outline" 
             size="sm"
@@ -82,82 +95,124 @@ export default function ScheduleDialog({ user }: UserProps) {
         </Button>
       </DialogTrigger>
       
-      {/* KONTEN POPUP (MODAL) BIAR DARK MODE */}
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-colors duration-300">
-        <DialogHeader>
-          <DialogTitle className="text-slate-900 dark:text-slate-100">Atur Jadwal Magang</DialogTitle>
-          <DialogDescription className="text-slate-500 dark:text-slate-400">
-            Tentukan tanggal mulai/selesai dan jam kerja harian.
-          </DialogDescription>
-        </DialogHeader>
+      {/* UKURAN MODAL LEBIH GEDE (max-w-[600px]) */}
+      <DialogContent className="sm:max-w-[600px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 transition-colors duration-300 p-0 overflow-hidden rounded-2xl">
+        
+        {/* LOGIC TAMPILAN: Kalo Sukses -> Tampil Centang, Kalo Belum -> Tampil Form */}
+        {isSuccess ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in zoom-in-95 duration-300">
+                <div className="h-24 w-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+                    
+                    <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 animate-bounce" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Berhasil Disimpan!</h2>
+                <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-8">
+                    Jadwal magang untuk user ini telah berhasil diperbarui di database.
+                </p>
+                <Button 
+                    onClick={() => setOpen(false)} 
+                    className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 px-8"
+                >
+                    Tutup
+                </Button>
+            </div>
+        ) : (
+            <>
+                <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <DialogTitle className="text-xl text-slate-900 dark:text-slate-100">Konfigurasi Jadwal</DialogTitle>
+                        </div>
+                        <DialogDescription className="text-slate-500 dark:text-slate-400 text-sm">
+                            Atur durasi magang dan jam presensi harian untuk peserta magang.
+                        </DialogDescription>
+                    </DialogHeader>
+                </div>
 
-        <div className="grid gap-4 py-4">
-          {/* Tanggal */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Mulai Magang</Label>
-                <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                        type="date" 
-                        className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                        value={formData.startDate}
-                        onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                    />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Selesai Magang</Label>
-                <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                        type="date" 
-                        className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                        value={formData.endDate}
-                        onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                    />
-                </div>
-            </div>
-          </div>
+                <div className="p-6 space-y-8">
+                    {/* SECTION 1: PERIODE TANGGAL */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-blue-500" /> Periode Magang
+                        </h3>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mulai</Label>
+                                <div className="relative group">
+                                    <Input 
+                                        type="date" 
+                                        className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500/20 text-slate-900 dark:text-white transition-all"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Selesai</Label>
+                                <div className="relative group">
+                                    <Input 
+                                        type="date" 
+                                        className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500/20 text-slate-900 dark:text-white transition-all"
+                                        value={formData.endDate}
+                                        onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-          {/* Jam Kerja */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Jam Masuk</Label>
-                <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                        type="time" 
-                        className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                        value={formData.startHour}
-                        onChange={(e) => setFormData({...formData, startHour: e.target.value})}
-                    />
+                    {/* SECTION 2: JAM KERJA */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-orange-500" /> Jam Absen
+                        </h3>
+                        <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center gap-4 justify-between">
+                            <div className="flex-1 space-y-1.5">
+                                <Label className="text-xs text-slate-500">Jam Mulai Absen</Label>
+                                <Input 
+                                    type="time" 
+                                    className="h-10 text-center font-mono font-medium bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700"
+                                    value={formData.startHour}
+                                    onChange={(e) => setFormData({...formData, startHour: e.target.value})}
+                                />
+                            </div>
+                            
+                            <ArrowRight className="h-4 w-4 text-slate-300 dark:text-slate-600 mt-6" />
+                            
+                            <div className="flex-1 space-y-1.5">
+                                <Label className="text-xs text-slate-500">Jam Maksimal Absen</Label>
+                                <Input 
+                                    type="time" 
+                                    className="h-10 text-center font-mono font-medium bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700"
+                                    value={formData.endHour}
+                                    onChange={(e) => setFormData({...formData, endHour: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div className="space-y-2">
-                <Label className="text-slate-700 dark:text-slate-300">Jam Pulang</Label>
-                <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input 
-                        type="time" 
-                        className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                        value={formData.endHour}
-                        onChange={(e) => setFormData({...formData, endHour: e.target.value})}
-                    />
-                </div>
-            </div>
-          </div>
-        </div>
 
-        <DialogFooter>
-          <Button 
-            onClick={handleSave} 
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
-          >
-            {loading ? "Menyimpan..." : "Simpan Jadwal"}
-          </Button>
-        </DialogFooter>
+                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => setOpen(false)}
+                        className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                    >
+                        Batal
+                    </Button>
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6"
+                    >
+                        {loading ? "Menyimpan..." : "Simpan Perubahan"}
+                    </Button>
+                </div>
+            </>
+        )}
       </DialogContent>
     </Dialog>
   );
