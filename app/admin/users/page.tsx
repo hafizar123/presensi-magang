@@ -59,13 +59,16 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // State Modal
+  // State Modal Add & Edit
   const [openAdd, setOpenAdd] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
   
   const [openEdit, setOpenEdit] = useState(false);
   const [editSuccess, setEditSuccess] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+
+  // State Modal Delete Success (BARU!)
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   // Password Visibility State
   const [showPassword, setShowPassword] = useState(false);
@@ -82,7 +85,6 @@ export default function UserManagementPage() {
   
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- FETCH DATA ---
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/admin/users");
@@ -99,7 +101,6 @@ export default function UserManagementPage() {
     fetchUsers();
   }, []);
 
-  // --- RESET FORM HELPER ---
   const resetForm = () => {
     setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN" });
     setShowPassword(false);
@@ -108,7 +109,6 @@ export default function UserManagementPage() {
 
   // --- HANDLE ADD USER ---
   const handleAddUser = async () => {
-    // Validasi
     if(!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
         return alert("Waduh, isi semua datanya dulu bro!");
     }
@@ -130,13 +130,10 @@ export default function UserManagementPage() {
       });
 
       if (res.ok) {
-        setAddSuccess(true);
+        setAddSuccess(true); // Munculin Centang
         fetchUsers();
         resetForm();
-        setTimeout(() => {
-            setOpenAdd(false);
-            setTimeout(() => setAddSuccess(false), 300);
-        }, 1500);
+        // HAPUS TIMEOUT, BIAR USER KLIK TUTUP MANUAL
       } else {
         alert("Gagal bro, cek email mungkin duplikat?");
       }
@@ -150,14 +147,13 @@ export default function UserManagementPage() {
   // --- PREPARE EDIT ---
   const openEditModal = (user: UserData) => {
     setSelectedUser(user);
-    // Reset state visibility
     setShowPassword(false);
     setShowConfirmPassword(false);
     
     setFormData({
         name: user.name,
         email: user.email,
-        password: "", // Kosong defaultnya
+        password: "", 
         confirmPassword: "",
         role: user.role
     });
@@ -168,7 +164,6 @@ export default function UserManagementPage() {
   const handleEditUser = async () => {
     if(!selectedUser) return;
 
-    // Validasi Password (Kalo diisi doang)
     if (formData.password && formData.password !== formData.confirmPassword) {
         return alert("Password dan Konfrimasi Password Tidak Sesuai!");
     }
@@ -181,8 +176,6 @@ export default function UserManagementPage() {
             email: formData.email,
             role: formData.role
         };
-
-        // Cuma kirim password kalo diisi
         if (formData.password) {
             payload.password = formData.password;
         }
@@ -194,12 +187,9 @@ export default function UserManagementPage() {
         });
 
         if (res.ok) {
-            setEditSuccess(true);
+            setEditSuccess(true); // Munculin Centang
             fetchUsers();
-            setTimeout(() => {
-                setOpenEdit(false);
-                setTimeout(() => setEditSuccess(false), 300);
-            }, 1500);
+            // HAPUS TIMEOUT, MANUAL CLOSE
         } else {
             alert("Gagal update user");
         }
@@ -218,6 +208,7 @@ export default function UserManagementPage() {
         });
         if (res.ok) {
           fetchUsers();
+          setDeleteSuccess(true); // TRIGGER POPUP SUKSES HAPUS
         }
       } catch (error) {
         alert("Gagal hapus");
@@ -231,6 +222,28 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
+      
+      {/* --- POP-UP SUKSES DELETE (BARU) --- */}
+      <Dialog open={deleteSuccess} onOpenChange={setDeleteSuccess}>
+        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden rounded-2xl">
+            <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
+                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
+                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Berhasil Dihapus!</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
+                    Data user telah dihapus permanen dari sistem.
+                </p>
+                <Button 
+                    onClick={() => setDeleteSuccess(false)}
+                    className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
+                >
+                    Tutup
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header Halaman */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -239,7 +252,7 @@ export default function UserManagementPage() {
         </div>
         
         {/* --- DIALOG TAMBAH USER --- */}
-        <Dialog open={openAdd} onOpenChange={(v) => {setOpenAdd(v); if(!v) resetForm();}}>
+        <Dialog open={openAdd} onOpenChange={(v) => {setOpenAdd(v); if(!v) setAddSuccess(false); if(!v) resetForm();}}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 text-white transition-all">
               <UserPlus className="mr-2 h-4 w-4" />
@@ -247,16 +260,24 @@ export default function UserManagementPage() {
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 sm:max-w-[500px] p-0 overflow-hidden gap-0">
+          <DialogContent className={`${addSuccess ? "sm:max-w-[400px]" : "sm:max-w-[500px]"} bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden gap-0 transition-all duration-300 rounded-2xl`}>
             {addSuccess ? (
-                <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in zoom-in-95">
-                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                // SUKSES VIEW ADD
+                <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95">
+                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
                         <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Berhasil Dibuat!</h2>
                     <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data login sudah siap digunakan.</p>
+                    <Button 
+                        onClick={() => setOpenAdd(false)}
+                        className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
+                    >
+                        Tutup
+                    </Button>
                 </div>
             ) : (
+                // FORM VIEW ADD (Sama kayak sebelumnya)
                 <>
                     <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                         <DialogHeader>
@@ -273,102 +294,51 @@ export default function UserManagementPage() {
                     </div>
                     
                     <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        {/* ... Input Fields (User, Email, Pass, Role) copy dari sebelumnya ... */}
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input 
-                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                    placeholder="Masukkan Nama Lengkap" 
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                />
+                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Nama Lengkap" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input 
-                                    type="email" 
-                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                    placeholder="Masukkan Email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                                />
+                                <Input type="email" className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                             </div>
                         </div>
-                        
-                        {/* PASSWORD FIELD ADD */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input 
-                                        type={showPassword ? "text" : "password"}
-                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                        placeholder="••••••" 
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                    />
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                    >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
+                                    <Input type={showPassword ? "text" : "password"} className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="••••••" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input 
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                        placeholder="••••••" 
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                                    />
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                    >
-                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
+                                    <Input type={showConfirmPassword ? "text" : "password"} className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="••••••" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                 </div>
                             </div>
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
-                            <Select 
-                                value={formData.role} 
-                                onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}
-                            >
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11">
-                                    <SelectValue placeholder="Pilih Role" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                                    <SelectItem value="INTERN">Anak Magang (Intern)</SelectItem>
-                                    <SelectItem value="ADMIN">Admin / Pembimbing</SelectItem>
-                                </SelectContent>
+                            <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}>
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"><SelectValue placeholder="Pilih Role" /></SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"><SelectItem value="INTERN">Anak Magang (Intern)</SelectItem><SelectItem value="ADMIN">Admin / Pembimbing</SelectItem></SelectContent>
                             </Select>
                         </div>
                     </div>
 
                     <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                         <Button variant="ghost" onClick={() => setOpenAdd(false)}>Batal</Button>
-                        <Button 
-                            onClick={handleAddUser} 
-                            disabled={isSaving} 
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6"
-                        >
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan User"}
-                        </Button>
+                        <Button onClick={handleAddUser} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6">{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan User"}</Button>
                     </div>
                 </>
             )}
@@ -376,17 +346,25 @@ export default function UserManagementPage() {
         </Dialog>
 
         {/* --- DIALOG EDIT USER (UPDATED) --- */}
-        <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-          <DialogContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 sm:max-w-[500px] p-0 overflow-hidden gap-0">
+        <Dialog open={openEdit} onOpenChange={(v) => {setOpenEdit(v); if(!v) setEditSuccess(false);}}>
+          <DialogContent className={`${editSuccess ? "sm:max-w-[400px]" : "sm:max-w-[500px]"} bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden gap-0 transition-all duration-300 rounded-2xl`}>
             {editSuccess ? (
-                <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in zoom-in-95">
-                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+                // SUKSES VIEW EDIT
+                <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95">
+                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
                         <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Update Berhasil!</h2>
                     <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data user telah diperbarui.</p>
+                    <Button 
+                        onClick={() => setOpenEdit(false)}
+                        className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
+                    >
+                        Tutup
+                    </Button>
                 </div>
             ) : (
+                // FORM VIEW EDIT
                 <>
                     <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                         <DialogHeader>
@@ -407,95 +385,46 @@ export default function UserManagementPage() {
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input 
-                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                />
+                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input 
-                                    className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                />
+                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
                             </div>
                         </div>
-
-                        {/* PASSWORD FIELD EDIT (WITH CONFIRMATION) */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-medium">Password Baru</Label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input 
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Opsional"
-                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11 placeholder:text-slate-400"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                    />
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                    >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
+                                    <Input type={showPassword ? "text" : "password"} placeholder="Opsional" className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input 
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        placeholder="Opsional"
-                                        className="pl-10 pr-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11 placeholder:text-slate-400"
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                                    />
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                                    >
-                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
+                                    <Input type={showConfirmPassword ? "text" : "password"} placeholder="Opsional" className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                 </div>
                             </div>
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
-                            <Select 
-                                value={formData.role} 
-                                onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}
-                            >
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11">
-                                    <SelectValue placeholder="Pilih Role" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                                    <SelectItem value="INTERN">Anak Magang (Intern)</SelectItem>
-                                    <SelectItem value="ADMIN">Admin / Pembimbing</SelectItem>
-                                </SelectContent>
+                            <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}>
+                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"><SelectValue placeholder="Pilih Role" /></SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"><SelectItem value="INTERN">Anak Magang (Intern)</SelectItem><SelectItem value="ADMIN">Admin / Pembimbing</SelectItem></SelectContent>
                             </Select>
                         </div>
                     </div>
 
                     <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                         <Button variant="ghost" onClick={() => setOpenEdit(false)}>Batal</Button>
-                        <Button 
-                            onClick={handleEditUser} 
-                            disabled={isSaving} 
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg shadow-yellow-600/20 px-6"
-                        >
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update User"}
-                        </Button>
+                        <Button onClick={handleEditUser} disabled={isSaving} className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg shadow-yellow-600/20 px-6">{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update User"}</Button>
                     </div>
                 </>
             )}

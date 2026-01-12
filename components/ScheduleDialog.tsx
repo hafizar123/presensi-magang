@@ -21,9 +21,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 
-// Tipe data user
 interface UserProps {
   user: {
     id: string;
@@ -40,7 +38,7 @@ export default function ScheduleDialog({ user }: UserProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false); // State buat nampilin centang
+  const [isSuccess, setIsSuccess] = useState(false); 
 
   const [formData, setFormData] = useState({
     startDate: user.internProfile?.startDate ? new Date(user.internProfile.startDate).toISOString().split('T')[0] : "",
@@ -62,16 +60,9 @@ export default function ScheduleDialog({ user }: UserProps) {
       });
 
       if (res.ok) {
-        // TAMPILIN SUKSES STATE
-        setIsSuccess(true);
+        setIsSuccess(true); // Tampilkan Centang Ijo
         router.refresh(); 
-        
-        // Tutup otomatis setelah 2 detik (opsional)
-        setTimeout(() => {
-            setOpen(false);
-            // Reset state pas nutup biar kalo dibuka lagi balik ke form
-            setTimeout(() => setIsSuccess(false), 300); 
-        }, 2000);
+        // HAPUS TIMEOUT, BIAR USER KLIK TUTUP SENDIRI
       } else {
         alert("Gagal simpan jadwal");
       }
@@ -82,8 +73,13 @@ export default function ScheduleDialog({ user }: UserProps) {
     }
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    setTimeout(() => setIsSuccess(false), 300); // Reset state pas animasi nutup
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if(!v) setIsSuccess(false); }}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
             variant="outline" 
@@ -95,28 +91,28 @@ export default function ScheduleDialog({ user }: UserProps) {
         </Button>
       </DialogTrigger>
       
-      {/* UKURAN MODAL LEBIH GEDE (max-w-[600px]) */}
-      <DialogContent className="sm:max-w-[600px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 transition-colors duration-300 p-0 overflow-hidden rounded-2xl">
+      {/* Kalo Sukses, size jadi kecil [400px]. Kalo Form, size gede [600px] */}
+      <DialogContent className={`${isSuccess ? "sm:max-w-[400px]" : "sm:max-w-[600px]"} bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 transition-all duration-300 p-0 overflow-hidden rounded-2xl`}>
         
-        {/* LOGIC TAMPILAN: Kalo Sukses -> Tampil Centang, Kalo Belum -> Tampil Form */}
         {isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in zoom-in-95 duration-300">
-                <div className="h-24 w-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-                    
-                    <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 animate-bounce" />
+            // --- TAMPILAN SUKSES (CENTANG IJO) ---
+            <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
+                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
+                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Berhasil Disimpan!</h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-8">
-                    Jadwal magang untuk user ini telah berhasil diperbarui di database.
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Jadwal Disimpan!</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed max-w-[250px]">
+                    Konfigurasi waktu magang user ini berhasil diperbarui.
                 </p>
                 <Button 
-                    onClick={() => setOpen(false)} 
-                    className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 px-8"
+                    onClick={handleClose} 
+                    className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl font-medium"
                 >
                     Tutup
                 </Button>
             </div>
         ) : (
+            // --- TAMPILAN FORM ---
             <>
                 <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                     <DialogHeader>
@@ -127,7 +123,7 @@ export default function ScheduleDialog({ user }: UserProps) {
                             <DialogTitle className="text-xl text-slate-900 dark:text-slate-100">Konfigurasi Jadwal</DialogTitle>
                         </div>
                         <DialogDescription className="text-slate-500 dark:text-slate-400 text-sm">
-                            Atur durasi magang dan jam presensi harian untuk peserta magang.
+                            Atur durasi magang dan jam kerja harian.
                         </DialogDescription>
                     </DialogHeader>
                 </div>
@@ -141,25 +137,21 @@ export default function ScheduleDialog({ user }: UserProps) {
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mulai</Label>
-                                <div className="relative group">
-                                    <Input 
-                                        type="date" 
-                                        className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500/20 text-slate-900 dark:text-white transition-all"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                                    />
-                                </div>
+                                <Input 
+                                    type="date" 
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                                    value={formData.startDate}
+                                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Selesai</Label>
-                                <div className="relative group">
-                                    <Input 
-                                        type="date" 
-                                        className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:ring-2 ring-blue-500/20 text-slate-900 dark:text-white transition-all"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                                    />
-                                </div>
+                                <Input 
+                                    type="date" 
+                                    className="h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                                    value={formData.endDate}
+                                    onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                                />
                             </div>
                         </div>
                     </div>
@@ -167,11 +159,11 @@ export default function ScheduleDialog({ user }: UserProps) {
                     {/* SECTION 2: JAM KERJA */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-orange-500" /> Jam Absen
+                            <Clock className="h-4 w-4 text-orange-500" /> Jam Kerja Harian
                         </h3>
                         <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center gap-4 justify-between">
                             <div className="flex-1 space-y-1.5">
-                                <Label className="text-xs text-slate-500">Jam Mulai Absen</Label>
+                                <Label className="text-xs text-slate-500">Masuk</Label>
                                 <Input 
                                     type="time" 
                                     className="h-10 text-center font-mono font-medium bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700"
@@ -183,7 +175,7 @@ export default function ScheduleDialog({ user }: UserProps) {
                             <ArrowRight className="h-4 w-4 text-slate-300 dark:text-slate-600 mt-6" />
                             
                             <div className="flex-1 space-y-1.5">
-                                <Label className="text-xs text-slate-500">Jam Maksimal Absen</Label>
+                                <Label className="text-xs text-slate-500">Pulang</Label>
                                 <Input 
                                     type="time" 
                                     className="h-10 text-center font-mono font-medium bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700"
