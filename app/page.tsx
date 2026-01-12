@@ -73,14 +73,13 @@ export default async function HomePage() {
 
         <div className="flex justify-between items-center relative z-10">
           <div className="flex items-center gap-3">
-            {/* --- BAGIAN INI YANG GUA TAMBAHIN LINK --- */}
+            {/* --- BAGIAN INI YANG GUA TAMBAHIN LINK KE PROFILE --- */}
             <Link href="/profile">
-                <Avatar className="border-2 border-white/30 w-12 h-12 cursor-pointer transition-transform active:scale-95">
-                <AvatarImage src={`https://ui-avatars.com/api/?name=${session.user.name}&background=random`} />
-                <AvatarFallback>U</AvatarFallback>
+                <Avatar className="border-2 border-white/30 w-12 h-12 cursor-pointer transition-transform active:scale-95 hover:ring-2 hover:ring-white/50">
+                    <AvatarImage src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=random`} />
+                    <AvatarFallback>U</AvatarFallback>
                 </Avatar>
             </Link>
-            {/* ----------------------------------------- */}
             
             <div>
               <p className="text-blue-100 text-xs">Selamat Datang,</p>
@@ -90,7 +89,6 @@ export default async function HomePage() {
            
           {/* TOGGLE DARK MODE & LOGOUT */}
           <div className="flex items-center gap-2">
-            {/* Bungkus toggle pake bg semi-transparan biar ikonnya keliatan jelas */}
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-0.5">
                 <ModeToggle />
             </div>
@@ -123,10 +121,8 @@ export default async function HomePage() {
       <main className="px-6 -mt-6 relative z-10 space-y-6">
         
         {/* 1. JAM & TOMBOL ABSEN */}
-        {/* Card: Putih di Light, Abu Gelap di Dark */}
         <Card className="shadow-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
             <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
-                {/* Pastiin Text Jam jadi Putih pas Dark Mode */}
                 <div className="dark:text-white transition-colors"> 
                     <RealtimeClock />
                 </div>
