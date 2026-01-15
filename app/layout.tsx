@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-
-// 1. IMPORT PROVIDERS YANG BARU DIBIKIN
 import Providers from "@/components/Providers";
 
 const outfit = Outfit({ subsets: ["latin"] });
@@ -18,9 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={outfit.className}>
-        {/* 2. BUNGKUS CHILDREN PAKE PROVIDERS */}
+    <html lang="en" suppressHydrationWarning>
+      {/* TAMBAHIN suppressHydrationWarning JUGA DI BODY BIAR AMAN DARI EXTENSION */}
+      <body className={outfit.className} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>
