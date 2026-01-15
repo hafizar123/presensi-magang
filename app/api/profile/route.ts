@@ -8,44 +8,36 @@ const prisma = new PrismaClient();
 
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
-<<<<<<< HEAD
   
-=======
->>>>>>> 06f0845f84b5d4b89208ce7fda18ea04f654e1a0
   if (!session || !session.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
-<<<<<<< HEAD
-    const { name, email, password, confirmPassword, image } = body; // <--- Ambil image
-=======
-    const { name, password, confirmPassword } = body;
->>>>>>> 06f0845f84b5d4b89208ce7fda18ea04f654e1a0
+    const { name, email, password, confirmPassword, image } = body; 
 
+    // Validasi Password
     if (password && password !== confirmPassword) {
       return NextResponse.json({ error: "Password tidak cocok" }, { status: 400 });
     }
 
-<<<<<<< HEAD
     const updateData: any = { 
         name,
         email
     };
 
-    // Kalau ada image baru, update juga
+    // Update foto jika ada
     if (image) {
         updateData.image = image;
     }
 
-=======
-    const updateData: any = { name };
->>>>>>> 06f0845f84b5d4b89208ce7fda18ea04f654e1a0
+    // Encrypt password jika ada
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
+    // Update ke Database
     await prisma.user.update({
       where: { email: session.user.email },
       data: updateData,
@@ -53,10 +45,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ message: "Success" });
   } catch (error) {
-<<<<<<< HEAD
-    console.error(error);
-=======
->>>>>>> 06f0845f84b5d4b89208ce7fda18ea04f654e1a0
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    console.error("Update Error:", error);
+    return NextResponse.json({ error: "Gagal update profile" }, { status: 500 });
   }
 }
