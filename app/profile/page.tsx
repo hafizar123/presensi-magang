@@ -4,16 +4,19 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { 
-  ChevronLeft, Camera, User, Mail, Lock, Eye, EyeOff, 
-  Loader2, CheckCircle2 
+  Camera, User, Mail, Lock, Eye, EyeOff, 
+  Loader2, CheckCircle2, Save, UploadCloud,
+  ShieldCheck, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function EditProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -37,7 +40,7 @@ export default function EditProfilePage() {
         ...prev,
         name: session.user?.name || "",
         email: session.user?.email || "",
-        image: (session.user as any).image || ""
+        image: session.user?.image || ""
       }));
     }
   }, [session]);
@@ -47,7 +50,7 @@ export default function EditProfilePage() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-        alert("File kegedean bre! Maksimal 2MB ya.");
+        alert("File kegedean bre! Maksimal 2MB.");
         return;
     }
 
@@ -56,11 +59,9 @@ export default function EditProfilePage() {
     uploadData.set("file", file);
 
     try {
-        const res = await fetch("/api/upload", {
-            method: "POST",
-            body: uploadData,
-        });
+        const res = await fetch("/api/upload", { method: "POST", body: uploadData });
         const result = await res.json();
+        
         if (result.success) {
             setFormData(prev => ({ ...prev, image: result.filepath }));
         } else {
@@ -73,136 +74,205 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!formData.name || !formData.email) return alert("Nama dan Email wajib diisi bre!");
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
     if (formData.password && formData.password !== formData.confirmPassword) {
-      return alert("Password ga sama tuh, cek lagi!");
+        setIsSaving(false);
+        return alert("Password baru ga cocok bre!");
     }
 
-    setIsSaving(true);
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email, 
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-          image: formData.image
-        })
+        body: JSON.stringify(formData),
       });
 
-      if (res.ok) {
-        setIsSuccess(true);
-        setTimeout(() => {
-            window.location.href = "/"; 
-        }, 1500);
-      } else {
-        alert("Gagal update profil.");
-      }
+      if (!res.ok) throw new Error("Gagal");
+      
+      // LOGIC PENTING: Update Session Client-Side biar foto langsung ganti
+      // tanpa perlu refresh halaman
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          name: formData.name,
+          image: formData.image,
+        },
+      });
+      
+      setIsSuccess(true);
+      
+      // Reset password field
+      setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
+      
+      setTimeout(() => {
+          setIsSuccess(false);
+          router.refresh(); 
+      }, 2000);
+
     } catch (error) {
-      alert("Ada masalah koneksi.");
+      alert("Gagal simpan data.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] dark:bg-black font-sans pb-20 transition-colors duration-300">
-      <header className="fixed top-0 left-0 right-0 h-14 md:h-16 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 z-50 flex items-center justify-between px-4 md:px-6 transition-all">
-        <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 -ml-2 rounded-full transition-colors">
-                <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <span className="md:hidden text-blue-600 dark:text-blue-400 font-medium text-base cursor-pointer" onClick={() => router.back()}>Kembali</span>
-        </div>
-        <h1 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white absolute left-1/2 -translate-x-1/2">Edit Profil</h1>
-        <div className="w-10"></div>
-      </header>
-
-      <main className="pt-24 md:pt-28 px-4 md:px-0 max-w-xl mx-auto space-y-8">
-        <div className="flex flex-col items-center">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="absolute inset-0 bg-blue-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                <Avatar className="h-32 w-32 md:h-40 md:w-40 border-[6px] border-white dark:border-zinc-900 shadow-2xl relative z-10 transition-transform duration-300 group-hover:scale-105">
-                    <AvatarImage src={formData.image || `https://ui-avatars.com/api/?name=${formData.name || 'User'}&background=007AFF&color=fff&size=256`} className="object-cover" />
-                    <AvatarFallback className="text-4xl">ME</AvatarFallback>
-                </Avatar>
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-                <div className="absolute bottom-1 right-1 z-20 bg-slate-900 dark:bg-white text-white dark:text-black p-2.5 rounded-full shadow-lg border-4 border-white dark:border-black transition-transform active:scale-90 hover:bg-blue-600 dark:hover:bg-slate-200">
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                </div>
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-20 pt-6 font-sans">
+      <main className="max-w-5xl mx-auto px-4 md:px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Pengaturan Akun</h1>
+                <p className="text-slate-500 text-sm mt-1">Kelola informasi profil dan keamanan akunmu.</p>
             </div>
-            <p className="mt-4 text-sm font-medium text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => fileInputRef.current?.click()}>
-                {isUploading ? "Mengupload..." : "Ubah Foto Profil"}
-            </p>
-        </div>
-
-        <div className="space-y-6">
-            <div className="bg-white dark:bg-[#1C1C1E] rounded-md overflow-hidden shadow-sm border border-slate-200/50 dark:border-none">
-                <div className="flex items-center pl-6 pr-6 py-2 relative">
-                    <div className="w-8 shrink-0 flex justify-center"><User className="h-5 w-5 text-slate-400" /></div>
-                    <div className="flex-1 ml-4 border-b border-slate-100 dark:border-slate-800 py-3 flex items-center justify-between">
-                         <div className="flex flex-col w-full">
-                            <Label className="text-xs text-slate-400 mb-1 font-normal">Nama Lengkap</Label>
-                            <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="border-none shadow-none p-0 h-auto font-medium text-base md:text-lg bg-transparent focus-visible:ring-0 placeholder:text-slate-300 dark:placeholder:text-slate-600 text-slate-900 dark:text-white" placeholder="Siapa nama lo?" />
-                         </div>
-                    </div>
-                </div>
-                <div className="flex items-center pl-6 pr-6 py-2 relative">
-                    <div className="w-8 shrink-0 flex justify-center"><Mail className="h-5 w-5 text-slate-400" /></div>
-                    <div className="flex-1 ml-4 py-3 flex items-center justify-between">
-                         <div className="flex flex-col w-full">
-                            <Label className="text-xs text-slate-400 mb-1 font-normal">Email Address</Label>
-                            <Input value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="border-none shadow-none p-0 h-auto font-medium text-base text-slate-900 dark:text-white bg-transparent focus-visible:ring-0" placeholder="email@baru.com" />
-                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <h3 className="px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">Keamanan Akun</h3>
-                <div className="bg-white dark:bg-[#1C1C1E] rounded-md overflow-hidden shadow-sm border border-slate-200/50 dark:border-none">
-                    <div className="flex items-center pl-6 pr-6 py-2 relative">
-                        <div className="w-8 shrink-0 flex justify-center">
-                            <div className="bg-orange-500/10 p-1.5 rounded-md"><Lock className="h-4 w-4 text-orange-500" /></div>
-                        </div>
-                        <div className="flex-1 ml-4 border-b border-slate-100 dark:border-slate-800 py-3 flex items-center">
-                            <Input type={showPass ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="border-none shadow-none p-0 h-auto font-medium text-base bg-transparent focus-visible:ring-0 placeholder:text-slate-300 dark:placeholder:text-slate-600 text-slate-900 dark:text-white w-full" placeholder="Password Baru" />
-                            <button onClick={() => setShowPass(!showPass)} type="button" className="p-2 text-slate-400 hover:text-blue-500 transition-colors">
-                                {showPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex items-center pl-6 pr-6 py-2 relative">
-                        <div className="w-8 shrink-0 flex justify-center">
-                            <div className="bg-green-500/10 p-1.5 rounded-md"><CheckCircle2 className="h-4 w-4 text-green-500" /></div>
-                        </div>
-                        <div className="flex-1 ml-4 py-3 flex items-center">
-                            <Input type={showConfirmPass ? "text" : "password"} value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} className="border-none shadow-none p-0 h-auto font-medium text-base bg-transparent focus-visible:ring-0 placeholder:text-slate-300 dark:placeholder:text-slate-600 text-slate-900 dark:text-white w-full" placeholder="Ulangi Password" />
-                             <button onClick={() => setShowConfirmPass(!showConfirmPass)} type="button" className="p-2 text-slate-400 hover:text-blue-500 transition-colors">
-                                {showConfirmPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <p className="px-6 text-[10px] text-slate-400">Kosongkan jika gak mau ganti password.</p>
-            </div>
-        </div>
-
-        <div className="pt-4 md:pt-8 pb-8">
-            {isSuccess ? (
-                <Button className="w-full h-14 rounded-xl bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30 text-lg font-bold transition-all animate-in zoom-in cursor-default ring-0">
-                    <CheckCircle2 className="mr-2 h-6 w-6" />
+            {isSuccess && (
+                <Badge className="bg-green-100 text-green-700 border-green-200 px-4 py-1.5 text-sm h-fit self-start md:self-center">
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
                     Berhasil Disimpan!
-                </Button>
-            ) : (
-                <Button onClick={handleSave} disabled={isSaving || isUploading} className="w-full h-14 rounded-xl bg-[#007AFF] hover:bg-blue-600 active:scale-95 text-white shadow-xl shadow-blue-500/20 text-lg font-bold transition-all disabled:opacity-70">
-                    {isSaving ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Simpan Perubahan"}
-                </Button>
+                </Badge>
             )}
         </div>
+
+        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            
+            {/* LEFT COLUMN: AVATAR CARD */}
+            <div className="md:col-span-4 space-y-6">
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <CardTitle className="text-base font-semibold">Foto Profil</CardTitle>
+                        <CardDescription className="text-xs">Klik foto untuk mengubah.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-8 pb-8 flex flex-col items-center">
+                        <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                            {/* Glowing Ring */}
+                            <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                            
+                            <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-white dark:border-slate-950 shadow-xl relative z-10">
+                                <AvatarImage src={formData.image || `https://ui-avatars.com/api/?name=${formData.name}&background=0F172A&color=fff`} className="object-cover" />
+                                <AvatarFallback>ME</AvatarFallback>
+                            </Avatar>
+
+                            {/* Floating Edit Icon */}
+                            <div className="absolute bottom-2 right-2 z-20 bg-slate-900 dark:bg-white text-white dark:text-black p-2.5 rounded-full shadow-lg ring-4 ring-white dark:ring-slate-950 transition-transform active:scale-95 hover:bg-blue-600 dark:hover:bg-slate-200">
+                                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                            </div>
+                        </div>
+                        
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                        
+                        <p className="text-xs text-slate-400 mt-6 text-center px-4">
+                            Format: JPG, PNG, GIF. Maks 2MB.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* RIGHT COLUMN: FORM INPUTS */}
+            <div className="md:col-span-8 space-y-6">
+                
+                {/* 1. PERSONAL INFO */}
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center gap-2">
+                            <User className="h-5 w-5 text-blue-500" />
+                            <CardTitle className="text-base font-semibold">Informasi Pribadi</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Lengkap</Label>
+                            <div className="relative">
+                                <Input 
+                                    value={formData.name} 
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                                    className="pl-3 h-11 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 transition-colors" 
+                                    placeholder="Nama Lengkap" 
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</Label>
+                            <div className="relative">
+                                <Input 
+                                    value={formData.email} 
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                                    className="pl-3 h-11 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 transition-colors" 
+                                    placeholder="email@kamu.com" 
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 2. SECURITY */}
+                <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-orange-500" />
+                                <CardTitle className="text-base font-semibold">Keamanan</CardTitle>
+                            </div>
+                            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-md font-medium border border-slate-200 dark:border-slate-700">
+                                Opsional
+                            </span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        <div className="grid md:grid-cols-2 gap-5">
+                            <div className="space-y-2 relative">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Password Baru</Label>
+                                <Input 
+                                    type={showPass ? "text" : "password"} 
+                                    value={formData.password} 
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                                    className="pr-10 h-11 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 transition-colors" 
+                                    placeholder="••••••" 
+                                />
+                                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-8 text-slate-400 hover:text-slate-600 transition-colors">
+                                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            <div className="space-y-2 relative">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ulangi Password</Label>
+                                <Input 
+                                    type={showConfirmPass ? "text" : "password"} 
+                                    value={formData.confirmPassword} 
+                                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} 
+                                    className="pr-10 h-11 bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 transition-colors" 
+                                    placeholder="••••••" 
+                                />
+                                <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-8 text-slate-400 hover:text-slate-600 transition-colors">
+                                    {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                            <p className="text-xs text-blue-600 dark:text-blue-300 leading-relaxed">
+                                Kosongkan kolom password jika kamu tidak ingin mengubahnya. Password minimal 6 karakter untuk keamanan yang lebih baik.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* SAVE BUTTON */}
+                <div className="flex justify-end pt-2">
+                    <Button 
+                        type="submit" 
+                        disabled={isSaving || isUploading}
+                        className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 text-white font-bold transition-all shadow-lg shadow-slate-900/20 active:scale-95 disabled:opacity-70 disabled:scale-100"
+                    >
+                        {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</>}
+                    </Button>
+                </div>
+
+            </div>
+        </form>
       </main>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Bell, CheckCircle2, AlertCircle, Trash2 } from "lucide-react"; // Tambah Trash2
+import { Bell, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -18,7 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 type NotificationItem = {
-  id: string;
+  id: string; // ID Asli DB (buat dikirim balik ke API)
+  displayId: string; // ID Unik buat React Key
   type: "IZIN" | "USER";
   title: string;
   message: string;
@@ -45,10 +46,25 @@ export default function AdminHeader() {
     }
   };
 
-  // Fungsi Hapus Notif (Lokal State)
-  const handleClearNotifications = (e: React.MouseEvent) => {
-    e.preventDefault(); // Biar dropdown gak nutup tiba-tiba (opsional)
-    setNotifications([]); // Kosongkan array -> Merah-merah otomatis ilang
+  // Fungsi Hapus Notif PERMANEN (Lapor ke API)
+  const handleClearNotifications = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Optimistic Update (Ilangin duluan biar cepet di mata user)
+    const itemsToDismiss = notifications.map(n => ({ id: n.id, type: n.type }));
+    setNotifications([]); 
+
+    try {
+        // Kirim request ke backend buat nyatet di 'Blacklist Notif'
+        await fetch("/api/admin/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: itemsToDismiss })
+        });
+    } catch (error) {
+        console.error("Gagal sync dismiss");
+        fetchNotifications(); // Kalo gagal, balikin lagi datanya
+    }
   };
 
   // Ambil notif pas pertama load
@@ -75,11 +91,10 @@ export default function AdminHeader() {
                 variant="ghost" 
                 size="icon" 
                 className="relative text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-                // onClick={fetchNotifications} <--- HAPUS INI biar ga refresh pas diklik (opsional, tergantung selera)
             >
               <Bell className="h-5 w-5" />
               
-              {/* Red Dot Indicator (Cuma muncul kalo array notifications ada isinya) */}
+              {/* Red Dot Indicator */}
               {notifications.length > 0 && (
                 <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
               )}
@@ -108,7 +123,7 @@ export default function AdminHeader() {
                     </div>
                 ) : (
                     notifications.map((item) => (
-                        <Link href={item.link} key={item.id} className="cursor-pointer">
+                        <Link href={item.link} key={item.displayId} className="cursor-pointer">
                             <DropdownMenuItem className="cursor-pointer p-3 focus:bg-slate-50 dark:focus:bg-slate-800 border-b border-slate-50 dark:border-slate-800 last:border-0">
                                 <div className="flex gap-3 items-start">
                                     <div className={`p-2 rounded-full mt-0.5 ${item.type === 'IZIN' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
@@ -144,7 +159,7 @@ export default function AdminHeader() {
                             onClick={handleClearNotifications}
                         >
                             <Trash2 className="mr-2 h-3 w-3" />
-                            Hapus Notifikasi
+                            Hapus Semua Notifikasi
                         </Button>
                     </div>
                 </>

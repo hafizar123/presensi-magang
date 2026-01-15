@@ -8,10 +8,12 @@ import {
   Filter, 
   Loader2,
   MapPin,
-  Clock
+  Clock,
+  FileSpreadsheet
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import * as XLSX from "xlsx"; // <--- Import Library Excel
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +60,6 @@ export default function RekapAbsensiPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      // Kita panggil API dengan query params (Bikin API-nya nanti di bawah)
       const res = await fetch(`/api/admin/rekap?date=${filterDate}`);
       const data = await res.json();
       setLogs(data);
@@ -71,14 +72,51 @@ export default function RekapAbsensiPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [filterDate]); // Auto refresh pas ganti tanggal
+  }, [filterDate]); 
 
-  // Filter Client-Side (Nama & Status)
+  // Filter Client-Side
   const filteredLogs = logs.filter((log) => {
     const matchName = log.user.name.toLowerCase().includes(searchName.toLowerCase());
     const matchStatus = filterStatus === "ALL" ? true : log.status === filterStatus;
     return matchName && matchStatus;
   });
+
+  // --- FUNGSI EXPORT EXCEL ---
+  const handleExportExcel = () => {
+    // 1. Siapin data yang mau diprint (Format biar rapi di Excel)
+    const dataToExport = filteredLogs.map((log, index) => ({
+      "No": index + 1,
+      "Tanggal": format(new Date(filterDate), "dd MMMM yyyy", { locale: id }),
+      "Nama Peserta": log.user.name,
+      "Email": log.user.email,
+      "Waktu Absen": log.time,
+      "Status Kehadiran": log.status,
+      "Keterangan Lokasi": log.status === "IZIN" ? "Izin/Sakit" : "Kantor Dinas Disdikpora"
+    }));
+
+    // 2. Bikin Worksheet (Lembar Kerja)
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    // 3. Atur lebar kolom (Optional, biar rapi)
+    const columnWidths = [
+        { wch: 5 },  // No
+        { wch: 20 }, // Tanggal
+        { wch: 30 }, // Nama
+        { wch: 25 }, // Email
+        { wch: 15 }, // Waktu
+        { wch: 15 }, // Status
+        { wch: 25 }  // Lokasi
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    // 4. Bikin Workbook (Buku Kerja) & Tempel Worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Harian");
+
+    // 5. Download File
+    const fileName = `Rekap_Absensi_${filterDate}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
 
   return (
     <div className="space-y-6">
@@ -88,8 +126,14 @@ export default function RekapAbsensiPage() {
           <p className="text-slate-500 dark:text-slate-400">Pantau kedatangan dan kepulangan anak magang.</p>
         </div>
         
-        <Button variant="outline" className="border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
-            <Download className="mr-2 h-4 w-4" />
+        {/* BUTTON EXPORT AKTIF */}
+        <Button 
+            variant="outline" 
+            className="border-slate-200 dark:border-slate-800 hover:bg-green-50 dark:hover:bg-green-900/20 text-slate-700 dark:text-slate-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"
+            onClick={handleExportExcel}
+            disabled={filteredLogs.length === 0} // Disable kalo tabel kosong
+        >
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
             Export Excel
         </Button>
       </div>
