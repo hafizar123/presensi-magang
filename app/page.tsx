@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ModeToggle } from "@/components/ModeToggle"; 
+import { ModeToggle } from "@/components/ModeToggle";
 import LogoutModal from "@/components/LogoutModal";
 
 const prisma = new PrismaClient();
@@ -49,7 +49,7 @@ export default async function HomePage() {
 
   let statusText = "Belum Absen";
   let statusColor = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
-  
+   
   if (todayLog) {
     if (todayLog.status === "HADIR") {
         statusText = "Sudah Absen Masuk";
@@ -66,26 +66,29 @@ export default async function HomePage() {
   return (
     // BG Utama: Putih di Light, Gelap Banget di Dark
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors duration-300">
-      
+       
       {/* HEADER */}
       <header className="bg-blue-600 dark:bg-blue-900 text-white p-6 rounded-b-[2.5rem] shadow-xl shadow-blue-900/20 relative overflow-hidden transition-colors duration-300">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
 
         <div className="flex justify-between items-center relative z-10">
           <div className="flex items-center gap-3">
-            <Avatar className="border-2 border-white/30 w-12 h-12">
-              <AvatarImage src={`https://ui-avatars.com/api/?name=${session.user.name}&background=random`} />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
+            {/* --- BAGIAN INI YANG GUA TAMBAHIN LINK KE PROFILE --- */}
+            <Link href="/profile">
+                <Avatar className="border-2 border-white/30 w-12 h-12 cursor-pointer transition-transform active:scale-95 hover:ring-2 hover:ring-white/50">
+                    <AvatarImage src={session.user.image || `https://ui-avatars.com/api/?name=${session.user.name}&background=random`} />
+                    <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+            </Link>
+            
             <div>
               <p className="text-blue-100 text-xs">Selamat Datang,</p>
               <h1 className="font-bold text-lg leading-tight">{session.user.name}</h1>
             </div>
           </div>
-          
+           
           {/* TOGGLE DARK MODE & LOGOUT */}
           <div className="flex items-center gap-2">
-            {/* Bungkus toggle pake bg semi-transparan biar ikonnya keliatan jelas */}
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-0.5">
                 <ModeToggle />
             </div>
@@ -118,14 +121,12 @@ export default async function HomePage() {
       <main className="px-6 -mt-6 relative z-10 space-y-6">
         
         {/* 1. JAM & TOMBOL ABSEN */}
-        {/* Card: Putih di Light, Abu Gelap di Dark */}
         <Card className="shadow-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl overflow-hidden transition-colors">
             <CardContent className="pt-8 pb-8 flex flex-col items-center gap-6">
-                {/* Pastiin Text Jam jadi Putih pas Dark Mode */}
                 <div className="dark:text-white transition-colors"> 
                     <RealtimeClock />
                 </div>
-                
+                 
                 <AttendanceButton 
                     disabled={!!todayLog} 
                     label={todayLog ? "Sudah Absen Hari Ini" : "Absen Masuk Sekarang"} 
@@ -143,7 +144,7 @@ export default async function HomePage() {
                 <Bell className="h-4 w-4 text-orange-500" />
                 Info Terbaru
             </h3>
-            
+             
             <div className="space-y-3">
                 {announcements.length === 0 ? (
                     <div className="text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 text-slate-400 text-sm">
@@ -173,7 +174,7 @@ export default async function HomePage() {
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Riwayat Absen</span>
                 </Button>
             </Link>
-            
+             
             <Link href="/izin">
                 <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-blue-200 dark:hover:border-blue-900 group transition-all">
                     <FileText className="h-6 w-6 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" /> 

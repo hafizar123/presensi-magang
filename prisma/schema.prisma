@@ -15,6 +15,7 @@ model User {
   email         String    @unique
   password      String
   role          String    @default("INTERN")
+  image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
   nip           String?   // NIP Pegawai
@@ -22,7 +23,6 @@ model User {
 
   internProfile InternProfile?
   attendance    Attendance[]
-
   leaveRequests LeaveRequest[] 
 }
 
