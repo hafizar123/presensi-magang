@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Bell, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Bell, CheckCircle2, AlertCircle, Trash2, Menu } from "lucide-react"; 
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/ModeToggle";
@@ -18,8 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 type NotificationItem = {
-  id: string; // ID Asli DB (buat dikirim balik ke API)
-  displayId: string; // ID Unik buat React Key
+  id: string;
+  displayId: string;
   type: "IZIN" | "USER";
   title: string;
   message: string;
@@ -27,12 +27,16 @@ type NotificationItem = {
   time: string;
 };
 
-export default function AdminHeader() {
+interface AdminHeaderProps {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+}
+
+export default function AdminHeader({ sidebarOpen, setSidebarOpen }: AdminHeaderProps) {
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fungsi ambil notif
   const fetchNotifications = async () => {
     setLoading(true);
     try {
@@ -46,16 +50,12 @@ export default function AdminHeader() {
     }
   };
 
-  // Fungsi Hapus Notif PERMANEN (Lapor ke API)
   const handleClearNotifications = async (e: React.MouseEvent) => {
     e.preventDefault();
-    
-    // Optimistic Update (Ilangin duluan biar cepet di mata user)
     const itemsToDismiss = notifications.map(n => ({ id: n.id, type: n.type }));
     setNotifications([]); 
 
     try {
-        // Kirim request ke backend buat nyatet di 'Blacklist Notif'
         await fetch("/api/admin/notifications", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -63,25 +63,43 @@ export default function AdminHeader() {
         });
     } catch (error) {
         console.error("Gagal sync dismiss");
-        fetchNotifications(); // Kalo gagal, balikin lagi datanya
+        fetchNotifications();
     }
   };
 
-  // Ambil notif pas pertama load
   useEffect(() => {
     fetchNotifications();
   }, []);
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 fixed top-0 right-0 left-64 z-10 transition-colors duration-300">
+    // LOGIC CSS Header:
+    // Pake `right-0` dan `left-0`. 
+    // Kalo Desktop & Sidebar Open -> `lg:left-64`. Kalo Closed -> `lg:left-0`.
+    <header 
+      className={`h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 fixed top-0 right-0 z-40 transition-all duration-300 ${
+        sidebarOpen ? "lg:left-64 left-0" : "lg:left-0 left-0"
+      }`}
+    >
       
-      {/* Kiri */}
-      <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-200">
-        Dashboard Overview
-      </h2>
+      <div className="flex items-center gap-4">
+        {/* TOMBOL TOGGLE (Sekarang muncul di SEMUA layar) */}
+        <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+        >
+            <Menu className="h-6 w-6" />
+        </Button>
+
+        {/* Title */}
+        <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-200 hidden sm:block">
+            Dashboard Overview
+        </h2>
+      </div>
 
       {/* Kanan */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 md:gap-6">
         <ModeToggle />
 
         {/* --- NOTIFICATION BELL --- */}
@@ -93,8 +111,6 @@ export default function AdminHeader() {
                 className="relative text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
             >
               <Bell className="h-5 w-5" />
-              
-              {/* Red Dot Indicator */}
               {notifications.length > 0 && (
                 <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
               )}
@@ -147,7 +163,6 @@ export default function AdminHeader() {
                 )}
             </div>
             
-            {/* TOMBOL DELETE / CLEAR NOTIFIKASI */}
             {notifications.length > 0 && (
                 <>
                     <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
