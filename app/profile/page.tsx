@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { 
-  Camera, User, Mail, Lock, Eye, EyeOff, 
-  Loader2, CheckCircle2, Save, UploadCloud,
-  ShieldCheck, AlertCircle
+  Camera, User, Eye, EyeOff, 
+  Loader2, CheckCircle2, Save,
+  ShieldCheck, AlertCircle, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +93,6 @@ export default function EditProfilePage() {
       if (!res.ok) throw new Error("Gagal");
       
       // LOGIC PENTING: Update Session Client-Side biar foto langsung ganti
-      // tanpa perlu refresh halaman
       await update({
         ...session,
         user: {
@@ -105,7 +104,6 @@ export default function EditProfilePage() {
       
       setIsSuccess(true);
       
-      // Reset password field
       setFormData(prev => ({ ...prev, password: "", confirmPassword: "" }));
       
       setTimeout(() => {
@@ -124,18 +122,29 @@ export default function EditProfilePage() {
     <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-20 pt-6 font-sans">
       <main className="max-w-5xl mx-auto px-4 md:px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Pengaturan Akun</h1>
-                <p className="text-slate-500 text-sm mt-1">Kelola informasi profil dan keamanan akunmu.</p>
+        {/* Tombol Back & Header Section */}
+        <div className="flex flex-col gap-4">
+            <Button 
+                variant="ghost" 
+                className="w-fit pl-0 hover:bg-transparent hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200"
+                onClick={() => router.back()}
+            >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Kembali
+            </Button>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Pengaturan Akun</h1>
+                    <p className="text-slate-500 text-sm mt-1">Kelola informasi profil dan keamanan akunmu disini.</p>
+                </div>
+                {isSuccess && (
+                    <Badge className="bg-green-100 text-green-700 border-green-200 px-4 py-1.5 text-sm h-fit self-start md:self-center shadow-sm">
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Berhasil Disimpan!
+                    </Badge>
+                )}
             </div>
-            {isSuccess && (
-                <Badge className="bg-green-100 text-green-700 border-green-200 px-4 py-1.5 text-sm h-fit self-start md:self-center">
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Berhasil Disimpan!
-                </Badge>
-            )}
         </div>
 
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">

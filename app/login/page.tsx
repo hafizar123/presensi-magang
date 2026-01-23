@@ -52,8 +52,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <Card className="w-full max-w-[500px] shadow-xl border-slate-200/60">
+    <div className="relative flex min-h-screen items-center justify-center p-4">
+      
+      {/* Background Image Section */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/bkgdikpora.jpg" 
+          alt="Background Login"
+          fill
+          className="object-cover"
+          priority
+        />
+        {/* Overlay gua bikin lebih gelap (60%) biar tulisan putihnya kebaca jelas */}
+        <div className="absolute inset-0 bg-black/30" />
+      </div>
+
+      {/* Card Form - Style iOS Glassmorphism Dark Mode */}
+      <Card className="relative z-10 w-full max-w-[500px] border-white/10 bg-black/20 backdrop-blur-md shadow-2xl">
         <CardHeader className="space-y-3 pb-2 text-center">
           <div className="flex justify-center mb-2">
             <Image 
@@ -62,32 +77,33 @@ export default function LoginPage() {
               width={80} 
               height={80}
               priority
-              className="h-auto w-auto object-contain"
+              className="h-auto w-auto object-contain drop-shadow-md"
             />
           </div>
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">Login Presensi Magang</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-2xl font-bold tracking-tight text-white">Login Presensi Magang</h2>
+            <p className="text-sm text-gray-300">
               Masuk untuk melakukan presensi magang harian
             </p>
           </div>
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 p-3 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded-md text-center animate-in fade-in-50">
+            <div className="mb-4 p-3 text-sm font-medium text-red-200 bg-red-900/30 border border-red-500/30 rounded-md text-center animate-in fade-in-50">
               {error}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-gray-100">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="Masukkan Email"
-                  className="pl-10 bg-slate-50/50"
+                  // Input transparan biar nyatu sama kaca
+                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:bg-white/10 transition-all"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
@@ -95,14 +111,14 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-gray-100">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Masukkan Password"
-                  className="pl-10 pr-10 bg-slate-50/50"
+                  className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:bg-white/10 transition-all"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
@@ -110,7 +126,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none"
                   tabIndex={-1} 
                 >
                   {showPassword ? (
@@ -121,16 +137,17 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <Button className="w-full font-semibold mt-6" type="submit" disabled={loading} size="lg">
+            {/* Button gua kasih warna putih/terang biar kontras */}
+            <Button className="w-full font-bold mt-6 bg-white text-black hover:bg-gray-200" type="submit" disabled={loading} size="lg">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Memproses..." : "Login"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center pb-8">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-300">
             Belum Memiliki Akun?{" "}
-            <Link href="/register" className="text-primary font-semibold hover:underline transition-all">
+            <Link href="/register" className="text-blue-400 font-semibold hover:text-blue-300 hover:underline transition-all">
               Daftar di sini
             </Link>
           </p>
