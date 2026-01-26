@@ -27,9 +27,9 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
   const isMasuk = type === "IN";
   const label = isMasuk ? "Absen Masuk" : "Absen Pulang";
   
-  // UPDATE WARNA: Kuning Emas (Yellow-400) dengan Teks Hijau Gelap
+  // Tombol Utama (Kuning Emas biar kontras sama Background Merah Dashboard)
   const buttonStyle = isMasuk 
-    ? "bg-yellow-400 hover:bg-yellow-500 text-[#1a4d2e] shadow-lg shadow-yellow-400/20 border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1" 
+    ? "bg-yellow-400 hover:bg-yellow-500 text-[#450a0a] shadow-lg shadow-yellow-400/20 border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1" 
     : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
 
   const handleAttendance = async () => {
@@ -94,13 +94,14 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
         {label}
       </Button>
 
-      {/* --- POP UP CARD TETEP SAMA --- */}
+      {/* --- POP UP CARD --- */}
       <Dialog open={isOpen} onOpenChange={(val) => {
         if (!val && (step === "LOCATING" || step === "SUBMITTING")) return;
         setIsOpen(val);
         if (!val) setTimeout(() => setStep("IDLE"), 300);
       }}>
         <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-2xl gap-0">
+          {/* Header Animasi */}
           <div className={`h-32 w-full flex items-center justify-center ${
             step === "SUCCESS" ? "bg-green-100" : 
             step === "ERROR" ? "bg-red-100" : "bg-slate-50"
@@ -143,13 +144,15 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
                     <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl">
                         Batal
                     </Button>
-                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#1a4d2e] hover:bg-[#143d24] text-white">
+                    {/* BUTTON CONFIRM JADI MAROON */}
+                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#450a0a] hover:bg-[#5c0e0e] text-white">
                         Ya, Absen
                     </Button>
                  </div>
                )}
 
                {step === "SUCCESS" && (
+                 // Button tutup tetep Ijo biar visual "Success"-nya dapet
                  <Button onClick={handleCloseSuccess} className="w-full h-11 rounded-xl bg-green-600 hover:bg-green-700 text-white">
                     Tutup & Refresh
                  </Button>
