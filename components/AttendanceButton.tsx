@@ -27,9 +27,11 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
   const isMasuk = type === "IN";
   const label = isMasuk ? "Absen Masuk" : "Absen Pulang";
   
-  // Tombol Utama (Kuning Emas biar kontras sama Background Merah Dashboard)
+  // --- STYLE BARU YANG KALCER ---
+  // Background: Narvik (Krem Terang) | Text: Dark Brown | Border: Sorrell
+  // Ini bakal keliatan "Pop" di atas background Coklat Sorrell Dashboard
   const buttonStyle = isMasuk 
-    ? "bg-yellow-400 hover:bg-yellow-500 text-[#450a0a] shadow-lg shadow-yellow-400/20 border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1" 
+    ? "bg-[#EAE7DD] hover:bg-white text-[#5c4a3d] border-b-4 border-[#99775C] active:border-b-0 active:translate-y-1 shadow-lg shadow-black/10" 
     : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
 
   const handleAttendance = async () => {
@@ -90,29 +92,30 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
           disabled={disabled} 
           className={`h-14 px-10 rounded-xl text-lg font-bold transition-all ${buttonStyle}`}
       >
-        {isMasuk ? <Clock className="mr-2 h-6 w-6" /> : <MapPin className="mr-2 h-6 w-6" />}
+        {isMasuk ? <Clock className="mr-2 h-6 w-6 text-[#99775C]" /> : <MapPin className="mr-2 h-6 w-6" />}
         {label}
       </Button>
 
-      {/* --- POP UP CARD --- */}
+      {/* --- POP UP DIALOG --- */}
       <Dialog open={isOpen} onOpenChange={(val) => {
         if (!val && (step === "LOCATING" || step === "SUBMITTING")) return;
         setIsOpen(val);
         if (!val) setTimeout(() => setStep("IDLE"), 300);
       }}>
         <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-2xl gap-0">
-          {/* Header Animasi */}
+          
+          {/* Header Animasi (Warna ikon disesuaikan dikit biar ga nabrak) */}
           <div className={`h-32 w-full flex items-center justify-center ${
             step === "SUCCESS" ? "bg-green-100" : 
-            step === "ERROR" ? "bg-red-100" : "bg-slate-50"
+            step === "ERROR" ? "bg-red-100" : "bg-[#EAE7DD]"
           }`}>
-             {step === "IDLE" && <MapPin className="h-16 w-16 text-yellow-500 animate-bounce" />}
+             {step === "IDLE" && <MapPin className="h-16 w-16 text-[#99775C] animate-bounce" />}
              
              {(step === "LOCATING" || step === "SUBMITTING") && (
                 <div className="relative flex items-center justify-center">
-                    <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-yellow-400 opacity-20"></span>
+                    <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-[#99775C] opacity-20"></span>
                     <div className="relative bg-white p-4 rounded-full shadow-sm">
-                        <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
+                        <Loader2 className="h-10 w-10 text-[#99775C] animate-spin" />
                     </div>
                 </div>
              )}
@@ -141,18 +144,18 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
             <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center w-full">
                {step === "IDLE" && (
                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl">
+                    <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl hover:bg-slate-50">
                         Batal
                     </Button>
-                    {/* BUTTON CONFIRM JADI MAROON */}
-                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#450a0a] hover:bg-[#5c0e0e] text-white">
+                    
+                    {/* TOMBOL KONFIRMASI: SORRELL BROWN */}
+                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white">
                         Ya, Absen
                     </Button>
                  </div>
                )}
 
                {step === "SUCCESS" && (
-                 // Button tutup tetep Ijo biar visual "Success"-nya dapet
                  <Button onClick={handleCloseSuccess} className="w-full h-11 rounded-xl bg-green-600 hover:bg-green-700 text-white">
                     Tutup & Refresh
                  </Button>

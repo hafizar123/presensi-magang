@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Inter } from "next/font/google"; 
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import { Toaster } from "@/components/ui/sonner"; 
-import { ThemeProvider } from "@/components/theme-provider"; // <--- IMPORT INI
+import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Outfit({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "Presensi Magang Dinas DIKPORA",
-  description: "Sistem Presensi Magang",
+  title: "SIP-MAGANG",
+  description: "Sistem Presensi Magang Disdikpora",
 };
 
 export default function RootLayout({
@@ -19,9 +23,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning> 
-      <body className={inter.className}>
+      <body className={`${inter.className} tracking-tight antialiased`}>
         <AuthProvider>
-           {/* Bungkus semuanya pake ThemeProvider */}
            <ThemeProvider
             attribute="class"
             defaultTheme="system"

@@ -25,11 +25,13 @@ export default function RealtimeClock() {
 
   return (
     <div className="flex flex-col items-center justify-center text-center">
-      <div className="text-6xl md:text-7xl font-mono font-bold tracking-tighter text-white leading-none">
+      {/* JAM: Tetap Putih biar kontras di BG Gelap */}
+      <div className="text-6xl md:text-7xl font-mono font-bold tracking-tighter text-white leading-none drop-shadow-sm">
         {formattedTime}
       </div>
-      {/* UPDATE WARNA TEKS TANGGAL */}
-      <p className="text-sm md:text-base font-medium text-red-100/80 mt-3 uppercase tracking-wide">
+      
+      {/* TANGGAL: Pakai warna NARVIK (#EAE7DD) biar nyatu sama tema Earth Tone */}
+      <p className="text-sm md:text-base font-medium text-[#EAE7DD] mt-3 uppercase tracking-widest opacity-90">
         {formattedDate}
       </p>
     </div>
