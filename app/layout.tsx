@@ -1,27 +1,37 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import Providers from "@/components/Providers";
+import AuthProvider from "@/components/AuthProvider";
+import { Toaster } from "@/components/ui/sonner"; 
+import { ThemeProvider } from "@/components/theme-provider"; // <--- IMPORT INI
 
-const outfit = Outfit({ subsets: ["latin"] });
+const inter = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Presensi Magang Dinas DIKPORA",
-  description: "Sistem Presensi Internal",
+  description: "Sistem Presensi Magang",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      {/* TAMBAHIN suppressHydrationWarning JUGA DI BODY BIAR AMAN DARI EXTENSION */}
-      <body className={outfit.className} suppressHydrationWarning>
-        <Providers>
-          {children}
-        </Providers>
+    <html lang="id" suppressHydrationWarning> 
+      <body className={inter.className}>
+        <AuthProvider>
+           {/* Bungkus semuanya pake ThemeProvider */}
+           <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster position="top-center" richColors />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

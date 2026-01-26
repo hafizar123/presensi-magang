@@ -2,124 +2,168 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, MapPin, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Fingerprint, MapPinOff } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface AttendanceButtonProps {
-  disabled: boolean;
-  label: string;
+  type: "IN" | "OUT";
+  disabled?: boolean;
 }
 
-export default function AttendanceButton({ disabled, label }: AttendanceButtonProps) {
+export default function AttendanceButton({ type, disabled }: AttendanceButtonProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState<"IDLE" | "LOCATING" | "SUBMITTING" | "SUCCESS" | "ERROR">("IDLE");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // --- 📍 KONFIGURASI LOKASI KANTOR (DISDIKPORA DIY) ---
-  // Ganti ini pake koordinat asli dari Google Maps!
-  // Cara cek: Buka Maps, klik kanan di gedung kantor, copy angkanya.
-  const OFFICE_LAT = -7.7993239; 
-  const OFFICE_LNG = 110.3843580;
-  const MAX_RADIUS_METERS = 100; // Radius toleransi (meter)
+  const isMasuk = type === "IN";
+  const label = isMasuk ? "Absen Masuk" : "Absen Pulang";
+  
+  // UPDATE WARNA: Kuning Emas (Yellow-400) dengan Teks Hijau Gelap
+  const buttonStyle = isMasuk 
+    ? "bg-yellow-400 hover:bg-yellow-500 text-[#1a4d2e] shadow-lg shadow-yellow-400/20 border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1" 
+    : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
 
-  // Rumus Haversine (Matematika buat ngitung jarak di bumi)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // Jari-jari bumi dalam meter
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const handleAttendance = async () => {
+    setStep("LOCATING");
+    setErrorMessage("");
 
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c; // Hasil dalam meter
-  };
-
-  const handleAbsen = async () => {
-    setLoading(true);
-
-    // 1. Cek Support Browser
     if (!navigator.geolocation) {
-      alert("Browser lu ga support GPS bro, ganti HP gih.");
-      setLoading(false);
+      setStep("ERROR");
+      setErrorMessage("Browser tidak support GPS.");
       return;
     }
 
-    // 2. Ambil Lokasi
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-
-        // 3. Hitung Jarak
-        const distance = calculateDistance(userLat, userLng, OFFICE_LAT, OFFICE_LNG);
-        console.log(`Jarak User: ${distance.toFixed(2)} meter`); // Buat debugging di console
-
-        // 4. Validasi Radius
-        if (distance > MAX_RADIUS_METERS) {
-          alert(`Waduh! Kejauhan bro. Lu berjarak ${distance.toFixed(0)} meter dari kantor. (Max: ${MAX_RADIUS_METERS}m)`);
-          setLoading(false);
-          return;
-        }
-
-        // 5. Kalo Lolos, Lanjut Tembak API
-        if (!confirm("Lokasi valid! Yakin mau absen sekarang?")) {
-            setLoading(false);
-            return;
-        }
-
         try {
-          const res = await fetch("/api/attendance", { method: "POST" });
+          setStep("SUBMITTING");
+          const { latitude, longitude } = position.coords;
+
+          const res = await fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type, latitude, longitude }),
+          });
+
           const data = await res.json();
 
-          if (res.ok) {
-            alert(`MANTAP! Absen berhasil. Status: ${data.status}`);
-            router.refresh();
-          } else {
-            alert(data.message);
-          }
-        } catch (error) {
-          alert("Gagal konek server");
-        } finally {
-          setLoading(false);
+          if (!res.ok) throw new Error(data.message || "Gagal absen.");
+
+          setStep("SUCCESS");
+          
+        } catch (error: any) {
+            setStep("ERROR");
+            setErrorMessage(error.message);
         }
       },
       (error) => {
-        // Handle Error GPS (Misal user nolak akses lokasi)
-        console.error(error);
-        alert("Gagal ambil lokasi. Pastiin GPS nyala dan izinkan akses lokasi di browser!");
-        setLoading(false);
+        setStep("ERROR");
+        let msg = "Gagal ambil lokasi.";
+        if (error.code === 1) msg = "Izin lokasi ditolak. Aktifkan GPS!";
+        else if (error.code === 2) msg = "Sinyal GPS lemah/hilang.";
+        else if (error.code === 3) msg = "Waktu habis (Timeout).";
+        setErrorMessage(msg);
       },
-      { enableHighAccuracy: true } // Biar akurat banget
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
+  const handleCloseSuccess = () => {
+    setIsOpen(false);
+    router.refresh();
+    setTimeout(() => setStep("IDLE"), 300);
+  };
+
   return (
-    <div className="w-full max-w-xs">
-      <Button
-        size="lg"
-        onClick={handleAbsen}
-        disabled={disabled || loading}
-        className={`w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2 ${
-          disabled
-            ? "bg-slate-200 text-slate-400 hover:bg-slate-200 cursor-not-allowed shadow-none"
-            : "bg-blue-600 hover:bg-blue-700 text-white"
-        }`}
+    <>
+      <Button 
+          onClick={() => setIsOpen(true)}
+          disabled={disabled} 
+          className={`h-14 px-10 rounded-xl text-lg font-bold transition-all ${buttonStyle}`}
       >
-        {loading ? (
-          <>
-            <Loader2 className="animate-spin h-5 w-5" />
-            Cek Lokasi...
-          </>
-        ) : (
-          <>
-            {!disabled && <Fingerprint className="h-6 w-6" />}
-            {label}
-          </>
-        )}
+        {isMasuk ? <Clock className="mr-2 h-6 w-6" /> : <MapPin className="mr-2 h-6 w-6" />}
+        {label}
       </Button>
-    </div>
+
+      {/* --- POP UP CARD TETEP SAMA --- */}
+      <Dialog open={isOpen} onOpenChange={(val) => {
+        if (!val && (step === "LOCATING" || step === "SUBMITTING")) return;
+        setIsOpen(val);
+        if (!val) setTimeout(() => setStep("IDLE"), 300);
+      }}>
+        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-2xl gap-0">
+          <div className={`h-32 w-full flex items-center justify-center ${
+            step === "SUCCESS" ? "bg-green-100" : 
+            step === "ERROR" ? "bg-red-100" : "bg-slate-50"
+          }`}>
+             {step === "IDLE" && <MapPin className="h-16 w-16 text-yellow-500 animate-bounce" />}
+             
+             {(step === "LOCATING" || step === "SUBMITTING") && (
+                <div className="relative flex items-center justify-center">
+                    <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-yellow-400 opacity-20"></span>
+                    <div className="relative bg-white p-4 rounded-full shadow-sm">
+                        <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
+                    </div>
+                </div>
+             )}
+
+             {step === "SUCCESS" && <CheckCircle2 className="h-20 w-20 text-green-600 animate-in zoom-in duration-300" />}
+             {step === "ERROR" && <XCircle className="h-20 w-20 text-red-600 animate-in shake duration-300" />}
+          </div>
+
+          <div className="p-6">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-center text-xl font-bold text-slate-800">
+                {step === "IDLE" && "Konfirmasi Lokasi"}
+                {(step === "LOCATING" || step === "SUBMITTING") && "Memproses..."}
+                {step === "SUCCESS" && "Presensi Berhasil!"}
+                {step === "ERROR" && "Gagal Absen"}
+              </DialogTitle>
+              <DialogDescription className="text-center text-slate-500">
+                {step === "IDLE" && "Pastikan kamu sudah berada di area kantor sebelum melanjutkan."}
+                {step === "LOCATING" && "Sedang mencari titik koordinat GPS..."}
+                {step === "SUBMITTING" && "Mengirim data ke server..."}
+                {step === "SUCCESS" && `Data ${label.toLowerCase()} kamu telah tersimpan.`}
+                {step === "ERROR" && errorMessage}
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center w-full">
+               {step === "IDLE" && (
+                 <div className="grid grid-cols-2 gap-3 w-full">
+                    <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl">
+                        Batal
+                    </Button>
+                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#1a4d2e] hover:bg-[#143d24] text-white">
+                        Ya, Absen
+                    </Button>
+                 </div>
+               )}
+
+               {step === "SUCCESS" && (
+                 <Button onClick={handleCloseSuccess} className="w-full h-11 rounded-xl bg-green-600 hover:bg-green-700 text-white">
+                    Tutup & Refresh
+                 </Button>
+               )}
+
+               {step === "ERROR" && (
+                 <Button variant="outline" onClick={() => setStep("IDLE")} className="w-full h-11 rounded-xl border-red-200 text-red-600 hover:bg-red-50">
+                    Coba Lagi
+                 </Button>
+               )}
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
