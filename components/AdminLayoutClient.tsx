@@ -17,8 +17,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const menuItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Manajemen User", icon: Users }, // Fitur Manajemen User (Admin/Intern)
   { href: "/admin/announcements", label: "Pengumuman", icon: Bell },
-  { href: "/admin/interns", label: "Data Magang", icon: Users },
+  { href: "/admin/interns", label: "Data Magang", icon: ClipboardList }, // Data Magang (Periode)
   { href: "/admin/izin", label: "Perizinan", icon: FileText },
   { href: "/admin/rekap", label: "Rekap Absensi", icon: ClipboardList },
   { href: "/admin/settings", label: "Pengaturan", icon: Settings },

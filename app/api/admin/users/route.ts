@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
-
-// 1. GET: Ambil Semua User
+// GET: Ambil semua data user
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
@@ -14,29 +12,30 @@ export async function GET() {
         name: true,
         email: true,
         role: true,
-        createdAt: true,
-        // Password JANGAN dikirim ke frontend demi keamanan
+        nip: true,
+        jabatan: true,
+        image: true,
       },
     });
     return NextResponse.json(users);
   } catch (error) {
-    return NextResponse.json({ error: "Gagal ambil data" }, { status: 500 });
+    return NextResponse.json({ message: "Gagal mengambil data" }, { status: 500 });
   }
 }
 
-// 2. POST: Tambah User Baru
-export async function POST(request: Request) {
+// POST: Tambah User Baru
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { name, email, password, role } = body;
+    const body = await req.json();
+    const { name, email, password, role, nip, jabatan } = body;
 
     // Cek email duplikat
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
+      return NextResponse.json({ message: "Email sudah terdaftar" }, { status: 400 });
     }
 
-    // Hash Password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
@@ -45,73 +44,52 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role,
+        nip,
+        jabatan,
       },
     });
 
     return NextResponse.json(newUser);
   } catch (error) {
-    return NextResponse.json({ error: "Gagal tambah user" }, { status: 500 });
+    return NextResponse.json({ message: "Gagal menambah user" }, { status: 500 });
   }
 }
 
-// 3. PUT: Edit User (INI BAGIAN PENTING YANG LO BUTUHIN BRO) ✅
-export async function PUT(request: Request) {
+// DELETE: Hapus User
+export async function DELETE(req: Request) {
   try {
-    const body = await request.json();
-    const { id, name, email, password, role } = body;
-
-    // Siapin data yang mau diupdate
-    const updateData: any = {
-      name,
-      email,
-      role,
-    };
-
-    // Logic Cerdik:
-    // Kalo password diisi, kita hash terus update.
-    // Kalo password kosong, JANGAN diapa-apain (biar password lama gak ilang/berubah jadi kosong).
-    if (password && password.length > 0) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateData.password = hashedPassword;
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
-
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    console.error("Error update:", error);
-    return NextResponse.json({ error: "Gagal update user" }, { status: 500 });
-  }
-}
-
-// 4. DELETE: Hapus User
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    if (!id) {
-      return NextResponse.json({ error: "ID user diperlukan" }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ message: "ID required" }, { status: 400 });
 
-    // Hapus data terkait dulu (biar database ga ngamuk constraint error)
-    // 1. Hapus Absensi
-    await prisma.attendance.deleteMany({ where: { userId: id } });
-    // 2. Hapus Request Izin
-    await prisma.leaveRequest.deleteMany({ where: { userId: id } });
-    // 3. Hapus Profile Magang
-    await prisma.internProfile.deleteMany({ where: { userId: id } });
-    
-    // 4. Baru Hapus Usernya
-    await prisma.user.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ message: "User deleted" });
+    await prisma.user.delete({ where: { id } });
+    return NextResponse.json({ message: "User dihapus" });
   } catch (error) {
-    return NextResponse.json({ error: "Gagal hapus user" }, { status: 500 });
+    return NextResponse.json({ message: "Gagal menghapus user" }, { status: 500 });
   }
+}
+
+// PUT: Edit User (Simple version)
+export async function PUT(req: Request) {
+    try {
+      const body = await req.json();
+      const { id, name, email, role, nip, jabatan, password } = body;
+  
+      const dataToUpdate: any = { name, email, role, nip, jabatan };
+      
+      // Kalo password diisi, update password juga
+      if (password) {
+        dataToUpdate.password = await bcrypt.hash(password, 10);
+      }
+  
+      await prisma.user.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+  
+      return NextResponse.json({ message: "User diupdate" });
+    } catch (error) {
+      return NextResponse.json({ message: "Gagal update user" }, { status: 500 });
+    }
 }

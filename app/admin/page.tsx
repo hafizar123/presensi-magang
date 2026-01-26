@@ -6,11 +6,13 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
 
-  // 1. STATS LOGIC (SAMA KAYA KEMAREN)
+  // 1. STATS LOGIC
   const totalInterns = await prisma.user.count({ where: { role: "INTERN" } });
   
   const today = new Date();
@@ -30,39 +32,44 @@ export default async function AdminDashboard() {
     where: { status: "PENDING" },
   });
 
-  // 2. FETCH RECENT ACTIVITY (GABUNGAN ATTENDANCE & IZIN)
+  // 2. FETCH DATA UNTUK TABEL
   const recentAttendance = await prisma.attendance.findMany({
-    take: 3,
+    take: 5,
     orderBy: { createdAt: 'desc' },
     include: { user: true }
   });
 
   const recentLeaves = await prisma.leaveRequest.findMany({
-    take: 2,
+    take: 5,
     orderBy: { createdAt: 'desc' },
     include: { user: true }
   });
 
-  // Gabungin data biar jadi satu list aktivitas
+  // Gabungin & Sortir
   const activities = [
     ...recentAttendance.map(a => ({
         id: a.id,
         user: a.user,
-        type: a.status === 'HADIR' ? 'Hadir Tepat Waktu' : 'Terlambat',
+        activity: a.status === 'HADIR' ? 'Presensi Masuk' : 'Terlambat',
+        detail: a.status === 'HADIR' ? 'Hadir Tepat Waktu' : 'Absen melebihi jam masuk',
         time: a.createdAt,
-        statusColor: a.status === 'HADIR' ? 'text-green-600' : 'text-orange-600'
+        type: 'ATTENDANCE',
+        status: a.status 
     })),
     ...recentLeaves.map(l => ({
         id: l.id,
         user: l.user,
-        type: 'Mengajukan Izin',
+        activity: 'Pengajuan Izin',
+        detail: l.reason,
         time: l.createdAt,
-        statusColor: 'text-blue-600'
+        type: 'LEAVE',
+        status: l.status 
     }))
-  ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 5);
+  ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 7); 
 
   return (
     <div className="space-y-8">
+      {/* SECTION 1: HEADER & STATS */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-slate-800 dark:text-[#EAE7DD]">Dashboard Overview</h2>
         <p className="text-slate-500 dark:text-gray-400 mt-1">Ringkasan aktivitas sistem presensi hari ini.</p>
@@ -75,38 +82,83 @@ export default async function AdminDashboard() {
         <AdminStatsCard title="Pengajuan Izin" value={izinPending} icon={FileText} desc="Menunggu Persetujuan" color="text-red-600 dark:text-red-400" />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
-            <CardHeader>
-                <CardTitle className="text-lg font-bold text-slate-800 dark:text-[#EAE7DD] flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-[#99775C]" /> Aktivitas Terbaru
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
+      {/* SECTION 2: TABEL AKTIVITAS TERBARU (FULL WIDTH) */}
+      <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
+        <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4">
+            <CardTitle className="text-lg font-bold text-slate-800 dark:text-[#EAE7DD] flex items-center gap-2">
+                <Activity className="h-5 w-5 text-[#99775C]" /> Aktivitas Terbaru
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+            <Table>
+                {/* HEADER TABEL: COKLAT SORRELL */}
+                <TableHeader className="bg-[#99775C]">
+                    <TableRow className="hover:bg-[#99775C] border-none">
+                        {/* KOLOM NO */}
+                        <TableHead className="text-white font-semibold w-16 text-center">No</TableHead>
+                        
+                        <TableHead className="text-white font-semibold">Peserta</TableHead>
+                        <TableHead className="text-white font-semibold">Aktivitas</TableHead>
+                        <TableHead className="text-white font-semibold">Detail / Alasan</TableHead>
+                        <TableHead className="text-white font-semibold text-right pr-6">Waktu</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
                     {activities.length === 0 ? (
-                        <div className="text-sm text-slate-500 text-center py-4">Belum ada aktivitas.</div>
+                        <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center text-slate-500">
+                                Belum ada aktivitas tercatat.
+                            </TableCell>
+                        </TableRow>
                     ) : (
-                        activities.map((item) => (
-                            <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] transition-colors">
-                                <Avatar className="h-10 w-10 border border-[#99775C]/20">
-                                    <AvatarImage src={item.user.image || ""} />
-                                    <AvatarFallback className="bg-[#99775C] text-white">{item.user.name[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <p className="text-sm font-bold text-slate-800 dark:text-[#EAE7DD]">{item.user.name}</p>
-                                    <p className={`text-xs font-medium ${item.statusColor}`}>{item.type}</p>
-                                </div>
-                                <div className="text-xs text-slate-400">
-                                    {new Date(item.time).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            </div>
+                        activities.map((item, index) => (
+                            <TableRow key={item.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524]">
+                                {/* NOMOR URUT */}
+                                <TableCell className="text-center font-medium text-slate-500 dark:text-slate-400">
+                                    {index + 1}
+                                </TableCell>
+
+                                {/* KOLOM PESERTA */}
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-9 w-9 border border-[#99775C]/20">
+                                            <AvatarImage src={item.user.image || ""} />
+                                            <AvatarFallback className="bg-[#99775C] text-white">{item.user.name[0]}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium text-slate-800 dark:text-[#EAE7DD]">{item.user.name}</div>
+                                            <div className="text-[10px] text-slate-500 uppercase">{item.user.role}</div>
+                                        </div>
+                                    </div>
+                                </TableCell>
+
+                                {/* KOLOM AKTIVITAS (BADGE) */}
+                                <TableCell>
+                                    {item.type === 'ATTENDANCE' ? (
+                                        item.status === 'HADIR' ? 
+                                            <Badge className="bg-green-100 text-green-700 border-none hover:bg-green-200">Presensi Masuk</Badge> : 
+                                            <Badge className="bg-orange-100 text-orange-700 border-none hover:bg-orange-200">Terlambat</Badge>
+                                    ) : (
+                                        <Badge className="bg-blue-100 text-blue-700 border-none hover:bg-blue-200">Pengajuan Izin</Badge>
+                                    )}
+                                </TableCell>
+
+                                {/* KOLOM DETAIL */}
+                                <TableCell className="text-slate-600 dark:text-gray-400 max-w-[200px] truncate">
+                                    {item.detail}
+                                </TableCell>
+
+                                {/* KOLOM WAKTU */}
+                                <TableCell className="text-right pr-6 font-mono text-xs text-slate-500">
+                                    {new Date(item.time).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' })} • {new Date(item.time).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
+                                </TableCell>
+                            </TableRow>
                         ))
                     )}
-                </div>
-            </CardContent>
-        </Card>
-      </div>
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

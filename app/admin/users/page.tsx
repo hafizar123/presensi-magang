@@ -1,29 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { 
-  Plus, Search, Trash2, Loader2, UserPlus, Shield, User, Mail, Calendar, 
-  Pencil, CheckCircle2, Lock, AlertTriangle, X, Eye, EyeOff 
-} from "lucide-react";
-
+import { useState, useEffect } from "react";
+import { Plus, Search, Trash2, Edit, User, Loader2, Save, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,542 +21,353 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type UserData = {
-  id: string;
-  name: string;
-  email: string;
-  role: "ADMIN" | "INTERN";
-  createdAt: string;
-};
-
-export default function UserManagementPage() {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
   
-  // State Modal Add & Edit
-  const [openAdd, setOpenAdd] = useState(false);
-  const [addSuccess, setAddSuccess] = useState(false);
-  
-  const [openEdit, setOpenEdit] = useState(false);
-  const [editSuccess, setEditSuccess] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  // State Modal
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // State Modal Delete Success (BARU!)
-  const [deleteSuccess, setDeleteSuccess] = useState(false);
-
-  // Password Visibility State
+  // State Visibility Password
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Form State
+  // Form Data
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "", 
-    role: "INTERN" as "ADMIN" | "INTERN",
+    name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nip: "", jabatan: ""
   });
-  
-  const [isSaving, setIsSaving] = useState(false);
 
+  // 1. Fetch Data
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/admin/users");
       const data = await res.json();
       setUsers(data);
     } catch (error) {
-      console.error("Gagal ambil data user");
+      toast.error("Gagal mengambil data user");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  useEffect(() => { fetchUsers(); }, []);
 
-  const resetForm = () => {
-    setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN" });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-  };
-
-  // --- HANDLE ADD USER ---
-  const handleAddUser = async () => {
-    if(!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-        return alert("Waduh, isi semua datanya dulu bro!");
-    }
-    if(formData.password !== formData.confirmPassword) {
-        return alert("Password dan Konfirmasi Password Tidak Sesuai!");
-    }
+  // 2. Handle Submit (Add/Edit)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    setIsSaving(true);
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            role: formData.role
-        }),
-      });
-
-      if (res.ok) {
-        setAddSuccess(true); // Munculin Centang
-        fetchUsers();
-        resetForm();
-        // HAPUS TIMEOUT, BIAR USER KLIK TUTUP MANUAL
-      } else {
-        alert("Gagal bro, cek email mungkin duplikat?");
-      }
-    } catch (error) {
-      alert("Error server");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // --- PREPARE EDIT ---
-  const openEditModal = (user: UserData) => {
-    setSelectedUser(user);
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    
-    setFormData({
-        name: user.name,
-        email: user.email,
-        password: "", 
-        confirmPassword: "",
-        role: user.role
-    });
-    setOpenEdit(true);
-  };
-
-  // --- HANDLE EDIT USER ---
-  const handleEditUser = async () => {
-    if(!selectedUser) return;
-
+    // Validasi Password Match (Cuma kalo password diisi)
     if (formData.password && formData.password !== formData.confirmPassword) {
-        return alert("Password dan Konfrimasi Password Tidak Sesuai!");
+        toast.error("Password tidak cocok!", { description: "Pastikan konfirmasi password sama." });
+        return;
     }
 
     setIsSaving(true);
+    
     try {
-        const payload: any = { 
-            id: selectedUser.id, 
-            name: formData.name,
-            email: formData.email,
-            role: formData.role
-        };
-        if (formData.password) {
-            payload.password = formData.password;
-        }
+        const method = editingId ? "PUT" : "POST";
+        const body = editingId ? { ...formData, id: editingId } : formData;
 
         const res = await fetch("/api/admin/users", {
-            method: "PUT",
+            method,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(body),
         });
 
-        if (res.ok) {
-            setEditSuccess(true); // Munculin Centang
-            fetchUsers();
-            // HAPUS TIMEOUT, MANUAL CLOSE
-        } else {
-            alert("Gagal update user");
-        }
-    } catch (error) {
-        alert("Error server");
+        const result = await res.json();
+
+        if (!res.ok) throw new Error(result.message || "Gagal menyimpan data");
+
+        toast.success(editingId ? "User diperbarui" : "User berhasil ditambahkan");
+        setIsDialogOpen(false);
+        fetchUsers(); 
+        resetForm();
+    } catch (error: any) {
+        toast.error(error.message || "Terjadi kesalahan");
     } finally {
         setIsSaving(false);
     }
   };
 
-  // --- HANDLE DELETE USER ---
-  const handleDelete = async (id: string) => {
-      try {
-        const res = await fetch(`/api/admin/users?id=${id}`, {
-          method: "DELETE",
-        });
-        if (res.ok) {
-          fetchUsers();
-          setDeleteSuccess(true); // TRIGGER POPUP SUKSES HAPUS
-        }
-      } catch (error) {
-        alert("Gagal hapus");
-      }
+  // 3. Handle Delete
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+        await fetch(`/api/admin/users?id=${deletingId}`, { method: "DELETE" });
+        toast.success("User dihapus");
+        setUsers(users.filter(u => u.id !== deletingId));
+    } catch (error) {
+        toast.error("Gagal menghapus");
+    } finally {
+        setIsAlertOpen(false);
+    }
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const resetForm = () => {
+      setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nip: "", jabatan: "" });
+      setEditingId(null);
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+  };
+
+  const openEdit = (user: any) => {
+      setEditingId(user.id);
+      setFormData({ 
+          name: user.name, 
+          email: user.email, 
+          password: "", 
+          confirmPassword: "",
+          role: user.role, 
+          nip: user.nip || "", 
+          jabatan: user.jabatan || "" 
+      });
+      setIsDialogOpen(true);
+  };
+
+  // Filter Search
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(search.toLowerCase()) || 
+    user.email.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
-      
-      {/* --- POP-UP SUKSES DELETE (BARU) --- */}
-      <Dialog open={deleteSuccess} onOpenChange={setDeleteSuccess}>
-        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden rounded-2xl">
-            <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
-                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
-                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
-                </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Berhasil Dihapus!</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
-                    Data user telah dihapus permanen dari sistem.
-                </p>
-                <Button 
-                    onClick={() => setDeleteSuccess(false)}
-                    className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
-                >
-                    Tutup
-                </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">Manajemen Pengguna</h2>
+            <p className="text-slate-500 dark:text-gray-400">Kelola akun admin dan peserta magang.</p>
+        </div>
+        <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="bg-[#99775C] hover:bg-[#7a5e48] text-white">
+            <Plus className="mr-2 h-4 w-4" /> Tambah User
+        </Button>
+      </div>
+
+      <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
+        <CardHeader className="pb-4 border-b border-slate-100 dark:border-[#292524]">
+            <div className="relative max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                <Input 
+                    placeholder="Cari nama atau email..." 
+                    className="pl-9 bg-slate-50 dark:bg-[#292524] border-none text-slate-800 dark:text-slate-200" 
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
             </div>
+        </CardHeader>
+        <CardContent className="p-0">
+            <Table>
+                {/* HEADER TABEL COKLAT SORRELL */}
+                <TableHeader className="bg-[#99775C]">
+                    <TableRow className="hover:bg-[#99775C] border-none">
+                        <TableHead className="text-white font-semibold w-12 text-center">No</TableHead>
+                        <TableHead className="text-white font-semibold">User Profile</TableHead>
+                        <TableHead className="text-white font-semibold">Divisi</TableHead>
+                        <TableHead className="text-white font-semibold">NIP / NIM</TableHead>
+                        <TableHead className="text-white font-semibold">Role</TableHead>
+                        <TableHead className="text-white font-semibold">Jabatan</TableHead>
+                        <TableHead className="text-white font-semibold text-center w-28">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
+                        <TableRow><TableCell colSpan={7} className="h-24 text-center text-slate-500">Memuat data...</TableCell></TableRow>
+                    ) : filteredUsers.length === 0 ? (
+                        <TableRow><TableCell colSpan={7} className="h-24 text-center text-slate-500">Tidak ada user ditemukan.</TableCell></TableRow>
+                    ) : (
+                        filteredUsers.map((user, index) => (
+                            <TableRow key={user.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524]">
+                                {/* NO */}
+                                <TableCell className="text-center font-medium text-slate-500">
+                                    {index + 1}
+                                </TableCell>
+
+                                {/* USER PROFILE */}
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-9 w-9 border border-[#99775C]/20">
+                                            <AvatarImage src={user.image} />
+                                            <AvatarFallback className="bg-[#99775C] text-white">{user.name[0]}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium text-slate-800 dark:text-[#EAE7DD]">{user.name}</div>
+                                            <div className="text-xs text-slate-500">{user.email}</div>
+                                        </div>
+                                    </div>
+                                </TableCell>
+
+                                {/* DIVISI (Placeholder) */}
+                                <TableCell className="text-slate-600 dark:text-gray-400 text-sm">
+                                    -
+                                </TableCell>
+
+                                {/* NIP/NIM */}
+                                <TableCell className="text-slate-600 dark:text-gray-400 font-mono text-xs">
+                                    {user.nip || "-"}
+                                </TableCell>
+
+                                {/* ROLE */}
+                                <TableCell>
+                                    <Badge variant="outline" className="border-[#99775C] text-[#99775C] dark:text-[#EAE7DD] text-[10px]">
+                                        {user.role}
+                                    </Badge>
+                                </TableCell>
+
+                                {/* JABATAN */}
+                                <TableCell className="text-slate-700 dark:text-slate-300 text-sm">
+                                    {user.jabatan || "-"}
+                                </TableCell>
+
+                                {/* AKSI (LANGSUNG ICON) */}
+                                <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                            onClick={() => openEdit(user)}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            onClick={() => { setDeletingId(user.id); setIsAlertOpen(true); }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
+
+      {/* DIALOG ADD/EDIT USER - UKURAN LEBIH BESAR (max-w-2xl) */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">
+                    {editingId ? "Edit Data User" : "Tambah User Baru"}
+                </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6 py-4">
+                
+                {/* SECTION 1: IDENTITAS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label>Nama Lengkap</Label>
+                        <Input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Masukkan Nama Lengkap" className="h-11" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="Masukkan Email" className="h-11" />
+                    </div>
+                </div>
+                
+                {/* SECTION 2: PASSWORD (DENGAN TOGGLE MATA) */}
+                <div className="p-4 bg-slate-50 dark:bg-[#1c1917] rounded-xl space-y-4 border border-slate-100 dark:border-[#292524]">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Keamanan Akun</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2 relative">
+                            <Label>Password {editingId && "(Opsional)"}</Label>
+                            <div className="relative">
+                                <Input 
+                                    type={showPassword ? "text" : "password"} 
+                                    value={formData.password} 
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                                    placeholder="Masukkan Password" 
+                                    required={!editingId} 
+                                    className="h-11 pr-10" 
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-2 relative">
+                            <Label>Konfirmasi Password</Label>
+                            <div className="relative">
+                                <Input 
+                                    type={showConfirmPassword ? "text" : "password"} 
+                                    value={formData.confirmPassword} 
+                                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} 
+                                    placeholder="Masukkan Konfirmasi Password" 
+                                    required={!editingId || !!formData.password} // Wajib kalau bikin baru ATAU lagi ganti password
+                                    className={`h-11 pr-10 ${formData.confirmPassword && formData.password !== formData.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}`} 
+                                />
+                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                                <p className="text-[10px] text-red-500 absolute -bottom-4">Password tidak cocok.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* SECTION 3: ROLE & JABATAN */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <Label>Role Akses</Label>
+                        <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
+                            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="INTERN">Peserta Magang</SelectItem>
+                                <SelectItem value="ADMIN">Admin / Pembimbing</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>NIP / NIM (Opsional)</Label>
+                        <Input value={formData.nip} onChange={(e) => setFormData({...formData, nip: e.target.value})} placeholder="Masukkan NIP / NIM" className="h-11" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Jabatan (Opsional)</Label>
+                        <Input value={formData.jabatan} onChange={(e) => setFormData({...formData, jabatan: e.target.value})} placeholder="Masukkan Jabatan" className="h-11" />
+                    </div>
+                </div>
+
+                <DialogFooter className="pt-4 border-t border-slate-100 dark:border-[#292524]">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="h-11 px-6">Batal</Button>
+                    <Button type="submit" className="bg-[#99775C] hover:bg-[#7a5e48] text-white h-11 px-6" disabled={isSaving || (formData.password !== formData.confirmPassword)}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Simpan Data
+                    </Button>
+                </DialogFooter>
+            </form>
         </DialogContent>
       </Dialog>
 
-      {/* Header Halaman */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Manajemen Pengguna</h1>
-          <p className="text-slate-500 dark:text-slate-400">Tambah admin baru atau kelola akun anak magang.</p>
-        </div>
-        
-        {/* --- DIALOG TAMBAH USER --- */}
-        <Dialog open={openAdd} onOpenChange={(v) => {setOpenAdd(v); if(!v) setAddSuccess(false); if(!v) resetForm();}}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 text-white transition-all">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Tambah User
-            </Button>
-          </DialogTrigger>
-          
-          <DialogContent className={`${addSuccess ? "sm:max-w-[400px]" : "sm:max-w-[500px]"} bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden gap-0 transition-all duration-300 rounded-2xl`}>
-            {addSuccess ? (
-                // SUKSES VIEW ADD
-                <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95">
-                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
-                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Berhasil Dibuat!</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data login sudah siap digunakan.</p>
-                    <Button 
-                        onClick={() => setOpenAdd(false)}
-                        className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
-                    >
-                        Tutup
-                    </Button>
-                </div>
-            ) : (
-                // FORM VIEW ADD (Sama kayak sebelumnya)
-                <>
-                    <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                        <DialogHeader>
-                            <DialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-3 text-xl">
-                                <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                                    <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                Tambah User Baru
-                            </DialogTitle>
-                            <DialogDescription className="text-slate-500 dark:text-slate-400">
-                                Isi formulir di bawah untuk mendaftarkan akun baru.
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
-                    
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        {/* ... Input Fields (User, Email, Pass, Role) copy dari sebelumnya ... */}
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Nama Lengkap" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input type="email" className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input type={showPassword ? "text" : "password"} className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="••••••" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input type={showConfirmPassword ? "text" : "password"} className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="••••••" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
-                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
-                            <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}>
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"><SelectValue placeholder="Pilih Role" /></SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"><SelectItem value="INTERN">Anak Magang (Intern)</SelectItem><SelectItem value="ADMIN">Admin / Pembimbing</SelectItem></SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+      {/* ALERT DELETE */}
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Hapus Pengguna?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Tindakan ini tidak dapat dibatalkan. Akun ini akan dihapus permanen dari database.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">
+                    Ya, Hapus
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-                    <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setOpenAdd(false)}>Batal</Button>
-                        <Button onClick={handleAddUser} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6">{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Simpan User"}</Button>
-                    </div>
-                </>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* --- DIALOG EDIT USER (UPDATED) --- */}
-        <Dialog open={openEdit} onOpenChange={(v) => {setOpenEdit(v); if(!v) setEditSuccess(false);}}>
-          <DialogContent className={`${editSuccess ? "sm:max-w-[400px]" : "sm:max-w-[500px]"} bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden gap-0 transition-all duration-300 rounded-2xl`}>
-            {editSuccess ? (
-                // SUKSES VIEW EDIT
-                <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95">
-                    <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
-                        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Update Berhasil!</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Data user telah diperbarui.</p>
-                    <Button 
-                        onClick={() => setOpenEdit(false)}
-                        className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
-                    >
-                        Tutup
-                    </Button>
-                </div>
-            ) : (
-                // FORM VIEW EDIT
-                <>
-                    <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                        <DialogHeader>
-                            <DialogTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-3 text-xl">
-                                <div className="p-2.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                                    <Pencil className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                                </div>
-                                Edit Data User
-                            </DialogTitle>
-                            <DialogDescription className="text-slate-500 dark:text-slate-400">
-                                Ubah informasi pengguna di sini. Password bersifat opsional.
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
-                    
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Nama Lengkap</Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input className="pl-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Password Baru</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input type={showPassword ? "text" : "password"} placeholder="Opsional" className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-medium">Konfirmasi</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <Input type={showConfirmPassword ? "text" : "password"} placeholder="Opsional" className="pl-10 pr-10 h-11 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400" value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} />
-                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-medium">Role Access</Label>
-                            <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val as "ADMIN" | "INTERN"})}>
-                                <SelectTrigger className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white h-11"><SelectValue placeholder="Pilih Role" /></SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"><SelectItem value="INTERN">Anak Magang (Intern)</SelectItem><SelectItem value="ADMIN">Admin / Pembimbing</SelectItem></SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setOpenEdit(false)}>Batal</Button>
-                        <Button onClick={handleEditUser} disabled={isSaving} className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg shadow-yellow-600/20 px-6">{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update User"}</Button>
-                    </div>
-                </>
-            )}
-          </DialogContent>
-        </Dialog>
-
-      </div>
-
-      {/* Tabel Card */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 transition-colors">
-        <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div className="flex flex-col md:flex-row justify-between gap-4 md:items-center">
-                <CardTitle className="text-lg font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    Daftar Akun Terdaftar
-                </CardTitle>
-                <div className="relative max-w-sm w-full md:w-auto">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                    placeholder="Cari nama atau email..."
-                    className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-900 dark:text-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-              <TableRow className="border-slate-200 dark:border-slate-800">
-                <TableHead className="w-[50px] text-slate-700 dark:text-slate-300 pl-6">No</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300">User Info</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300">Role</TableHead>
-                <TableHead className="text-slate-700 dark:text-slate-300">Terdaftar Sejak</TableHead>
-                <TableHead className="text-right text-slate-700 dark:text-slate-300 pr-6">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center">
-                    <div className="flex justify-center items-center gap-2 text-slate-500 dark:text-slate-400">
-                      <Loader2 className="animate-spin h-5 w-5" /> Memuat data...
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-slate-500 dark:text-slate-400">
-                    Tidak ditemukan user dengan nama "{searchTerm}"
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user, index) => (
-                  <TableRow key={user.id} className="border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <TableCell className="text-slate-500 dark:text-slate-400 pl-6">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900 dark:text-slate-200">{user.name}</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-500 flex items-center gap-1 mt-0.5">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.role === "ADMIN" ? (
-                        <Badge className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 gap-1 shadow-none">
-                          <Shield className="h-3 w-3" /> Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 gap-1 shadow-none border border-slate-200 dark:border-slate-700">
-                          <User className="h-3 w-3" /> Intern
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(user.createdAt).toLocaleDateString("id-ID", {
-                                day: 'numeric', month: 'short', year: 'numeric'
-                            })}
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <div className="flex justify-end gap-2">
-                        {/* TOMBOL EDIT */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-500 dark:hover:bg-yellow-900/20 transition-colors h-8 w-8"
-                            onClick={() => openEditModal(user)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-
-                        {/* TOMBOL DELETE (ALERT DIALOG) */}
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors h-8 w-8"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
-                                <AlertDialogHeader>
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
-                                            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" />
-                                        </div>
-                                        <AlertDialogTitle className="text-slate-900 dark:text-slate-100">Konfirmasi Penghapusan</AlertDialogTitle>
-                                    </div>
-                                    <AlertDialogDescription className="pl-[3.25rem] text-slate-500 dark:text-slate-400">
-                                        Yakin ingin menghapus <b>{user.name}</b>? Data absensi dan akunnya akan hilang permanen.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter className="mt-2">
-                                    <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 border-0">Batal</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                        className="bg-red-600 hover:bg-red-700 text-white"
-                                        onClick={() => handleDelete(user.id)}
-                                    >
-                                        Ya, Hapus
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <div className="text-xs text-slate-400 dark:text-slate-600 text-center pt-10 border-t border-slate-100 dark:border-slate-800/50 mt-10">
-        Copyright © 2026 Dinas Pendidikan Pemuda dan Olahraga DIY, Code by Magang Informatika 2023 UPNVYK
-      </div>
     </div>
   );
 }

@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  LogOut, Bell, History, FileText, 
-  User, Menu, LayoutDashboard, Calendar, Upload, Send, Loader2, Clock
+  History, FileText, User, Menu, LayoutDashboard, 
+  Calendar, Upload, Send, Loader2, Clock, X, CheckCircle2, AlertCircle, LogOut 
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "next/image"; // Jangan lupa import Image buat logo
 import { toast } from "sonner"; 
 
+// Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,8 +31,38 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
-  const [formData, setFormData] = useState({ date: "", reason: "" });
+  const [formData, setFormData] = useState({ date: "", reason: "", proofFile: "" });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // LOGIC UPLOAD (SAMA KAYA SEBELUMNYA)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        toast.error("File terlalu besar", { description: "Maksimal ukuran file 2MB." });
+        return;
+    }
+
+    setIsUploading(true);
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    try {
+        const res = await fetch("/api/upload", { method: "POST", body: uploadData });
+        if (!res.ok) throw new Error("Gagal upload");
+        const data = await res.json();
+        setFormData(prev => ({ ...prev, proofFile: data.url })); 
+        toast.success("File terupload", { description: "Bukti lampiran berhasil diunggah." });
+    } catch (error) {
+        toast.error("Gagal Upload", { description: "Coba lagi atau gunakan file lain." });
+        if (fileInputRef.current) fileInputRef.current.value = ""; 
+    } finally {
+        setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,19 +73,29 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formData),
         });
-        if (!res.ok) throw new Error("Gagal mengajukan izin");
-        setFormData({ date: "", reason: "" }); 
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal mengajukan izin");
+        setFormData({ date: "", reason: "", proofFile: "" }); 
+        if (fileInputRef.current) fileInputRef.current.value = "";
         router.refresh(); 
         toast.success("Berhasil", { description: "Pengajuan izin berhasil dikirim." });
-    } catch (error) {
-        toast.error("Gagal", { description: "Terjadi kesalahan saat mengirim data." });
+    } catch (error: any) {
+        toast.error("Gagal", { description: error.message });
     } finally {
         setIsSubmitting(false);
     }
   };
 
+  const handleRemoveFile = () => {
+      setFormData(prev => ({ ...prev, proofFile: "" }));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // --- SIDEBAR DENGAN DARK MODE (FIXED) ---
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
+        
+        {/* HEADER: Coklat Sorrell / Espresso */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
              <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
@@ -62,6 +103,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
              <span className="font-bold text-lg tracking-tight">SIP-MAGANG</span>
         </div>
 
+        {/* MENU LIST */}
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
             
@@ -73,6 +115,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 <History className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Riwayat Presensi
             </Link>
             
+            {/* Active State (Izin): Coklat / Espresso */}
             <Link href="/izin" className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <FileText className="h-5 w-5" /> Pengajuan Izin
             </Link>
@@ -95,21 +138,18 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
+      {/* NAVBAR DENGAN DARK MODE (FIXED) */}
       <nav 
-        className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm
-        ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}
+        className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm w-full lg:w-[calc(100%-280px)] lg:left-[280px]`}
       >
           <div className="flex items-center gap-4">
-             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white">
-                <Menu className="h-6 w-6" />
-             </Button>
              <Sheet>
                 <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white">
+                    <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10">
                         <Menu className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
+                <SheetContent side="left" className="p-0 w-[280px] border-none bg-transparent shadow-none">
                     <SidebarContent />
                 </SheetContent>
              </Sheet>
@@ -131,12 +171,16 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
           </div>
       </nav>
 
-      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {/* SIDEBAR DESKTOP */}
+      <aside className="fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl hidden lg:block border-r border-[#d6d3c9] dark:border-[#1c1917]">
         <SidebarContent />
       </aside>
 
-      <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
-        <div className="flex flex-col gap-8 w-full">
+      {/* MAIN CONTENT */}
+      <main className="pt-24 px-4 md:px-8 pb-12 lg:ml-[280px]">
+        <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+            
+            {/* FORM */}
             <div className="w-full">
                 <div className="mb-4">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">Formulir Perizinan</h2>
@@ -145,7 +189,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
 
                 <Card className="border-none shadow-md bg-white dark:bg-[#1c1917] w-full">
                     <CardHeader className="pb-4 border-b border-slate-100 dark:border-[#292524]">
-                        <CardTitle className="flex items-center gap-2 text-lg">
+                        <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-[#EAE7DD]">
                             <div className="p-2 bg-[#99775C]/10 rounded-lg text-[#99775C] dark:text-[#d6bba0]">
                                 <FileText className="h-5 w-5" />
                             </div>
@@ -155,6 +199,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                     <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* INPUT TANGGAL */}
                                 <div className="space-y-2">
                                     <Label htmlFor="date">Tanggal Izin</Label>
                                     <div className="relative">
@@ -162,20 +207,46 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                                         <Input id="date" type="date" required className="pl-10 h-11" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} />
                                     </div>
                                 </div>
+
+                                {/* INPUT FILE */}
                                 <div className="space-y-2">
                                     <Label>Bukti Lampiran (Opsional)</Label>
-                                    <div className="border border-dashed border-slate-300 dark:border-[#292524] rounded-md h-11 flex items-center px-4 gap-2 text-slate-500 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#292524] transition-colors">
-                                        <Upload className="h-4 w-4" />
-                                        <span className="text-xs">Klik untuk upload file</span>
-                                    </div>
+                                    
+                                    {!formData.proofFile ? (
+                                        <div 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className={`border border-dashed ${isUploading ? "border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20" : "border-slate-300 dark:border-[#292524] hover:bg-slate-50 dark:hover:bg-[#292524]"} rounded-md h-11 flex items-center px-4 gap-2 text-slate-500 cursor-pointer transition-colors`}
+                                        >
+                                            {isUploading ? <Loader2 className="h-4 w-4 animate-spin text-yellow-600" /> : <Upload className="h-4 w-4" />}
+                                            <span className="text-xs">{isUploading ? "Mengupload..." : "Klik untuk upload file (Max 2MB)"}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 rounded-md h-11 flex items-center justify-between px-4 text-green-700 dark:text-green-400">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                <span className="text-xs font-medium">File Terlampir</span>
+                                            </div>
+                                            <button type="button" onClick={handleRemoveFile} className="hover:text-red-500 transition-colors"><X className="h-4 w-4" /></button>
+                                        </div>
+                                    )}
+                                    
+                                    <Input 
+                                        ref={fileInputRef} 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept="image/*,.pdf"
+                                        onChange={handleFileChange}
+                                        disabled={isUploading}
+                                    />
                                 </div>
                             </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="reason">Alasan / Keterangan</Label>
                                 <Textarea id="reason" placeholder="Jelaskan alasan izin secara singkat..." className="min-h-[120px] resize-none" required value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} />
                             </div>
 
-                            <Button type="submit" className="w-full bg-[#99775C] dark:bg-[#3f2e26] hover:bg-[#7a5e48] text-white h-12 text-base font-semibold rounded-xl shadow-lg shadow-[#99775C]/20" disabled={isSubmitting}>
+                            <Button type="submit" className="w-full bg-[#99775C] dark:bg-[#3f2e26] hover:bg-[#7a5e48] text-white h-12 text-base font-semibold rounded-xl shadow-lg shadow-[#99775C]/20" disabled={isSubmitting || isUploading}>
                                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sedang Mengirim...</> : <><Send className="mr-2 h-4 w-4" /> Kirim Pengajuan</>}
                             </Button>
                         </form>
@@ -183,6 +254,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 </Card>
             </div>
 
+            {/* RIWAYAT */}
             <div className="w-full">
                 <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] px-1 mb-4 flex items-center gap-2">
                     <History className="h-5 w-5" />
@@ -190,7 +262,9 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 </h3>
                 <div className="flex flex-col gap-3">
                     {requests.length === 0 ? (
-                        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-[#292524] rounded-2xl text-slate-400 bg-white dark:bg-[#1c1917]"><p className="text-sm">Belum ada riwayat pengajuan.</p></div>
+                        <div className="text-center p-8 border border-dashed border-slate-200 dark:border-[#292524] rounded-2xl text-slate-400 bg-white dark:bg-[#1c1917]">
+                            <p className="text-sm">Belum ada riwayat pengajuan.</p>
+                        </div>
                     ) : (
                         requests.map((req) => (
                             <Card key={req.id} className="shadow-sm border-slate-100 dark:border-[#292524] hover:shadow-md transition-all bg-white dark:bg-[#1c1917]">
@@ -208,6 +282,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                                                 {req.status === "PENDING" && <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">Menunggu Konfirmasi</Badge>}
                                                 {req.status === "APPROVED" && <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Disetujui</Badge>}
                                                 {req.status === "REJECTED" && <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Ditolak</Badge>}
+                                                {req.proofFile && <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200 dark:hover:bg-[#292524]" onClick={() => window.open(req.proofFile, '_blank')}>Lihat Bukti 📎</Badge>}
                                             </div>
                                         </div>
                                     </div>

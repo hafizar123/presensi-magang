@@ -98,15 +98,15 @@ export default function AnnouncementPage() {
     }
   };
 
-  // HANDLE DELETE (UPDATED: ADA POPUP SUKSES)
+  // HANDLE DELETE
   const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/announcements?id=${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setSuccessMsg("Pengumuman berhasil dihapus!"); // <--- Set Pesan
-        setShowSuccess(true); // <--- Munculin Centang Ijo
+        setSuccessMsg("Pengumuman berhasil dihapus!"); 
+        setShowSuccess(true); 
         fetchAnnouncements();
       }
     } catch (error) {
@@ -150,20 +150,20 @@ export default function AnnouncementPage() {
   return (
     <div className="space-y-8 pb-10">
       
-      {/* POP-UP SUKSES (Create, Update, Delete pake ini semua) */}
+      {/* POP-UP SUKSES */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden rounded-2xl">
+        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
-                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
+                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-5 shadow-sm">
                     <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Berhasil!</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed max-w-[250px]">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil!</h2>
+                <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm leading-relaxed max-w-[250px]">
                     {successMsg}
                 </p>
                 <Button 
                     onClick={() => setShowSuccess(false)}
-                    className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
+                    className="mt-6 bg-[#99775C] hover:bg-[#7a5e48] text-white w-full rounded-xl"
                 >
                     Tutup
                 </Button>
@@ -176,27 +176,27 @@ export default function AnnouncementPage() {
         {/* KOLOM KIRI (2/5): FORM INPUT */}
         <div className="lg:col-span-2 space-y-6">
           <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Kelola Pengumuman</h1>
-              <p className="text-slate-500 dark:text-slate-400">Buat info baru atau edit yang lama.</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-[#EAE7DD]">Kelola Pengumuman</h1>
+              <p className="text-slate-500 dark:text-gray-400">Buat info baru atau edit yang lama.</p>
           </div>
 
-          <Card className={`border-slate-200 dark:border-slate-800 shadow-sm transition-colors ${isEditing ? "border-yellow-400 dark:border-yellow-600 ring-1 ring-yellow-400/20" : "bg-white dark:bg-slate-900"}`}>
+          <Card className={`border-slate-200 dark:border-[#292524] shadow-sm transition-colors ${isEditing ? "border-[#99775C] dark:border-[#99775C] ring-1 ring-[#99775C]/20" : "bg-white dark:bg-[#1c1917]"}`}>
               <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-[#EAE7DD]">
                       {isEditing ? (
                           <>
-                            <Pencil className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                            <Pencil className="h-5 w-5 text-[#99775C]" />
                             Edit Pengumuman
                           </>
                       ) : (
                           <>
-                            <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <Megaphone className="h-5 w-5 text-[#99775C]" />
                             Buat Pengumuman Baru
                           </>
                       )}
                   </CardTitle>
                   {isEditing && (
-                      <CardDescription className="text-yellow-600 dark:text-yellow-400">
+                      <CardDescription className="text-[#99775C]">
                           Anda sedang mengedit data.
                       </CardDescription>
                   )}
@@ -207,7 +207,7 @@ export default function AnnouncementPage() {
                           <Label className="text-slate-700 dark:text-slate-300">Judul</Label>
                           <Input 
                               placeholder="Contoh: Libur Nasional" 
-                              className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                              className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f3f3f] text-slate-900 dark:text-[#EAE7DD] focus-visible:ring-[#99775C]"
                               value={formData.title}
                               onChange={(e) => setFormData({...formData, title: e.target.value})}
                               required
@@ -217,7 +217,7 @@ export default function AnnouncementPage() {
                           <Label className="text-slate-700 dark:text-slate-300">Isi Konten</Label>
                           <Textarea 
                               placeholder="Tulis detailnya disini..." 
-                              className="min-h-[150px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                              className="min-h-[150px] bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f3f3f] text-slate-900 dark:text-[#EAE7DD] focus-visible:ring-[#99775C]"
                               value={formData.content}
                               onChange={(e) => setFormData({...formData, content: e.target.value})}
                               required
@@ -229,7 +229,7 @@ export default function AnnouncementPage() {
                             <Button 
                                 type="button" 
                                 variant="outline" 
-                                className="flex-1"
+                                className="flex-1 border-[#99775C] text-[#99775C] hover:bg-[#EAE7DD] dark:hover:bg-[#292524]"
                                 onClick={resetForm}
                             >
                                 Batal
@@ -237,7 +237,7 @@ export default function AnnouncementPage() {
                         )}
                         <Button 
                             type="submit" 
-                            className={`flex-1 text-white shadow-lg transition-all ${isEditing ? "bg-yellow-600 hover:bg-yellow-700 shadow-yellow-600/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"}`} 
+                            className={`flex-1 text-white shadow-lg transition-all bg-[#99775C] hover:bg-[#7a5e48] shadow-[#99775C]/20`} 
                             disabled={loading}
                         >
                             {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : isEditing ? <RefreshCcw className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
@@ -253,32 +253,32 @@ export default function AnnouncementPage() {
         <div className="lg:col-span-3 space-y-6">
           <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 hidden lg:block">Riwayat Broadcast</h1>
-                <p className="text-slate-500 dark:text-slate-400 hidden lg:block">Daftar pengumuman yang pernah dibuat.</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD] hidden lg:block">Riwayat Broadcast</h1>
+                <p className="text-slate-500 dark:text-gray-400 hidden lg:block">Daftar pengumuman yang pernah dibuat.</p>
               </div>
-              <Badge variant="outline" className="h-fit">
+              <Badge variant="outline" className="h-fit border-[#99775C] text-[#99775C] dark:text-[#EAE7DD]">
                 Total: {list.length}
               </Badge>
           </div>
 
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {list.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-[#292524] rounded-xl bg-white dark:bg-[#1c1917]">
                     <p className="text-slate-400">Belum ada pengumuman.</p>
                 </div>
             ) : (
                 list.map((item) => (
-                    <Card key={item.id} className={`group border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all hover:shadow-md ${!item.isActive ? "opacity-60 bg-slate-50 dark:bg-slate-950" : ""}`}>
+                    <Card key={item.id} className={`group border-slate-200 dark:border-[#292524] bg-white dark:bg-[#1c1917] transition-all hover:shadow-md ${!item.isActive ? "opacity-60 bg-slate-50 dark:bg-[#0c0a09]" : ""}`}>
                         <CardContent className="p-5">
                             <div className="flex justify-between items-start gap-4">
                                 <div className="space-y-1.5 flex-1">
                                     <div className="flex items-center gap-2">
                                         {item.isActive ? (
-                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 border-none px-2 py-0.5 text-[10px]">
+                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 border-none px-2 py-0.5 text-[10px]">
                                                 TAYANG
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="px-2 py-0.5 text-[10px]">
+                                            <Badge variant="secondary" className="px-2 py-0.5 text-[10px] bg-slate-100 dark:bg-[#292524] text-slate-500">
                                                 DISEMBUNYIKAN
                                             </Badge>
                                         )}
@@ -287,8 +287,8 @@ export default function AnnouncementPage() {
                                             {new Date(item.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
-                                    <h3 className="font-bold text-slate-900 dark:text-slate-100">{item.title}</h3>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                                    <h3 className="font-bold text-slate-900 dark:text-[#EAE7DD]">{item.title}</h3>
+                                    <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
                                         {item.content}
                                     </p>
                                 </div>
@@ -297,7 +297,7 @@ export default function AnnouncementPage() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                        className="h-8 w-8 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                         onClick={() => handleToggleStatus(item)}
                                         title={item.isActive ? "Sembunyikan" : "Tampilkan"}
                                     >
@@ -307,7 +307,7 @@ export default function AnnouncementPage() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-slate-400 hover:text-yellow-600 dark:hover:text-yellow-400"
+                                        className="h-8 w-8 text-slate-400 hover:text-[#99775C] dark:hover:text-[#d6bba0] hover:bg-[#EAE7DD]/50 dark:hover:bg-[#292524]"
                                         onClick={() => handleEditClick(item)}
                                         title="Edit"
                                     >
@@ -320,26 +320,26 @@ export default function AnnouncementPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                                                className="h-8 w-8 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 title="Hapus"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </AlertDialogTrigger>
-                                        <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl">
+                                        <AlertDialogContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl">
                                             <AlertDialogHeader>
                                                 <div className="flex items-center gap-3">
                                                     <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
                                                         <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-500" />
                                                     </div>
-                                                    <AlertDialogTitle className="text-slate-900 dark:text-slate-100">Hapus Pengumuman?</AlertDialogTitle>
+                                                    <AlertDialogTitle className="text-slate-900 dark:text-[#EAE7DD]">Hapus Pengumuman?</AlertDialogTitle>
                                                 </div>
-                                                <AlertDialogDescription className="pl-[3.25rem] text-slate-500 dark:text-slate-400">
+                                                <AlertDialogDescription className="pl-[3.25rem] text-slate-500 dark:text-gray-400">
                                                     Item ini akan dihapus permanen dan tidak bisa dikembalikan.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter className="mt-2">
-                                                <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 border-0">Batal</AlertDialogCancel>
+                                                <AlertDialogCancel className="bg-slate-100 dark:bg-[#292524] border-0 text-slate-700 dark:text-gray-300">Batal</AlertDialogCancel>
                                                 <AlertDialogAction 
                                                     className="bg-red-600 hover:bg-red-700 text-white"
                                                     onClick={() => handleDelete(item.id)}
