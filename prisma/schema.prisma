@@ -26,16 +26,14 @@ model User {
   leaveRequests LeaveRequest[] 
 }
 
-// Data detail khusus Anak Magang (Settingan Admin)
 model InternProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id])
   
-  startDate   DateTime // Tanggal mulai magang
-  endDate     DateTime // Tanggal selesai magang
-  startHour   String   // Jam mulai absen (contoh: "07:00")
-  endHour     String   // Jam telat absen (contoh: "08:00")
+  startDate   DateTime 
+  endDate     DateTime 
+  // startHour & endHour HARUS SUDAH GAK ADA DI SINI
 }
 
 model Attendance {

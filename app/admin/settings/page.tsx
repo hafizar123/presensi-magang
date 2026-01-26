@@ -24,19 +24,16 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const { data: session, update } = useSession(); // Pake update buat refresh session client-side
+  const { data: session, update } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
-  // State Pop-up Sukses
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // State Pop-up Error
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- STATE TAB PROFIL ---
   const [profileData, setProfileData] = useState({
     name: "",
     email: "",
@@ -44,7 +41,6 @@ export default function SettingsPage() {
     jabatan: ""
   });
 
-  // --- STATE TAB KANTOR (SETTINGS) ---
   const [officeData, setOfficeData] = useState({
     latitude: "",
     longitude: "",
@@ -53,7 +49,6 @@ export default function SettingsPage() {
     endHour: ""
   });
 
-  // --- STATE TAB KEAMANAN ---
   const [securityData, setSecurityData] = useState({
     newPassword: "",
     confirmPassword: ""
@@ -62,9 +57,7 @@ export default function SettingsPage() {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // FETCH DATA SAAT LOAD
   useEffect(() => {
-    // 1. Ambil Profile dari Database (Biar NIP & Jabatan ke-load)
     fetch("/api/admin/profile")
       .then(res => res.json())
       .then(data => {
@@ -79,14 +72,12 @@ export default function SettingsPage() {
       })
       .catch(err => console.error("Gagal load profile", err));
     
-    // 2. Ambil Settingan Kantor
     fetch("/api/admin/settings")
         .then(res => res.json())
         .then(data => setOfficeData(data))
         .catch(err => console.error("Gagal load settings", err));
   }, []);
 
-  // --- HANDLER SIMPAN PROFIL (UPDATED) ---
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
@@ -101,9 +92,7 @@ export default function SettingsPage() {
         });
 
         if (res.ok) {
-            // Update session di client biar namanya berubah di header tanpa logout
             await update({ name: profileData.name });
-            
             setSuccessMessage("Profil admin berhasil diperbarui!");
             setShowSuccess(true);
             router.refresh();
@@ -119,9 +108,7 @@ export default function SettingsPage() {
     }
   };
 
-  // --- HANDLER SIMPAN SETTINGS KANTOR ---
   const handleSaveOffice = async () => {
-    // Validasi
     if (!officeData.latitude || !officeData.longitude || !officeData.radius || !officeData.startHour || !officeData.endHour) {
         setErrorMessage("Data belum lengkap! Mohon isi semua field.");
         setShowError(true);
@@ -160,7 +147,6 @@ export default function SettingsPage() {
     }
   };
 
-  // --- HANDLER GANTI PASSWORD ---
   const handleSaveSecurity = async () => {
     if (!securityData.newPassword || !securityData.confirmPassword) {
         setErrorMessage("Form password belum lengkap!");
@@ -179,9 +165,6 @@ export default function SettingsPage() {
     }
 
     setLoading(true);
-    
-    // Disini lo bisa tambah API call buat ganti password beneran (PUT ke /api/admin/users)
-    // Untuk sekarang simulasi sukses dulu sesuai request sebelumnya
     setTimeout(() => {
         setLoading(false);
         setSuccessMessage("Password berhasil diubah!");
@@ -193,20 +176,19 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       
-      {/* --- POP-UP SUKSES --- */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden rounded-2xl">
-            <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
-                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
-                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
+        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
+            <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5">
+                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Berhasil!</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil!</h2>
+                <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm leading-relaxed">
                     {successMessage}
                 </p>
                 <Button 
                     onClick={() => setShowSuccess(false)}
-                    className="mt-6 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 w-full rounded-xl"
+                    className="mt-6 bg-[#99775C] hover:bg-[#86664d] text-white w-full rounded-xl"
                 >
                     Tutup
                 </Button>
@@ -214,20 +196,19 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* --- POP-UP ERROR --- */}
       <Dialog open={showError} onOpenChange={setShowError}>
-        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 p-0 overflow-hidden rounded-2xl">
-            <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
-                <div className="h-20 w-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-5 shadow-sm">
-                    <XCircle className="h-10 w-10 text-red-600 dark:text-red-400 animate-shake" />
+        <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
+            <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                <div className="h-20 w-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-5">
+                    <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Warning!</h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed max-w-[250px]">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Warning!</h2>
+                <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm leading-relaxed max-w-[250px]">
                     {errorMessage}
                 </p>
                 <Button 
                     onClick={() => setShowError(false)}
-                    className="mt-6 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 w-full rounded-xl"
+                    className="mt-6 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl"
                 >
                     Coba Lagi
                 </Button>
@@ -236,75 +217,74 @@ export default function SettingsPage() {
       </Dialog>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Pengaturan Sistem</h1>
-        <p className="text-slate-500 dark:text-slate-400">Kelola preferensi aplikasi dan konfigurasi kantor.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Pengaturan Sistem</h1>
+        <p className="text-slate-500 dark:text-gray-400">Kelola preferensi aplikasi dan konfigurasi kantor.</p>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl h-auto">
-          <TabsTrigger value="profile" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm rounded-lg transition-all dark:text-slate-400 dark:data-[state=active]:text-slate-100">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524]">
+          <TabsTrigger value="profile" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm rounded-lg transition-all dark:text-gray-400 dark:data-[state=active]:text-[#EAE7DD]">
             <User className="h-4 w-4 mr-2" /> Profil Admin
           </TabsTrigger>
-          <TabsTrigger value="office" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm rounded-lg transition-all dark:text-slate-400 dark:data-[state=active]:text-slate-100">
+          <TabsTrigger value="office" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm rounded-lg transition-all dark:text-gray-400 dark:data-[state=active]:text-[#EAE7DD]">
             <Building className="h-4 w-4 mr-2" /> Lokasi & Kantor
           </TabsTrigger>
-          <TabsTrigger value="security" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm rounded-lg transition-all dark:text-slate-400 dark:data-[state=active]:text-slate-100">
+          <TabsTrigger value="security" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm rounded-lg transition-all dark:text-gray-400 dark:data-[state=active]:text-[#EAE7DD]">
             <Shield className="h-4 w-4 mr-2" /> Keamanan
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: PROFIL */}
         <TabsContent value="profile" className="mt-6 space-y-6">
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors">
-            <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-slate-100">Informasi Dasar</CardTitle>
-              <CardDescription className="text-slate-500 dark:text-slate-400">
+          <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+              <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Informasi Dasar</CardTitle>
+              <CardDescription className="text-slate-500 dark:text-gray-400">
                 Nama ini yang akan muncul di dashboard dan laporan.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Nama Lengkap</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">Nama Lengkap</Label>
                     <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-[#99775C]" />
                         <Input 
                             value={profileData.name} 
                             onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                            className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" 
+                            className="pl-9 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" 
                         />
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Email Dinas</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">Email Dinas</Label>
                     <Input 
                         value={profileData.email} 
                         disabled 
-                        className="bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed" 
+                        className="bg-slate-100 dark:bg-[#292524]/50 border-slate-200 dark:border-none text-slate-500 dark:text-gray-500 cursor-not-allowed" 
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">NIP / ID Pegawai</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">NIP / ID Pegawai</Label>
                     <Input 
                         value={profileData.nip} 
                         onChange={(e) => setProfileData({...profileData, nip: e.target.value})}
-                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                        className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]"
                         placeholder="Contoh: 1980xxxx..." 
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Jabatan</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">Jabatan</Label>
                     <Input 
                         value={profileData.jabatan}
                         onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})}
-                        className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                        className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]"
                         placeholder="Contoh: Kepala Bagian..." 
                     />
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
-                <Button onClick={handleSaveProfile} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20">
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                <Button onClick={handleSaveProfile} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-lg shadow-black/20">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Simpan Perubahan
                 </Button>
@@ -312,61 +292,59 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB 2 & 3: LOKASI & KEAMANAN (Masih sama, gak gua ubah) */}
         <TabsContent value="office" className="mt-6 space-y-6">
-          {/* ... Isi Tab Office sama persis kayak kode sebelumnya ... */}
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors">
-            <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+              <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-[#99775C]" />
                 Konfigurasi Geofencing
               </CardTitle>
-              <CardDescription className="text-slate-500 dark:text-slate-400">
+              <CardDescription className="text-slate-500 dark:text-gray-400">
                 Atur titik koordinat kantor dan radius toleransi absensi.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 p-4 rounded-lg flex gap-3 items-start">
-                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-800 dark:text-blue-200">
-                    <p className="font-semibold">Info Penting:</p>
+            <CardContent className="space-y-6 pt-6">
+              <div className="bg-[#99775C]/10 dark:bg-[#99775C]/5 border border-[#99775C]/20 p-4 rounded-lg flex gap-3 items-start">
+                <AlertCircle className="h-5 w-5 text-[#99775C] mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-slate-800 dark:text-gray-300">
+                    <p className="font-semibold text-[#99775C]">Info Penting:</p>
                     <p>Koordinat ini digunakan sebagai titik pusat validasi saat anak magang melakukan presensi via GPS.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Latitude (Garis Lintang)</Label>
-                    <Input value={officeData.latitude} onChange={(e) => setOfficeData({...officeData, latitude: e.target.value})} className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono" />
+                    <Label className="text-slate-700 dark:text-gray-300">Latitude (Garis Lintang)</Label>
+                    <Input value={officeData.latitude} onChange={(e) => setOfficeData({...officeData, latitude: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD] font-mono" />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Longitude (Garis Bujur)</Label>
-                    <Input value={officeData.longitude} onChange={(e) => setOfficeData({...officeData, longitude: e.target.value})} className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono" />
+                    <Label className="text-slate-700 dark:text-gray-300">Longitude (Garis Bujur)</Label>
+                    <Input value={officeData.longitude} onChange={(e) => setOfficeData({...officeData, longitude: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD] font-mono" />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-slate-700 dark:text-slate-300">Radius Toleransi (Meter)</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">Radius Toleransi (Meter)</Label>
                     <div className="flex items-center gap-2">
-                        <Input type="number" value={officeData.radius} onChange={(e) => setOfficeData({...officeData, radius: e.target.value})} className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" />
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Meter</span>
+                        <Input type="number" value={officeData.radius} onChange={(e) => setOfficeData({...officeData, radius: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
+                        <span className="text-sm text-slate-500 dark:text-gray-500">Meter</span>
                     </div>
                 </div>
               </div>
-              <Separator className="bg-slate-100 dark:bg-slate-800" />
+              <Separator className="bg-slate-100 dark:bg-[#292524]" />
               <div className="space-y-4">
-                 <h3 className="font-medium text-slate-900 dark:text-slate-100">Jam Kerja Default</h3>
+                 <h3 className="font-medium text-slate-900 dark:text-[#EAE7DD]">Jam Kerja Default</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300">Jam Masuk</Label>
-                        <Input type="time" value={officeData.startHour} onChange={(e) => setOfficeData({...officeData, startHour: e.target.value})} className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" />
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Masuk</Label>
+                        <Input type="time" value={officeData.startHour} onChange={(e) => setOfficeData({...officeData, startHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300">Jam Pulang</Label>
-                        <Input type="time" value={officeData.endHour} onChange={(e) => setOfficeData({...officeData, endHour: e.target.value})} className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" />
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Pulang</Label>
+                        <Input type="time" value={officeData.endHour} onChange={(e) => setOfficeData({...officeData, endHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
                  </div>
               </div>
             </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
-                <Button onClick={handleSaveOffice} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20">
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                <Button onClick={handleSaveOffice} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-lg shadow-black/20">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Update Konfigurasi
                 </Button>
@@ -375,38 +353,37 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="security" className="mt-6 space-y-6">
-          {/* ... Isi Tab Security sama persis ... */}
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors">
-            <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-slate-100">Ganti Password</CardTitle>
-              <CardDescription className="text-slate-500 dark:text-slate-400">
+          <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+              <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Ganti Password</CardTitle>
+              <CardDescription className="text-slate-500 dark:text-gray-400">
                 Ubah password akun admin anda di sini.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 max-w-lg">
+            <CardContent className="space-y-4 max-w-lg pt-6">
               <div className="grid gap-2">
-                <Label className="text-slate-700 dark:text-slate-300">Password Baru</Label>
+                <Label className="text-slate-700 dark:text-gray-300">Password Baru</Label>
                 <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Password Baru" />
-                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
+                    <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Password Baru" />
+                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
                         {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label className="text-slate-700 dark:text-slate-300">Konfirmasi Password Baru</Label>
+                <Label className="text-slate-700 dark:text-gray-300">Konfirmasi Password Baru</Label>
                 <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" placeholder="Masukkan Konfirmasi Password Baru" />
-                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
+                    <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Konfirmasi Password Baru" />
+                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
                         {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 px-6 py-4">
-                <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20">
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Password"}
                 </Button>
             </CardFooter>
@@ -414,7 +391,7 @@ export default function SettingsPage() {
         </TabsContent>
 
       </Tabs>
-      <div className="text-xs text-slate-400 dark:text-slate-600 text-center pt-10 border-t border-slate-100 dark:border-slate-800/50 mt-10">
+      <div className="text-xs text-slate-400 dark:text-gray-600 text-center pt-10 border-t border-slate-100 dark:border-[#292524] mt-10">
         Copyright © 2026 Dinas Pendidikan Pemuda dan Olahraga DIY, Code by Magang Informatika 2023 UPNVYK
       </div>
     </div>

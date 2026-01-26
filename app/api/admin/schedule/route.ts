@@ -14,34 +14,30 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, startDate, endDate, startHour, endHour } = body;
+    const { userId, startDate, endDate } = body; // startHour & endHour dibuang karena sudah global
 
-    // 2. Validasi input
-    if (!userId || !startDate || !endDate || !startHour || !endHour) {
-      return NextResponse.json({ message: "Data gak lengkap bro" }, { status: 400 });
+    // 2. Validasi input (Hanya cek ID user dan tanggal)
+    if (!userId || !startDate || !endDate) {
+      return NextResponse.json({ message: "Data tanggal gak lengkap bro" }, { status: 400 });
     }
 
-    // 3. Simpan ke Database (Pake upsert: Kalo ada di-update, kalo ga ada dibuat baru)
+    // 3. Simpan ke Database
     const profile = await prisma.internProfile.upsert({
       where: {
-        userId: userId, // Cari berdasarkan ID User
+        userId: userId,
       },
       update: {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        startHour,
-        endHour,
       },
       create: {
         userId,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        startHour,
-        endHour,
       },
     });
 
-    return NextResponse.json({ message: "Jadwal berhasil disave!", data: profile });
+    return NextResponse.json({ message: "Periode magang berhasil disave!", data: profile });
 
   } catch (error) {
     console.error("Error setting schedule:", error);
