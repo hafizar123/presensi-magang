@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx"; // Import library Excel
 import { 
-  LogOut, Bell, History, FileText, 
-  User, Menu, LayoutDashboard, Calendar, Filter, Download
+  LogOut, History, FileText, 
+  User, Menu, LayoutDashboard, Calendar, Filter, Download, 
+  FileSpreadsheet
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner"; // Import toast
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,11 +27,65 @@ interface RiwayatClientProps {
 
 export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [filterBulan, setFilterBulan] = useState<string>("");
+  const [filterBulan, setFilterBulan] = useState<string>("all"); // Default 'all'
 
-  const filteredLogs = filterBulan 
-    ? logs.filter(log => new Date(log.createdAt).getMonth().toString() === filterBulan)
-    : logs;
+  // Daftar Bulan Lengkap
+  const months = [
+    { value: "0", label: "Januari" },
+    { value: "1", label: "Februari" },
+    { value: "2", label: "Maret" },
+    { value: "3", label: "April" },
+    { value: "4", label: "Mei" },
+    { value: "5", label: "Juni" },
+    { value: "6", label: "Juli" },
+    { value: "7", label: "Agustus" },
+    { value: "8", label: "September" },
+    { value: "9", label: "Oktober" },
+    { value: "10", label: "November" },
+    { value: "11", label: "Desember" },
+  ];
+
+  // Logic Filter
+  const filteredLogs = filterBulan === "all" 
+    ? logs 
+    : logs.filter(log => new Date(log.createdAt).getMonth().toString() === filterBulan);
+
+  // Logic Export Excel
+  const handleExportExcel = () => {
+    if (filteredLogs.length === 0) {
+      toast.warning("Data Kosong", {
+        description: "Tidak ada data untuk diexport pada bulan ini."
+      });
+      return;
+    }
+
+    try {
+      // Mapping data biar rapi di Excel
+      const excelData = filteredLogs.map((log) => ({
+        "Tanggal": new Date(log.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+        "Hari": new Date(log.createdAt).toLocaleDateString("id-ID", { weekday: 'long' }),
+        "Jam": new Date(log.createdAt).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
+        "Status": log.status,
+      }));
+
+      // Bikin File Excel
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      
+      // Atur lebar kolom (optional biar rapi)
+      worksheet["!cols"] = [{ wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 15 }];
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Presensi");
+      XLSX.writeFile(workbook, `Riwayat_Presensi_${user.name.replace(/\s+/g, '_')}.xlsx`);
+
+      toast.success("Download Berhasil", {
+        description: "File Excel berhasil disimpan."
+      });
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error("Gagal Export", { description: "Terjadi kesalahan sistem." });
+    }
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
@@ -121,20 +178,29 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
             </div>
             
             <div className="flex items-center gap-2">
-                <Select onValueChange={setFilterBulan}>
+                {/* Select Filter Bulan Diperbaiki */}
+                <Select value={filterBulan} onValueChange={setFilterBulan}>
                     <SelectTrigger className="w-[180px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
                         <Filter className="w-4 h-4 mr-2 text-slate-500 dark:text-gray-400" />
                         <SelectValue placeholder="Filter Bulan" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="0">Januari</SelectItem>
-                        <SelectItem value="1">Februari</SelectItem>
-                        <SelectItem value="2">Maret</SelectItem>
+                        <SelectItem value="all">Semua Bulan</SelectItem>
+                        {months.map((month) => (
+                            <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
                 
-                <Button variant="outline" className="border-slate-200 dark:border-[#292524] text-[#99775C] dark:text-[#d6bba0] hover:bg-[#EAE7DD] dark:hover:bg-[#292524]">
-                    <Download className="w-4 h-4 mr-2" /> Export
+                {/* Tombol Export yang Work */}
+                <Button 
+                    onClick={handleExportExcel}
+                    variant="outline" 
+                    className="border-slate-200 dark:border-[#292524] text-[#99775C] dark:text-[#d6bba0] hover:bg-[#EAE7DD] dark:hover:bg-[#292524]"
+                >
+                    <FileSpreadsheet className="w-4 h-4 mr-2" /> Export
                 </Button>
             </div>
         </div>

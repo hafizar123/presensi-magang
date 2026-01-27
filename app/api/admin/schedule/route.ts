@@ -1,46 +1,63 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma"; // Pastiin ini import dari lib lo
 
 export async function POST(request: Request) {
   // 1. Cek Security (Wajib Admin)
   const session = await getServerSession(authOptions);
+  
   if (session?.user?.role !== "ADMIN") {
-    return NextResponse.json({ message: "Minggir lu!" }, { status: 401 });
+    return NextResponse.json(
+      { message: "Akses ditolak. Anda bukan admin." }, 
+      { status: 401 }
+    );
   }
 
   try {
     const body = await request.json();
-    const { userId, startDate, endDate } = body; // startHour & endHour dibuang karena sudah global
+    const { userId, startDate, endDate } = body; 
 
-    // 2. Validasi input (Hanya cek ID user dan tanggal)
+    // 2. Validasi input
     if (!userId || !startDate || !endDate) {
-      return NextResponse.json({ message: "Data tanggal gak lengkap bro" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Data tidak lengkap. Cek userId dan tanggal." }, 
+        { status: 400 }
+      );
     }
 
-    // 3. Simpan ke Database
+    // 3. Simpan ke Database (Upsert)
     const profile = await prisma.internProfile.upsert({
       where: {
-        userId: userId,
+        userId: userId, // Cek berdasarkan userId
       },
       update: {
+        // Kalo data udah ada, update tanggalnya aja
         startDate: new Date(startDate),
         endDate: new Date(endDate),
       },
       create: {
-        userId,
+        // Kalo data belum ada, bikin baru + connect ke user
+        user: {
+            connect: {
+                id: userId
+            }
+        },
         startDate: new Date(startDate),
         endDate: new Date(endDate),
       },
     });
 
-    return NextResponse.json({ message: "Periode magang berhasil disave!", data: profile });
+    return NextResponse.json({ 
+      message: "Periode magang berhasil disimpan!", 
+      data: profile 
+    });
 
   } catch (error) {
     console.error("Error setting schedule:", error);
-    return NextResponse.json({ message: "Server error bro" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Terjadi kesalahan server." }, 
+      { status: 500 }
+    );
   }
 }

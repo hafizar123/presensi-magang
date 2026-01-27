@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   Bell, History, FileText, User, Menu, LayoutDashboard, 
   Clock, Mail, MapPin, Shield, Camera, Eye, EyeOff, Save, Lock, 
-  LogOut, Settings, CheckCircle2, Building2
+  LogOut, Settings, CheckCircle2, Building2, Trash2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -30,29 +30,106 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [profileData, setProfileData] = useState({ name: user.name || "", email: user.email || "", image: user.image || "" });
+  
+  // State profileData
+  const [profileData, setProfileData] = useState({ 
+    name: user.name || "", 
+    email: user.email || "", 
+    image: user.image || "",
+    nip: user.nip || "",
+    jabatan: user.jabatan || ""
+  });
+
   const [passData, setPassData] = useState({ new: "", confirm: "" });
   const [showPass, setShowPass] = useState({ new: false, confirm: false });
+  
+  // State buat nyimpen file mentah yg mau diupload
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Handle saat user pilih file dari komputer
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+        // Validasi ukuran (opsional, misal max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File terlalu besar", { description: "Maksimal 2MB bre." });
+            return;
+        }
+
         const previewUrl = URL.createObjectURL(file);
-        setProfileData({ ...profileData, image: previewUrl });
+        setFileToUpload(file); // Simpan file mentah buat diupload nanti
+        setProfileData({ ...profileData, image: previewUrl }); // Update preview
         toast.info("Foto dipilih", { description: "Jangan lupa klik Simpan Perubahan." });
+    }
+  };
+
+  // Handle tombol hapus foto
+  const handleDeleteImage = () => {
+      setFileToUpload(null); // Batalin upload kalo ada
+      setProfileData({ ...profileData, image: "" }); // Kosongin gambar di state
+      toast.warning("Foto dihapus dari preview", { description: "Klik Simpan untuk menerapkannya." });
+  };
+
+  // Logic Upload File
+  const uploadFile = async () => {
+    if (!fileToUpload) return null;
+
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+
+    try {
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        
+        return data.filepath; // Return path file yg udah tersimpan
+    } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
     }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-        await new Promise(r => setTimeout(r, 1000)); 
+        let finalImagePath = profileData.image;
+
+        // 1. Kalau ada file baru yg dipilih, upload dulu
+        if (fileToUpload) {
+            finalImagePath = await uploadFile();
+        } 
+        // 2. Kalau user ngehapus foto (image kosong dan ga ada file upload)
+        else if (profileData.image === "" || profileData.image === null) {
+            finalImagePath = ""; // Kirim string kosong ke DB
+        }
+
+        // 3. Update data user ke database (kirim path gambar baru/kosong)
+        const res = await fetch("/api/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: profileData.name,
+                nip: profileData.nip,
+                jabatan: profileData.jabatan,
+                image: finalImagePath, // Ini kuncinya
+            }),
+        });
+
+        if (!res.ok) throw new Error("Gagal update");
+
         toast.success("Profil Diperbarui", { description: "Data diri berhasil disimpan." });
-        router.refresh();
+        setFileToUpload(null); // Reset file upload
+        router.refresh(); // Refresh halaman biar data sync
     } catch (error) {
-        toast.error("Gagal", { description: "Terjadi kesalahan." });
+        toast.error("Gagal", { description: "Terjadi kesalahan saat menyimpan." });
     } finally {
         setIsLoading(false);
     }
@@ -212,9 +289,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-sm">
                                 <Mail className="h-3.5 w-3.5 opacity-70" /> {user.email}
                              </div>
-                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-sm">
-                                <Shield className="h-3.5 w-3.5 opacity-70" /> ID: {user.nip || user.id.slice(0, 6).toUpperCase()}
-                             </div>
                         </div>
                     </div>
                     <div className="relative z-10 hidden md:block opacity-80">
@@ -258,10 +332,25 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         <form onSubmit={handleUpdateProfile} className="space-y-6">
                             <div className="flex items-center gap-6">
                                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                    <Avatar className="h-20 w-20 border-2 border-slate-200"><AvatarImage src={profileData.image || `https://ui-avatars.com/api/?name=${user.name}`} className="object-cover" /><AvatarFallback>U</AvatarFallback></Avatar>
+                                    <Avatar className="h-24 w-24 border-2 border-slate-200"><AvatarImage src={profileData.image || `https://ui-avatars.com/api/?name=${user.name}`} className="object-cover" /><AvatarFallback>U</AvatarFallback></Avatar>
                                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="h-6 w-6 text-white" /></div>
                                 </div>
-                                <div><p className="text-sm font-medium">Foto Profil</p><p className="text-xs text-slate-500 mb-2">Klik foto untuk mengganti.</p><Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} /><Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Pilih Foto</Button></div>
+                                <div>
+                                    <p className="text-sm font-medium">Foto Profil</p>
+                                    <p className="text-xs text-slate-500 mb-3">Klik foto untuk mengganti.</p>
+                                    
+                                    <div className="flex gap-2">
+                                        <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Pilih Foto</Button>
+                                        
+                                        {/* TOMBOL HAPUS FOTO */}
+                                        {profileData.image && !profileData.image.includes("ui-avatars.com") && (
+                                            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteImage}>
+                                                <Trash2 className="h-4 w-4 mr-1" /> Hapus
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             <Separator />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
