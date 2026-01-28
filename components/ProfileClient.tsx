@@ -24,6 +24,15 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress"; 
 
+// Kita pake Dialog buat menu ganti foto ala IG
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+// Alert Dialog buat notifikasi "Belum Save" (Satpam)
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,10 +51,10 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   
-  // STATE BARU: Active Tab (Biar bisa kita kontrol pindah-pindahnya)
-  const [activeTab, setActiveTab] = useState("settings"); // Default langsung ke settings biar lu gampang ngetest
+  // Tab State
+  const [activeTab, setActiveTab] = useState("settings");
 
-  // State profileData
+  // Profile Data State
   const [profileData, setProfileData] = useState({ 
     name: user.name || "", 
     email: user.email || "", 
@@ -60,12 +69,15 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // === SATPAM STATES ===
-  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
-  const [pendingPath, setPendingPath] = useState(""); // Buat nyimpen URL tujuan (Sidebar)
-  const [pendingTab, setPendingTab] = useState("");   // Buat nyimpen Tab tujuan (Overview)
+  // === NEW STATE: Menu Foto Profil Ala IG ===
+  const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
 
-  // 1. Handle pilih file
+  // === NAVIGATION GUARD STATES ===
+  const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
+  const [pendingPath, setPendingPath] = useState(""); 
+  const [pendingTab, setPendingTab] = useState("");   
+
+  // 1. Handle pilih file (Dipanggil dari menu "Unggah Foto")
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -76,50 +88,48 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         const previewUrl = URL.createObjectURL(file);
         setFileToUpload(file); 
         setProfileData({ ...profileData, image: previewUrl });
+        setIsPhotoMenuOpen(false); // Tutup menu setelah pilih
         toast.info("Foto dipilih", { description: "Jangan lupa klik Simpan Perubahan." });
     }
   };
 
-  // 2. Handle hapus foto
+  // 2. Handle tombol hapus foto (Dipanggil dari menu "Hapus Foto")
   const handleDeleteImage = () => {
       setFileToUpload(null);
       setProfileData({ ...profileData, image: "" });
+      setIsPhotoMenuOpen(false); // Tutup menu setelah hapus
       toast.warning("Foto dihapus dari preview", { description: "Klik Simpan untuk menerapkannya." });
   };
 
-  // 3. FUNGSI CEK DIRTY (Ada perubahan apa nggak?)
+  // 3. FUNGSI CEK DIRTY (Satpam Logic)
   const checkIsDirty = () => {
      return fileToUpload !== null || (user.image && !profileData.image && user.image !== "");
   };
 
-  // 4. SATPAM 1: Handle Navigasi Sidebar (Pindah Halaman)
+  // 4. Handle Navigasi Sidebar
   const handleNavigation = (e: React.MouseEvent, path: string) => {
     if (checkIsDirty()) {
         e.preventDefault();
         setPendingPath(path);
-        setPendingTab(""); // Kosongin tab karena ini navigasi URL
+        setPendingTab(""); 
         setShowUnsavedAlert(true);
     }
   };
 
-  // 5. SATPAM 2: Handle Pindah Tab (Pindah Ringkasan/Edit)
+  // 5. Handle Pindah Tab
   const handleTabChange = (value: string) => {
     if (checkIsDirty()) {
-        // Tahan! Jangan ganti tab dulu
         setPendingTab(value);
-        setPendingPath(""); // Kosongin path karena ini navigasi Tab
+        setPendingPath(""); 
         setShowUnsavedAlert(true);
     } else {
-        // Aman, ganti tab
         setActiveTab(value);
     }
   };
 
-  // 6. Logic "Lanjut (Hapus Perubahan)" - WIPE DATA
+  // 6. Logic Reset Data (Wipe Memory)
   const confirmDiscard = () => {
     setShowUnsavedAlert(false);
-    
-    // === RESET KE DATA ASLI ===
     setFileToUpload(null);
     setProfileData({ 
         name: user.name || "", 
@@ -128,15 +138,11 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         nip: user.nip || "",
         jabatan: user.jabatan || ""
     });
-    
-    // Cek tadi mau kemana? Halaman lain atau Tab lain?
-    if (pendingPath) {
-        router.push(pendingPath); 
-    } else if (pendingTab) {
-        setActiveTab(pendingTab);
-    }
+    if (pendingPath) router.push(pendingPath); 
+    else if (pendingTab) setActiveTab(pendingTab);
   };
 
+  // Upload Logic
   const uploadFile = async () => {
     if (!fileToUpload) return null;
     const formData = new FormData();
@@ -152,10 +158,10 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     }
   };
 
+  // Update Profile Logic
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
         let finalImagePath = profileData.image;
         if (fileToUpload) {
@@ -176,9 +182,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         });
 
         if (!res.ok) throw new Error("Gagal update");
-
         toast.success("Profil Diperbarui", { description: "Data diri berhasil disimpan." });
-        
         setFileToUpload(null); 
         router.refresh(); 
     } catch (error) {
@@ -235,41 +239,19 @@ export default function ProfileClient({ user }: ProfileClientProps) {
 
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
-            
-            <Link 
-                href="/" 
-                onClick={(e) => handleNavigation(e, "/")}
-                className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group"
-            >
+            <Link href="/" onClick={(e) => handleNavigation(e, "/")} className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <LayoutDashboard className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Dashboard
             </Link>
-            
-            <Link 
-                href="/riwayat" 
-                onClick={(e) => handleNavigation(e, "/riwayat")}
-                className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group"
-            >
+            <Link href="/riwayat" onClick={(e) => handleNavigation(e, "/riwayat")} className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <History className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Riwayat Presensi
             </Link>
-            
-            <Link 
-                href="/izin" 
-                onClick={(e) => handleNavigation(e, "/izin")}
-                className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group"
-            >
+            <Link href="/izin" onClick={(e) => handleNavigation(e, "/izin")} className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <FileText className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Pengajuan Izin
             </Link>
-            
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2 mt-6">Akun Pengguna</h4>
-            
-            <Link 
-                href="/profile" 
-                onClick={(e) => handleNavigation(e, "/profile")}
-                className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md"
-            >
+            <Link href="/profile" onClick={(e) => handleNavigation(e, "/profile")} className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <User className="h-5 w-5" /> Profil Saya
             </Link>
-            
             <LogoutModal>
                 <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium transition-all text-left mt-4">
                     <LogOut className="h-5 w-5" /> Keluar Aplikasi
@@ -282,26 +264,66 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
+      {/* MENU FOTO ALA INSTAGRAM (Dialog Khusus) */}
+      <Dialog open={isPhotoMenuOpen} onOpenChange={setIsPhotoMenuOpen}>
+        <DialogContent className="max-w-[350px] p-0 overflow-hidden rounded-2xl gap-0 border-none bg-white dark:bg-[#1c1c1e] backdrop-blur-2xl">
+            <DialogHeader className="pt-6 pb-4 border-b border-slate-100 dark:border-white/10">
+                <DialogTitle className="text-center text-lg font-bold">Ubah Foto Profil</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col text-center text-sm font-medium">
+                {/* Tombol Unggah */}
+                <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="py-4 text-[#99775C] dark:text-[#99775C] font-bold hover:bg-slate-50 dark:hover:bg-white/5 active:bg-slate-100 transition-colors"
+                >
+                    Unggah Foto
+                </button>
+                <Separator className="dark:bg-white/10" />
+                
+                {/* Tombol Hapus (Hanya muncul kalau ada foto) */}
+                {profileData.image && !profileData.image.includes("ui-avatars.com") && (
+                    <>
+                        <button 
+                            onClick={handleDeleteImage}
+                            className="py-4 text-red-600 font-bold hover:bg-slate-50 dark:hover:bg-white/5 active:bg-slate-100 transition-colors"
+                        >
+                            Hapus Foto Saat Ini
+                        </button>
+                        <Separator className="dark:bg-white/10" />
+                    </>
+                )}
+                
+                {/* Tombol Batal */}
+                <button 
+                    onClick={() => setIsPhotoMenuOpen(false)}
+                    className="py-4 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 active:bg-slate-100 transition-colors"
+                >
+                    Batal
+                </button>
+            </div>
+        </DialogContent>
+      </Dialog>
+
       {/* SATPAM POP-UP */}
       <AlertDialog open={showUnsavedAlert} onOpenChange={setShowUnsavedAlert}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Foto Belum Disimpan!</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Kamu udah ganti foto tapi belum klik <b>Simpan</b>.
-                    <br/>
-                    Kalo pindah sekarang (ganti tab/halaman), <b>foto ini bakal ilang</b> dan balik ke foto lama.
+                    Lu udah ganti foto tapi belum klik <b>Simpan</b>.<br/>
+                    Kalo pindah sekarang, <b>foto ini bakal ilang</b>.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+                <AlertDialogCancel className="rounded-xl">Batal (Stay)</AlertDialogCancel>
                 <AlertDialogAction onClick={confirmDiscard} className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold">
-                    Lanjut
+                    Lanjut (Hapus Perubahan)
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Navbar & Sidebar Navigation (Sama kek sebelumnya) */}
       <nav 
         className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm
         ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`} 
@@ -344,7 +366,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
 
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         
-        {/* TABS CONTROLLED COMPONENT */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex justify-center mb-8">
                 <TabsList className="bg-slate-200/60 dark:bg-[#1c1917] p-1.5 rounded-full h-14 w-full max-w-sm grid grid-cols-2 gap-2 shadow-inner">
@@ -358,6 +379,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             </div>
 
             <TabsContent value="overview" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                {/* Bagian Ringkasan sama kek sebelumnya */}
                 <div className="relative rounded-3xl overflow-hidden p-6 md:p-10 flex flex-col md:flex-row items-center md:items-center gap-8 shadow-xl shadow-[#99775C]/20 dark:shadow-none">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#99775C] to-[#6d5440] dark:from-[#3f2e26] dark:to-[#1c1917]">
                         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
@@ -423,24 +445,31 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                     <CardContent>
                         <form onSubmit={handleUpdateProfile} className="space-y-6">
                             <div className="flex items-center gap-6">
-                                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                    <Avatar className="h-24 w-24 border-2 border-slate-200"><AvatarImage src={profileData.image || `https://ui-avatars.com/api/?name=${user.name}`} className="object-cover" /><AvatarFallback>U</AvatarFallback></Avatar>
-                                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="h-6 w-6 text-white" /></div>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium">Foto Profil</p>
-                                    <p className="text-xs text-slate-500 mb-3">Klik foto untuk mengganti.</p>
-                                    
-                                    <div className="flex gap-2">
-                                        <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Pilih Foto</Button>
-                                        
-                                        {profileData.image && !profileData.image.includes("ui-avatars.com") && (
-                                            <Button type="button" variant="destructive" size="sm" onClick={handleDeleteImage}>
-                                                <Trash2 className="h-4 w-4 mr-1" /> Hapus
-                                            </Button>
-                                        )}
+                                
+                                {/* TRIGGER MENU FOTO */}
+                                <div className="flex flex-col items-center gap-2">
+                                    <div 
+                                        className="relative group cursor-pointer" 
+                                        onClick={() => setIsPhotoMenuOpen(true)} // BUKA MENU ALA IG
+                                    >
+                                        <Avatar className="h-24 w-24 border-2 border-slate-200"><AvatarImage src={profileData.image || `https://ui-avatars.com/api/?name=${user.name}`} className="object-cover" /><AvatarFallback>U</AvatarFallback></Avatar>
+                                        {/* Overlay Camera Icon (Optional aesthetic) */}
+                                        <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="h-6 w-6 text-white" /></div>
                                     </div>
+                                    {/* TEKS "Ubah Foto Profil" ALA IG */}
+                                    <p 
+                                        onClick={() => setIsPhotoMenuOpen(true)} 
+                                        className="text-sm font-bold text-[#99775C] cursor-pointer hover:underline"
+                                    >
+                                        Ubah Foto Profil
+                                    </p>
+                                    
+                                    {/* Hidden Input File (Cuma dipanggil via kode) */}
+                                    <Input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                                </div>
+
+                                <div className="flex-1">
+                                    {/* Kolom sebelah kanan foto (bisa dikasih deskripsi kalau mau, atau kosongin aja) */}
                                 </div>
                             </div>
                             <Separator />
