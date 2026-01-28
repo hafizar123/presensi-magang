@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import * as XLSX from "xlsx"; // Import library Excel
+import { useState, useEffect } from "react";
+import * as XLSX from "xlsx"; 
 import { 
   LogOut, History, FileText, 
   User, Menu, LayoutDashboard, Calendar, Filter, Download, 
-  FileSpreadsheet
+  FileSpreadsheet, CheckCircle2, Clock, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { toast } from "sonner"; // Import toast
+import { toast } from "sonner"; 
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,9 +27,15 @@ interface RiwayatClientProps {
 
 export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [filterBulan, setFilterBulan] = useState<string>("all"); // Default 'all'
+  const [filterBulan, setFilterBulan] = useState<string>("all");
+  
+  // STATE ANIMASI
+  const [startAnimation, setStartAnimation] = useState(false);
 
-  // Daftar Bulan Lengkap
+  useEffect(() => {
+    setStartAnimation(true);
+  }, []);
+
   const months = [
     { value: "0", label: "Januari" },
     { value: "1", label: "Februari" },
@@ -45,12 +51,10 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
     { value: "11", label: "Desember" },
   ];
 
-  // Logic Filter
   const filteredLogs = filterBulan === "all" 
     ? logs 
     : logs.filter(log => new Date(log.createdAt).getMonth().toString() === filterBulan);
 
-  // Logic Export Excel
   const handleExportExcel = () => {
     if (filteredLogs.length === 0) {
       toast.warning("Data Kosong", {
@@ -60,7 +64,6 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
     }
 
     try {
-      // Mapping data biar rapi di Excel
       const excelData = filteredLogs.map((log) => ({
         "Tanggal": new Date(log.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
         "Hari": new Date(log.createdAt).toLocaleDateString("id-ID", { weekday: 'long' }),
@@ -68,11 +71,9 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
         "Status": log.status,
       }));
 
-      // Bikin File Excel
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
       
-      // Atur lebar kolom (optional biar rapi)
       worksheet["!cols"] = [{ wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 15 }];
 
       XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Presensi");
@@ -89,8 +90,10 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
+        
+        {/* LOGO SIDEBAR (ANIMATED) */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
-             <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+             <div className={`p-1.5 bg-white/20 rounded-lg backdrop-blur-sm transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100 rotate-0" : "scale-0 opacity-0 -rotate-180"}`}>
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
              </div>
              <span className="font-bold text-lg tracking-tight">SIP-MAGANG</span>
@@ -158,10 +161,13 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                     <span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span>
                     <span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span>
                 </div>
-                <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
-                    <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
-                    <AvatarFallback className="bg-[#5c4a3d] text-white">U</AvatarFallback>
-                </Avatar>
+                {/* AVATAR (ANIMATED) */}
+                <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
+                    <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
+                        <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
+                        <AvatarFallback className="bg-[#5c4a3d] text-white">U</AvatarFallback>
+                    </Avatar>
+                </div>
             </Link>
           </div>
       </nav>
@@ -178,7 +184,6 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
             </div>
             
             <div className="flex items-center gap-2">
-                {/* Select Filter Bulan Diperbaiki */}
                 <Select value={filterBulan} onValueChange={setFilterBulan}>
                     <SelectTrigger className="w-[180px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
                         <Filter className="w-4 h-4 mr-2 text-slate-500 dark:text-gray-400" />
@@ -194,7 +199,6 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                     </SelectContent>
                 </Select>
                 
-                {/* Tombol Export yang Work */}
                 <Button 
                     onClick={handleExportExcel}
                     variant="outline" 
@@ -211,11 +215,19 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                     <p className="text-slate-400">Belum ada data presensi.</p>
                 </div>
             ) : (
-                filteredLogs.map((log) => (
-                    <Card key={log.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white dark:bg-[#1c1917] group">
+                filteredLogs.map((log, index) => (
+                    <Card 
+                        key={log.id} 
+                        className="border-none shadow-sm hover:shadow-md bg-white dark:bg-[#1c1917] group 
+                                   transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                                   hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] hover:z-10 relative
+                                   active:scale-[0.98] active:bg-slate-50 dark:active:bg-white/5
+                                   animate-in fade-in slide-in-from-bottom-4"
+                        style={{ animationDelay: `${index * 100}ms` }} // Efek muncul satu-satu
+                    >
                         <CardContent className="p-4 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="h-14 w-14 rounded-2xl bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] flex flex-col items-center justify-center font-bold border border-[#99775C]/10">
+                                <div className="h-14 w-14 rounded-2xl bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] flex flex-col items-center justify-center font-bold border border-[#99775C]/10 group-hover:scale-110 transition-transform">
                                     <span className="text-[10px] uppercase">{new Date(log.createdAt).toLocaleString('id-ID', { weekday: 'short' })}</span>
                                     <span className="text-2xl leading-none">{new Date(log.createdAt).getDate()}</span>
                                 </div>
