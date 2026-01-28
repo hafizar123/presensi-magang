@@ -55,10 +55,8 @@ export default function DashboardClient({
 
   // --- SIDEBAR CONTENT ---
   const SidebarContent = () => (
-    // Body Sidebar: Light=Krem(Narvik), Dark=WarmBlack(Stone-950)
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         
-        {/* HEADER: Light=Coklat(Sorrell), Dark=Espresso */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
              <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
@@ -69,12 +67,10 @@ export default function DashboardClient({
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
             
-            {/* Active: Light=Coklat, Dark=Coklat Terang dikit */}
             <Link href="/" className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <LayoutDashboard className="h-5 w-5" /> Dashboard
             </Link>
 
-            {/* Hover: Text gelap di light mode, Text terang (Narvik) di dark mode */}
             <Link href="/riwayat" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <History className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Riwayat Presensi
             </Link>
@@ -101,7 +97,7 @@ export default function DashboardClient({
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
        
-      {/* --- NAVBAR: Sama kayak Header Sidebar --- */}
+      {/* --- NAVBAR --- */}
       <nav 
         className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm
         ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}
@@ -159,8 +155,8 @@ export default function DashboardClient({
             ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}
         `}
       >
-        {/* HERO CARD: Gradasi di-adjust biar Dark Mode tetep keliatan mewah */}
-        <div className="relative w-full rounded-[2.5rem] overflow-hidden shadow-xl shadow-[#99775C]/20 dark:shadow-none group">
+        {/* HERO CARD */}
+        <div className="relative w-full rounded-[2.5rem] overflow-hidden shadow-xl shadow-[#99775C]/20 dark:shadow-none group animate-in fade-in zoom-in-95 duration-700">
             <div className="absolute inset-0 bg-gradient-to-br from-[#99775C] via-[#8a6b52] to-[#6d5440] dark:from-[#3f2e26] dark:via-[#271c19] dark:to-[#1c1917]"></div>
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
             
@@ -184,7 +180,7 @@ export default function DashboardClient({
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-6 bg-black/10 dark:bg-white/5 p-10 rounded-[2rem] border border-white/5 backdrop-blur-sm text-white min-w-[300px]">
+                <div className="flex flex-col items-center gap-6 bg-black/10 dark:bg-white/5 p-10 rounded-[2rem] border border-white/5 backdrop-blur-sm text-white min-w-[300px] hover:scale-105 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
                      <div className="scale-125 origin-center text-white">
                         <RealtimeClock />
                      </div>
@@ -195,31 +191,44 @@ export default function DashboardClient({
             </div>
         </div>
 
-        {/* STATS TILES */}
+        {/* STATS TILES (ANIMATED) */}
         <div>
             <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] mb-4 px-2">Statistik Bulan Ini</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatsCard label="Hadir Tepat Waktu" value={stats.hadir} icon={CheckCircle2} color="text-green-600 dark:text-green-400" desc="Hari" />
-                <StatsCard label="Terlambat" value={stats.telat} icon={Clock} color="text-orange-600 dark:text-orange-400" desc="Hari" />
-                <StatsCard label="Izin / Sakit" value={stats.izin} icon={FileText} color="text-blue-600 dark:text-blue-400" desc="Hari" />
-                {/* Total Masuk: Coklat di Light, Krem/Emas di Dark */}
-                <StatsCard label="Total Masuk" value={stats.total} icon={LayoutDashboard} color="text-[#99775C] dark:text-[#d6bba0]" desc="Akumulasi" />
+                <StatsCard label="Hadir Tepat Waktu" value={stats.hadir} icon={CheckCircle2} color="text-green-600 dark:text-green-400" desc="Hari" delay={100} />
+                <StatsCard label="Terlambat" value={stats.telat} icon={Clock} color="text-orange-600 dark:text-orange-400" desc="Hari" delay={200} />
+                <StatsCard label="Izin / Sakit" value={stats.izin} icon={FileText} color="text-blue-600 dark:text-blue-400" desc="Hari" delay={300} />
+                <StatsCard label="Total Masuk" value={stats.total} icon={LayoutDashboard} color="text-[#99775C] dark:text-[#d6bba0]" desc="Akumulasi" delay={400} />
             </div>
         </div>
 
-        {/* PENGUMUMAN */}
+        {/* PENGUMUMAN (ANIMATED LIST) */}
         <div>
             <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] flex items-center gap-2 mb-4 px-2">
                 <Bell className="h-5 w-5 text-yellow-500" />
                 Papan Informasi
             </h3>
-            <div className="bg-white dark:bg-[#1c1917] rounded-3xl p-1 shadow-sm border border-slate-100 dark:border-[#292524]">
+            <div className="bg-white dark:bg-[#1c1917] rounded-3xl p-1 shadow-sm border border-slate-100 dark:border-[#292524] overflow-hidden">
                 {announcements.length === 0 ? (
                     <div className="p-8 text-center text-slate-400 text-sm">Belum ada informasi terbaru.</div>
                 ) : (
-                    announcements.map((info) => (
-                        <div key={info.id} className="group flex items-start gap-4 p-6 hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] rounded-2xl transition-colors cursor-pointer border-b border-dashed border-slate-100 dark:border-[#292524] last:border-0">
-                            <div className="shrink-0 w-14 h-14 bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] rounded-2xl flex flex-col items-center justify-center font-bold shadow-sm">
+                    announcements.map((info, index) => (
+                        <div 
+                            key={info.id} 
+                            // STYLE ANIMASI AIR & MEMANTUL DI SINI!
+                            className="group flex items-start gap-4 p-6 
+                                       hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] 
+                                       rounded-2xl cursor-pointer 
+                                       border-b border-dashed border-slate-100 dark:border-[#292524] last:border-0
+                                       
+                                       /* === ANIMASI UTAMA === */
+                                       transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                                       hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] hover:z-10 relative
+                                       active:scale-[0.98] active:bg-slate-100 dark:active:bg-white/5
+                            "
+                            style={{ animationDelay: `${index * 100}ms` }} // Staggered entrance
+                        >
+                            <div className="shrink-0 w-14 h-14 bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] rounded-2xl flex flex-col items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform duration-300 ease-out">
                                 <span className="text-[10px] uppercase tracking-wider">{new Date(info.createdAt).toLocaleString('id-ID', { month: 'short' })}</span>
                                 <span className="text-2xl leading-none">{new Date(info.createdAt).getDate()}</span>
                             </div>
@@ -237,10 +246,18 @@ export default function DashboardClient({
   );
 }
 
-function StatsCard({ label, value, icon: Icon, color, desc }: any) {
+// Update StatsCard dengan animasi Bouncy juga
+function StatsCard({ label, value, icon: Icon, color, desc, delay }: any) {
     return (
-        <Card className="shadow-sm border-slate-200 dark:border-[#292524] bg-white dark:bg-[#1c1917] relative overflow-hidden h-auto min-h-[140px] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
-            <div className="absolute top-0 right-0 p-4 opacity-5">
+        <Card 
+            className="shadow-sm border-slate-200 dark:border-[#292524] bg-white dark:bg-[#1c1917] relative overflow-hidden h-auto min-h-[140px] flex flex-col justify-between 
+                       /* ANIMASI BOUNCY */
+                       transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                       hover:-translate-y-2 hover:shadow-xl hover:scale-[1.03]
+                       animate-in fade-in slide-in-from-bottom-4"
+            style={{ animationDelay: `${delay}ms`, animationFillMode: 'backwards' }}
+        >
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Icon className={`w-24 h-24 ${color}`} />
             </div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">

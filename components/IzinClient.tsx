@@ -7,7 +7,7 @@ import {
   Calendar, Upload, Send, Loader2, Clock, X, CheckCircle2, AlertCircle, LogOut 
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image"; // Jangan lupa import Image buat logo
+import Image from "next/image"; 
 import { toast } from "sonner"; 
 
 // Components
@@ -29,14 +29,16 @@ interface IzinClientProps {
 
 export default function IzinClient({ user, requests }: IzinClientProps) {
   const router = useRouter();
+  // State Sidebar Default Open
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   const [formData, setFormData] = useState({ date: "", reason: "", proofFile: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // LOGIC UPLOAD (SAMA KAYA SEBELUMNYA)
+  // LOGIC UPLOAD
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -91,11 +93,9 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
       if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // --- SIDEBAR DENGAN DARK MODE (FIXED) ---
+  // --- KONTEN SIDEBAR ---
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
-        
-        {/* HEADER: Coklat Sorrell / Espresso */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
              <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
@@ -103,7 +103,6 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
              <span className="font-bold text-lg tracking-tight">SIP-MAGANG</span>
         </div>
 
-        {/* MENU LIST */}
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
             
@@ -115,7 +114,6 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 <History className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Riwayat Presensi
             </Link>
             
-            {/* Active State (Izin): Coklat / Espresso */}
             <Link href="/izin" className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <FileText className="h-5 w-5" /> Pengajuan Izin
             </Link>
@@ -138,11 +136,23 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
-      {/* NAVBAR DENGAN DARK MODE (FIXED) */}
+      {/* NAVBAR: Sekarang Lebarnya Dinamis */}
       <nav 
-        className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm w-full lg:w-[calc(100%-280px)] lg:left-[280px]`}
+        className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm
+        ${isSidebarOpen ? "lg:w-[calc(100%-280px)] lg:left-[280px]" : "w-full left-0"}`}
       >
           <div className="flex items-center gap-4">
+             {/* Tombol Sidebar Desktop (BARU) */}
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                className="hidden lg:flex text-white hover:bg-white/10"
+             >
+                <Menu className="h-6 w-6" />
+             </Button>
+
+             {/* Tombol Mobile Sheet */}
              <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10">
@@ -171,16 +181,18 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
           </div>
       </nav>
 
-      {/* SIDEBAR DESKTOP */}
-      <aside className="fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl hidden lg:block border-r border-[#d6d3c9] dark:border-[#1c1917]">
+      {/* SIDEBAR: Pake Translate X buat slide in/out */}
+      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden lg:block border-r border-[#d6d3c9] dark:border-[#1c1917] 
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
         <SidebarContent />
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="pt-24 px-4 md:px-8 pb-12 lg:ml-[280px]">
+      {/* MAIN CONTENT: Margin kirinya dinamis */}
+      <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out ${isSidebarOpen ? "lg:ml-[280px]" : "lg:ml-0"}`}>
         <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
             
-            {/* FORM */}
+            {/* FORM SECTION (TETEP SAMA KAYA AWAL) */}
             <div className="w-full">
                 <div className="mb-4">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">Formulir Perizinan</h2>
@@ -254,7 +266,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 </Card>
             </div>
 
-            {/* RIWAYAT */}
+            {/* RIWAYAT SECTION (TETEP SAMA KAYA AWAL) */}
             <div className="w-full">
                 <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] px-1 mb-4 flex items-center gap-2">
                     <History className="h-5 w-5" />
