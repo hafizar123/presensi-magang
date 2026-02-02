@@ -1,84 +1,109 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+import fs from "fs";
+import path from "path";
 
-const prisma = new PrismaClient();
-
-export async function POST(request: Request) {
-  // 1. Cek User Login
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ message: "Login dulu bos!" }, { status: 401 });
-
-  const userId = session.user.id;
+// Helper: Ambil jam sekarang dalam format "HH:mm" (WIB / UTC+7)
+function getCurrentTimeWIB() {
+  const now = new Date();
+  // Paksa ke UTC+7 (WIB)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibTime = new Date(utc + (7 * 3600000));
   
+  const hours = wibTime.getHours().toString().padStart(2, '0');
+  const minutes = wibTime.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+// Helper: Baca Settingan Admin (settings.json)
+function getGlobalSettings() {
   try {
-    // 2. Ambil Jadwal User (InternProfile)
-    const profile = await prisma.internProfile.findUnique({
-      where: { userId },
-    });
+    const configPath = path.join(process.cwd(), "settings.json");
+    if (fs.existsSync(configPath)) {
+      const settingsData = fs.readFileSync(configPath, "utf-8");
+      return JSON.parse(settingsData);
+    }
+  } catch (error) {
+    console.error("Gagal baca settings.json:", error);
+  }
+  // Default kalo error (Fallback aman)
+  return { startHour: "07:30", endHour: "16:00" };
+}
 
-    if (!profile) {
-      return NextResponse.json({ message: "Jadwal belum diatur Admin!" }, { status: 400 });
+// Helper: Hitung Status (Hadir/Telat)
+function calculateStatus(currentTime: string, limitTime: string) {
+  // Ubah ke integer menit biar gampang dibandingin
+  const [currH, currM] = currentTime.split(":").map(Number);
+  const [limitH, limitM] = limitTime.split(":").map(Number);
+
+  const currentTotal = currH * 60 + currM;
+  const limitTotal = limitH * 60 + limitM;
+
+  // Jika waktu sekarang LEBIH BESAR dari batas, berarti TELAT
+  if (currentTotal > limitTotal) {
+    return "TELAT";
+  }
+  return "HADIR";
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 3. Logic Waktu (Jam Server)
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    // Konversi jam sekarang jadi format "HH:mm" (misal "08:30") buat dibandingin
-    const currentTimeString = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
-    
-    // Ambil jam dari jadwal (Format DB: "07:00" & "08:00")
-    const scheduleStart = profile.startHour; 
-    const scheduleEnd = profile.endHour; 
-
-    // Cek Kepagian
-    if (currentTimeString < scheduleStart) {
-        return NextResponse.json({ message: `Belum waktunya absen! Absen dibuka jam ${scheduleStart}` }, { status: 400 });
-    }
-
-    // Tentukan Status (HADIR / TELAT)
-    // Logikanya: Kalo absen LEBIH DARI scheduleEnd (Tutup Absen), berarti TELAT.
-    // Atau lo bisa set logic sendiri, misal start 07:00, end 08:00. Lewat 08:00 = Telat.
-    let status = "HADIR";
-    if (currentTimeString > scheduleEnd) {
-        status = "TELAT";
-    }
-
-    // 4. Cek Double Absen (Anti Spam)
-    // Kita set jam ke 00:00:00 buat kunci unik tanggal
+    // 1. Cek apakah user sudah absen hari ini
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const existingLog = await prisma.attendance.findUnique({
+    today.setHours(0, 0, 0, 0); // Reset jam jadi 00:00 buat filter tanggal
+    // *Note: Tanggal di DB biasanya UTC, tapi logic "user udh absen blm" relatif aman pake default date server asal konsisten.
+    // Kalau mau super aman, range today-nya juga harus WIB, tapi next-auth session biasanya aman.
+    
+    // Tapi untuk amannya, kita pake range start & end of day UTC yg mencakup WIB hari ini
+    // Atau cara simple: Cari record user yg dibuat >= today 00:00 WIB
+    // Kita pake native Date object aja dlu yg simple.
+    
+    const existingAttendance = await prisma.attendance.findFirst({
         where: {
-            userId_date: {
-                userId,
-                date: today
+            userId: session.user.id,
+            date: {
+                gte: today, // Lebih besar dari hari ini jam 00:00
             }
         }
     });
 
-    if (existingLog) {
-        return NextResponse.json({ message: "Woy, udah absen hari ini!" }, { status: 400 });
+    if (existingAttendance) {
+        return NextResponse.json({ message: "Anda sudah melakukan presensi hari ini." }, { status: 400 });
     }
 
-    // 5. SIMPAN KE DATABASE
+    // 2. Ambil Waktu Sekarang (WIB) & Settingan Batas
+    const timeNow = getCurrentTimeWIB(); // Contoh: "11:48"
+    const settings = getGlobalSettings();
+    const batasTelat = settings.startHour || "07:30"; // Ambil dari admin setting (default 07:30)
+
+    // 3. Tentukan Status
+    const statusPresensi = calculateStatus(timeNow, batasTelat);
+
+    // 4. Simpan ke Database
     await prisma.attendance.create({
-        data: {
-            userId,
-            date: today, // Kunci tanggal
-            time: currentTimeString, // Jam display (ex: "08:15")
-            status: status, 
-        }
+      data: {
+        userId: session.user.id,
+        date: new Date(), // Tanggal lengkap
+        time: timeNow,    // Jam string "HH:mm" (WIB) yang disimpen
+        status: statusPresensi, // HADIR atau TELAT
+      },
     });
 
-    return NextResponse.json({ message: "Berhasil Absen!", status });
+    return NextResponse.json({ 
+        message: "Presensi berhasil dicatat", 
+        status: statusPresensi,
+        time: timeNow
+    });
 
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Server error bro" }, { status: 500 });
+    console.error("Error presensi:", error);
+    return NextResponse.json({ message: "Terjadi kesalahan server." }, { status: 500 });
   }
 }

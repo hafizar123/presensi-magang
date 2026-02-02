@@ -330,14 +330,14 @@ export default function SettingsPage() {
               </div>
               <Separator className="bg-slate-100 dark:bg-[#292524]" />
               <div className="space-y-4">
-                 <h3 className="font-medium text-slate-900 dark:text-[#EAE7DD]">Jam Kerja Default</h3>
+                 <h3 className="font-medium text-slate-900 dark:text-[#EAE7DD]">Jam Batas Presensi</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-gray-300">Jam Masuk</Label>
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Mulai Presensi</Label>
                         <Input type="time" value={officeData.startHour} onChange={(e) => setOfficeData({...officeData, startHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-gray-300">Jam Pulang</Label>
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Batas Presensi</Label>
                         <Input type="time" value={officeData.endHour} onChange={(e) => setOfficeData({...officeData, endHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
                  </div>

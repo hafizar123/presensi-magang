@@ -32,7 +32,7 @@ export default function DashboardClient({
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Logic Status Badge
+  // --- LOGIC STATUS BADGE (REVISI) ---
   let statusText = "Belum Presensi";
   let statusColor = "bg-white/10 text-white border-white/20 backdrop-blur-md";
   let StatusIcon = Clock;
@@ -43,7 +43,7 @@ export default function DashboardClient({
         statusColor = "bg-green-500/20 text-green-100 border-green-500/30 backdrop-blur-md";
         StatusIcon = CheckCircle2;
     } else if (todayLog.status === "TELAT") {
-        statusText = "Terlambat";
+        statusText = "Terlambat"; // Ini yang kemaren kelupaan
         statusColor = "bg-orange-500/20 text-orange-100 border-orange-500/30 backdrop-blur-md";
         StatusIcon = AlertCircle;
     } else if (todayLog.status === "IZIN") {
@@ -174,6 +174,7 @@ export default function DashboardClient({
                             Jangan lupa presensi sebelum bekerja.
                         </p>
                     </div>
+                    {/* BADGE STATUS: Logic warna & teks udah bener sekarang */}
                     <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border ${statusColor}`}>
                         <StatusIcon className="h-5 w-5" />
                         <span className="font-semibold">{statusText}</span>
@@ -181,12 +182,13 @@ export default function DashboardClient({
                 </div>
 
                 <div className="flex flex-col items-center gap-6 bg-black/10 dark:bg-white/5 p-10 rounded-[2rem] border border-white/5 backdrop-blur-sm text-white min-w-[300px] hover:scale-105 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
-                     <div className="scale-125 origin-center text-white">
+                      <div className="scale-125 origin-center text-white">
                         <RealtimeClock />
-                     </div>
-                     <div className="w-full flex justify-center">
+                      </div>
+                      <div className="w-full flex justify-center">
+                        {/* Tombol disabled kalau udah ada log */}
                         <AttendanceButton type="IN" disabled={!!todayLog} />
-                     </div>
+                      </div>
                 </div>
             </div>
         </div>
@@ -225,7 +227,7 @@ export default function DashboardClient({
                                        transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
                                        hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] hover:z-10 relative
                                        active:scale-[0.98] active:bg-slate-100 dark:active:bg-white/5
-                            "
+                           "
                             style={{ animationDelay: `${index * 100}ms` }} // Staggered entrance
                         >
                             <div className="shrink-0 w-14 h-14 bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] rounded-2xl flex flex-col items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform duration-300 ease-out">

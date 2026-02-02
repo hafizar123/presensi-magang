@@ -6,7 +6,7 @@ import DashboardClient from "@/components/DashboardClient";
 
 const prisma = new PrismaClient();
 
-// Data Fetching Logic (Tetap di Server)
+// Data Fetching Logic
 async function getAnnouncements() {
   return await prisma.announcement.findMany({
     orderBy: { createdAt: "desc" },
@@ -14,16 +14,27 @@ async function getAnnouncements() {
   });
 }
 
+// FIX: Logic Ambil Data Hari Ini (WIB AWARE)
 async function getTodayAttendance(userId: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  
+  // 1. Geser ke WIB
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibTime = new Date(utc + (7 * 3600000));
+  
+  // 2. Set range hari ini (00:00 - 23:59 WIB)
+  wibTime.setHours(0, 0, 0, 0);
+  const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000)); // Balikin ke UTC buat query DB
+  const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
-  return await prisma.attendance.findUnique({
+  // 3. Cari data di range tersebut
+  return await prisma.attendance.findFirst({
     where: {
-      userId_date: {
-        userId: userId,
-        date: today,
-      },
+      userId: userId,
+      date: {
+        gte: startOfDayUTC,
+        lt: endOfDayUTC
+      }
     },
   });
 }
@@ -50,14 +61,12 @@ export default async function HomePage() {
   if (!session) redirect("/login");
   if (session.user.role === "ADMIN") redirect("/admin");
 
-  // Fetch Data Paralel biar cepet
   const [announcements, todayLog, statsRaw] = await Promise.all([
     getAnnouncements(),
     getTodayAttendance(session.user.id),
     getMonthlyStats(session.user.id)
   ]);
 
-  // Olah data stats dikit
   const countHadir = statsRaw.find(s => s.status === 'HADIR')?.['_count'].status || 0;
   const countTelat = statsRaw.find(s => s.status === 'TELAT')?.['_count'].status || 0;
   const countIzin = statsRaw.find(s => s.status === 'IZIN')?.['_count'].status || 0;
@@ -68,12 +77,11 @@ export default async function HomePage() {
   if (greetingHour >= 15) greeting = "Selamat Sore";
   if (greetingHour >= 19) greeting = "Selamat Malam";
 
-  // Render Client Component dan oper datanya
   return (
     <DashboardClient 
       user={session.user}
       announcements={announcements}
-      todayLog={todayLog}
+      todayLog={todayLog} // Sekarang data ini pasti ada kalau udah absen
       greeting={greeting}
       stats={{
         hadir: countHadir,

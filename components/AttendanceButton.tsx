@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MapPin, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Loader2, MapPin, CheckCircle2, XCircle, Clock, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,14 +25,24 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
   const [errorMessage, setErrorMessage] = useState("");
 
   const isMasuk = type === "IN";
-  const label = isMasuk ? "Absen Masuk" : "Absen Pulang";
   
-  // --- STYLE BARU YANG KALCER ---
-  // Background: Narvik (Krem Terang) | Text: Dark Brown | Border: Sorrell
-  // Ini bakal keliatan "Pop" di atas background Coklat Sorrell Dashboard
-  const buttonStyle = isMasuk 
-    ? "bg-[#EAE7DD] hover:bg-white text-[#5c4a3d] border-b-4 border-[#99775C] active:border-b-0 active:translate-y-1 shadow-lg shadow-black/10" 
-    : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
+  // LOGIC LABEL BARU
+  const label = disabled 
+    ? "Sudah Absen" 
+    : (isMasuk ? "Absen Masuk" : "Absen Pulang");
+  
+  // LOGIC STYLE BARU (Handle Disabled)
+  let buttonStyle = "";
+  
+  if (disabled) {
+      // Style Disabled (Abu-abu, flat)
+      buttonStyle = "bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed opacity-80";
+  } else {
+      // Style Active (Kalcer)
+      buttonStyle = isMasuk 
+        ? "bg-[#EAE7DD] hover:bg-white text-[#5c4a3d] border-b-4 border-[#99775C] active:border-b-0 active:translate-y-1 shadow-lg shadow-black/10" 
+        : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
+  }
 
   const handleAttendance = async () => {
     setStep("LOCATING");
@@ -88,11 +98,18 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
   return (
     <>
       <Button 
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+              if (!disabled) setIsOpen(true);
+          }}
           disabled={disabled} 
           className={`h-14 px-10 rounded-xl text-lg font-bold transition-all ${buttonStyle}`}
       >
-        {isMasuk ? <Clock className="mr-2 h-6 w-6 text-[#99775C]" /> : <MapPin className="mr-2 h-6 w-6" />}
+        {/* Logic Icon */}
+        {disabled ? (
+            <CheckCircle2 className="mr-2 h-6 w-6" />
+        ) : (
+            isMasuk ? <Clock className="mr-2 h-6 w-6 text-[#99775C]" /> : <MapPin className="mr-2 h-6 w-6" />
+        )}
         {label}
       </Button>
 
@@ -104,7 +121,6 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
       }}>
         <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden rounded-2xl gap-0">
           
-          {/* Header Animasi (Warna ikon disesuaikan dikit biar ga nabrak) */}
           <div className={`h-32 w-full flex items-center justify-center ${
             step === "SUCCESS" ? "bg-green-100" : 
             step === "ERROR" ? "bg-red-100" : "bg-[#EAE7DD]"
@@ -148,7 +164,6 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
                         Batal
                     </Button>
                     
-                    {/* TOMBOL KONFIRMASI: SORRELL BROWN */}
                     <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white">
                         Ya, Absen
                     </Button>

@@ -11,7 +11,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 
-// ... (Import Components tetap sama)
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
