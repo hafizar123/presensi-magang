@@ -6,7 +6,6 @@ import DashboardClient from "@/components/DashboardClient";
 
 const prisma = new PrismaClient();
 
-// Data Fetching Logic
 async function getAnnouncements() {
   return await prisma.announcement.findMany({
     orderBy: { createdAt: "desc" },
@@ -14,27 +13,19 @@ async function getAnnouncements() {
   });
 }
 
-// FIX: Logic Ambil Data Hari Ini (WIB AWARE)
 async function getTodayAttendance(userId: string) {
   const now = new Date();
-  
-  // 1. Geser ke WIB
   const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
   const wibTime = new Date(utc + (7 * 3600000));
   
-  // 2. Set range hari ini (00:00 - 23:59 WIB)
   wibTime.setHours(0, 0, 0, 0);
-  const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000)); // Balikin ke UTC buat query DB
+  const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000));
   const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
-  // 3. Cari data di range tersebut
   return await prisma.attendance.findFirst({
     where: {
       userId: userId,
-      date: {
-        gte: startOfDayUTC,
-        lt: endOfDayUTC
-      }
+      date: { gte: startOfDayUTC, lt: endOfDayUTC }
     },
   });
 }
@@ -55,16 +46,25 @@ async function getMonthlyStats(userId: string) {
   return stats;
 }
 
+// TAMBAHAN: Ambil Profile User Lengkap (termasuk periode)
+async function getUserProfile(userId: string) {
+    return await prisma.user.findUnique({
+        where: { id: userId },
+        include: { internProfile: true }
+    });
+}
+
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
   if (!session) redirect("/login");
   if (session.user.role === "ADMIN") redirect("/admin");
 
-  const [announcements, todayLog, statsRaw] = await Promise.all([
+  const [announcements, todayLog, statsRaw, userProfile] = await Promise.all([
     getAnnouncements(),
     getTodayAttendance(session.user.id),
-    getMonthlyStats(session.user.id)
+    getMonthlyStats(session.user.id),
+    getUserProfile(session.user.id)
   ]);
 
   const countHadir = statsRaw.find(s => s.status === 'HADIR')?.['_count'].status || 0;
@@ -79,9 +79,9 @@ export default async function HomePage() {
 
   return (
     <DashboardClient 
-      user={session.user}
+      user={userProfile || session.user} // Kirim user yang ada internProfile-nya
       announcements={announcements}
-      todayLog={todayLog} 
+      todayLog={todayLog}
       greeting={greeting}
       stats={{
         hadir: countHadir,
