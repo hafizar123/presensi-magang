@@ -6,7 +6,6 @@ import DashboardClient from "@/components/DashboardClient";
 
 const prisma = new PrismaClient();
 
-// Data Fetching Logic (Tetap di Server)
 async function getAnnouncements() {
   return await prisma.announcement.findMany({
     orderBy: { createdAt: "desc" },
@@ -15,15 +14,18 @@ async function getAnnouncements() {
 }
 
 async function getTodayAttendance(userId: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibTime = new Date(utc + (7 * 3600000));
+  
+  wibTime.setHours(0, 0, 0, 0);
+  const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000));
+  const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
-  return await prisma.attendance.findUnique({
+  return await prisma.attendance.findFirst({
     where: {
-      userId_date: {
-        userId: userId,
-        date: today,
-      },
+      userId: userId,
+      date: { gte: startOfDayUTC, lt: endOfDayUTC }
     },
   });
 }
@@ -44,20 +46,27 @@ async function getMonthlyStats(userId: string) {
   return stats;
 }
 
+// TAMBAHAN: Ambil Profile User Lengkap (termasuk periode)
+async function getUserProfile(userId: string) {
+    return await prisma.user.findUnique({
+        where: { id: userId },
+        include: { internProfile: true }
+    });
+}
+
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
   if (!session) redirect("/login");
   if (session.user.role === "ADMIN") redirect("/admin");
 
-  // Fetch Data Paralel biar cepet
-  const [announcements, todayLog, statsRaw] = await Promise.all([
+  const [announcements, todayLog, statsRaw, userProfile] = await Promise.all([
     getAnnouncements(),
     getTodayAttendance(session.user.id),
-    getMonthlyStats(session.user.id)
+    getMonthlyStats(session.user.id),
+    getUserProfile(session.user.id)
   ]);
 
-  // Olah data stats dikit
   const countHadir = statsRaw.find(s => s.status === 'HADIR')?.['_count'].status || 0;
   const countTelat = statsRaw.find(s => s.status === 'TELAT')?.['_count'].status || 0;
   const countIzin = statsRaw.find(s => s.status === 'IZIN')?.['_count'].status || 0;
@@ -68,10 +77,9 @@ export default async function HomePage() {
   if (greetingHour >= 15) greeting = "Selamat Sore";
   if (greetingHour >= 19) greeting = "Selamat Malam";
 
-  // Render Client Component dan oper datanya
   return (
     <DashboardClient 
-      user={session.user}
+      user={userProfile || session.user} // Kirim user yang ada internProfile-nya
       announcements={announcements}
       todayLog={todayLog}
       greeting={greeting}

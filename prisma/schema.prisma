@@ -39,15 +39,14 @@ model InternProfile {
 model Attendance {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  date      DateTime // Tanggal doang (jam 00:00:00)
-  time      String   // Jam doang (Format "07:30") <-- INI YANG DITUNGGU SAMA LOG.TIME
-  status    String   // HADIR, TELAT, dll
-  
+  date      DateTime
+  time      String   // Ini kita anggap Time IN
+  timeOut   String?  // TAMBAHAN: Ini Time OUT (Boleh kosong)
+  status    String   // HADIR, TELAT, IZIN
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // Tambahin ini biar rapi tracking updatenya
 
-  @@unique([userId, date])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Announcement {
@@ -79,5 +78,3 @@ model NotificationDismissal {
 
   @@unique([refId, type]) // Biar gak duplikat
 }
-
-

@@ -1,84 +1,191 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+import fs from "fs";
+import path from "path";
 
-const prisma = new PrismaClient();
+// Helper: Ambil jam sekarang WIB (Format "HH:mm")
+function getCurrentTimeWIB() {
+  const date = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false, // Format 24 jam (PENTING)
+  };
+  // Ini bakal return misal "14:30" atau "08:05"
+  return new Intl.DateTimeFormat("en-GB", options).format(date); 
+}
 
-export async function POST(request: Request) {
-  // 1. Cek User Login
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ message: "Login dulu bos!" }, { status: 401 });
+// Helper: Ambil tanggal hari ini WIB
+function getTodayDateWIB() {
+  const date = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric"
+  };
+  const wibString = new Intl.DateTimeFormat("en-US", options).format(date);
+  return new Date(wibString);
+}
 
-  const userId = session.user.id;
+// Helper: Cek Jumat WIB
+function isFridayWIB() {
+  const date = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Asia/Jakarta",
+    weekday: "long"
+  };
+  const day = new Intl.DateTimeFormat("en-US", options).format(date);
+  return day === "Friday";
+}
+
+// Helper: Convert "HH:mm" ke Total Menit (SIMPEL TAPI AKURAT)
+function timeToMinutes(time: string) {
+  if (!time || typeof time !== "string") return 0;
   
+  // Bersihin dari karakter aneh, cuma ambil angka dan titik dua
+  const clean = time.trim().replace(/[^0-9:]/g, "");
+  
+  const [hStr, mStr] = clean.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+
+  if (isNaN(h) || isNaN(m)) return 0; // Safety check
+
+  return (h * 60) + m;
+}
+
+// Helper: Baca Settings
+function getGlobalSettings() {
+  let settings = { startHour: "07:30", endHour: "16:00" };
   try {
-    // 2. Ambil Jadwal User (InternProfile)
-    const profile = await prisma.internProfile.findUnique({
-      where: { userId },
+    const configPath = path.join(process.cwd(), "settings.json");
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (parsed.startHour) settings.startHour = parsed.startHour;
+      if (parsed.endHour) settings.endHour = parsed.endHour;
+    }
+  } catch (error) {
+    console.error("Gagal baca settings:", error);
+  }
+  return settings;
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    // 1. CEK PERIODE MAGANG (SAMA SEPERTI SEBELUMNYA)
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { internProfile: true }
     });
 
-    if (!profile) {
-      return NextResponse.json({ message: "Jadwal belum diatur Admin!" }, { status: 400 });
+    if (!user || !user.internProfile) {
+        return NextResponse.json({ message: "Akun belum diatur admin." }, { status: 403 });
     }
 
-    // 3. Logic Waktu (Jam Server)
+    const today = getTodayDateWIB();
+    const startDate = new Date(user.internProfile.startDate);
+    const endDate = new Date(user.internProfile.endDate);
+    
+    today.setHours(0,0,0,0);
+    startDate.setHours(0,0,0,0);
+    endDate.setHours(0,0,0,0);
+
+    if (today < startDate) return NextResponse.json({ message: "Periode belum dimulai." }, { status: 403 });
+    if (today > endDate) return NextResponse.json({ message: "Periode sudah selesai." }, { status: 403 });
+
+    // --- LOGIC ABSENSI ---
+    const { type, latitude, longitude } = await req.json();
+    
+    if (!latitude || !longitude) {
+        return NextResponse.json({ message: "Lokasi tidak terdeteksi." }, { status: 400 });
+    }
+
+    const timeNow = getCurrentTimeWIB();
+    const settings = getGlobalSettings();
+    
+    const batasMasuk = settings.startHour || "07:30"; 
+    let batasPulang = settings.endHour || "16:00";
+    
+    if (isFridayWIB()) {
+        batasPulang = "14:30"; // Override Jumat
+    }
+
+    // DEBUGGING DI TERMINAL (WAJIB CEK INI KALAU ERROR)
+    console.log("================ ABSENSI LOG ================");
+    console.log(`User: ${session.user.name} | Type: ${type}`);
+    console.log(`Waktu Sekarang: ${timeNow} (${timeToMinutes(timeNow)} menit)`);
+    console.log(`Batas Pulang: ${batasPulang} (${timeToMinutes(batasPulang)} menit)`);
+    console.log("=============================================");
+
+    // Range Hari Ini (WIB)
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    // Konversi jam sekarang jadi format "HH:mm" (misal "08:30") buat dibandingin
-    const currentTimeString = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
-    
-    // Ambil jam dari jadwal (Format DB: "07:00" & "08:00")
-    const scheduleStart = profile.startHour; 
-    const scheduleEnd = profile.endHour; 
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibTime = new Date(utc + (7 * 3600000));
+    wibTime.setHours(0, 0, 0, 0);
+    const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000));
+    const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
 
-    // Cek Kepagian
-    if (currentTimeString < scheduleStart) {
-        return NextResponse.json({ message: `Belum waktunya absen! Absen dibuka jam ${scheduleStart}` }, { status: 400 });
-    }
-
-    // Tentukan Status (HADIR / TELAT)
-    // Logikanya: Kalo absen LEBIH DARI scheduleEnd (Tutup Absen), berarti TELAT.
-    // Atau lo bisa set logic sendiri, misal start 07:00, end 08:00. Lewat 08:00 = Telat.
-    let status = "HADIR";
-    if (currentTimeString > scheduleEnd) {
-        status = "TELAT";
-    }
-
-    // 4. Cek Double Absen (Anti Spam)
-    // Kita set jam ke 00:00:00 buat kunci unik tanggal
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const existingLog = await prisma.attendance.findUnique({
+    const existingLog = await prisma.attendance.findFirst({
         where: {
-            userId_date: {
-                userId,
-                date: today
-            }
+            userId: session.user.id,
+            date: { gte: startOfDayUTC, lt: endOfDayUTC }
         }
     });
 
-    if (existingLog) {
-        return NextResponse.json({ message: "Woy, udah absen hari ini!" }, { status: 400 });
+    // === IN ===
+    if (type === "IN") {
+        if (existingLog) return NextResponse.json({ message: "Anda sudah absen masuk." }, { status: 400 });
+
+        const status = timeToMinutes(timeNow) > timeToMinutes(batasMasuk) ? "TELAT" : "HADIR";
+
+        await prisma.attendance.create({
+            data: {
+                userId: session.user.id,
+                date: new Date(), 
+                time: timeNow,    
+                status: status,
+            }
+        });
+
+        return NextResponse.json({ message: "Berhasil Absen Masuk!", time: timeNow, status });
+    } 
+    
+    // === OUT ===
+    else if (type === "OUT") {
+        if (!existingLog) return NextResponse.json({ message: "Anda belum absen masuk!" }, { status: 400 });
+        if (existingLog.timeOut) return NextResponse.json({ message: "Anda sudah absen pulang." }, { status: 400 });
+
+        const currentMins = timeToMinutes(timeNow);
+        const limitMins = timeToMinutes(batasPulang);
+
+        // VALIDASI JAM PULANG (Logic Strict)
+        if (limitMins > 0 && currentMins < limitMins) {
+            console.log(`[BLOCKED] Pulang ditolak. Kurang ${limitMins - currentMins} menit.`);
+            return NextResponse.json({ 
+                message: `Belum jam pulang! Tunggu sampai jam ${batasPulang} WIB.` 
+            }, { status: 400 });
+        }
+
+        await prisma.attendance.update({
+            where: { id: existingLog.id },
+            data: { timeOut: timeNow }
+        });
+
+        return NextResponse.json({ message: "Berhasil Absen Pulang!", time: timeNow });
     }
 
-    // 5. SIMPAN KE DATABASE
-    await prisma.attendance.create({
-        data: {
-            userId,
-            date: today, // Kunci tanggal
-            time: currentTimeString, // Jam display (ex: "08:15")
-            status: status, 
-        }
-    });
-
-    return NextResponse.json({ message: "Berhasil Absen!", status });
+    return NextResponse.json({ message: "Invalid type" }, { status: 400 });
 
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Server error bro" }, { status: 500 });
+    console.error("Error presensi:", error);
+    return NextResponse.json({ message: "Terjadi kesalahan server." }, { status: 500 });
   }
 }
