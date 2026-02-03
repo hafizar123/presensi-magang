@@ -81,7 +81,7 @@ export default async function HomePage() {
     <DashboardClient 
       user={session.user}
       announcements={announcements}
-      todayLog={todayLog} // Sekarang data ini pasti ada kalau udah absen
+      todayLog={todayLog} 
       greeting={greeting}
       stats={{
         hadir: countHadir,

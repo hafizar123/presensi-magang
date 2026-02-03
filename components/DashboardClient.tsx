@@ -32,26 +32,30 @@ export default function DashboardClient({
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // --- LOGIC STATUS BADGE (REVISI) ---
   let statusText = "Belum Presensi";
-  let statusColor = "bg-white/10 text-white border-white/20 backdrop-blur-md";
-  let StatusIcon = Clock;
-   
-  if (todayLog) {
-    if (todayLog.status === "HADIR") {
+let statusColor = "bg-white/10 text-white border-white/20 backdrop-blur-md";
+let StatusIcon = Clock;
+
+if (todayLog) {
+    if (todayLog.status === "IZIN") {
+        statusText = "Izin / Sakit";
+        statusColor = "bg-blue-500/20 text-blue-100 border-blue-500/30 backdrop-blur-md";
+        StatusIcon = FileText;
+    } else if (todayLog.timeOut) {
+        // Kalo udah ada timeOut berarti udah selesai
+        statusText = "Selesai Bekerja";
+        statusColor = "bg-purple-500/20 text-purple-100 border-purple-500/30 backdrop-blur-md";
+        StatusIcon = LogOut;
+    } else if (todayLog.status === "HADIR") {
         statusText = "Sudah Presensi";
         statusColor = "bg-green-500/20 text-green-100 border-green-500/30 backdrop-blur-md";
         StatusIcon = CheckCircle2;
     } else if (todayLog.status === "TELAT") {
-        statusText = "Terlambat"; // Ini yang kemaren kelupaan
+        statusText = "Terlambat";
         statusColor = "bg-orange-500/20 text-orange-100 border-orange-500/30 backdrop-blur-md";
         StatusIcon = AlertCircle;
-    } else if (todayLog.status === "IZIN") {
-        statusText = "Izin / Sakit";
-        statusColor = "bg-blue-500/20 text-blue-100 border-blue-500/30 backdrop-blur-md";
-        StatusIcon = FileText;
     }
-  }
+}
 
   // --- SIDEBAR CONTENT ---
   const SidebarContent = () => (
@@ -185,10 +189,9 @@ export default function DashboardClient({
                       <div className="scale-125 origin-center text-white">
                         <RealtimeClock />
                       </div>
-                      <div className="w-full flex justify-center">
-                        {/* Tombol disabled kalau udah ada log */}
-                        <AttendanceButton type="IN" disabled={!!todayLog} />
-                      </div>
+                    <div className="w-full flex justify-center">
+                        <AttendanceButton todayLog={todayLog} />
+                    </div>
                 </div>
             </div>
         </div>

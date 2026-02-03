@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MapPin, CheckCircle2, XCircle, Clock, Lock } from "lucide-react";
+import { Loader2, MapPin, CheckCircle2, XCircle, Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -14,34 +15,42 @@ import {
 } from "@/components/ui/dialog";
 
 interface AttendanceButtonProps {
-  type: "IN" | "OUT";
-  disabled?: boolean;
+  todayLog: any; // Kita terima object log hari ini
 }
 
-export default function AttendanceButton({ type, disabled }: AttendanceButtonProps) {
+export default function AttendanceButton({ todayLog }: AttendanceButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<"IDLE" | "LOCATING" | "SUBMITTING" | "SUCCESS" | "ERROR">("IDLE");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const isMasuk = type === "IN";
-  
-  // LOGIC LABEL BARU
-  const label = disabled 
-    ? "Sudah Absen" 
-    : (isMasuk ? "Absen Masuk" : "Absen Pulang");
-  
-  // LOGIC STYLE BARU (Handle Disabled)
-  let buttonStyle = "";
-  
-  if (disabled) {
-      // Style Disabled (Abu-abu, flat)
+  // --- LOGIC TOMBOL PINTER ---
+  // 1. Belum absen sama sekali
+  const isMasuk = !todayLog; 
+  // 2. Udah absen masuk, tapi belum pulang
+  const isPulang = todayLog && !todayLog.timeOut; 
+  // 3. Udah selesai semua
+  const isSelesai = todayLog && todayLog.timeOut;
+
+  // Tentukan Tipe Request
+  const requestType = isMasuk ? "IN" : "OUT";
+
+  // Label & Icon
+  let label = "Absen Masuk";
+  let Icon = MapPin;
+  let buttonStyle = "bg-[#EAE7DD] hover:bg-white text-[#5c4a3d] border-b-4 border-[#99775C] active:border-b-0 active:translate-y-1 shadow-lg";
+
+  if (isPulang) {
+      label = "Absen Pulang";
+      Icon = LogOut;
+      buttonStyle = "bg-orange-100 hover:bg-orange-50 text-orange-700 border-b-4 border-orange-500 active:border-b-0 active:translate-y-1 shadow-lg";
+  } else if (isSelesai) {
+      label = "Selesai";
+      Icon = CheckCircle2;
       buttonStyle = "bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed opacity-80";
-  } else {
-      // Style Active (Kalcer)
-      buttonStyle = isMasuk 
-        ? "bg-[#EAE7DD] hover:bg-white text-[#5c4a3d] border-b-4 border-[#99775C] active:border-b-0 active:translate-y-1 shadow-lg shadow-black/10" 
-        : "bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50";
+  } else if (todayLog && todayLog.status === "IZIN") {
+      label = "Izin / Sakit";
+      buttonStyle = "bg-blue-50 text-blue-400 border-2 border-blue-100 cursor-not-allowed";
   }
 
   const handleAttendance = async () => {
@@ -63,7 +72,11 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
           const res = await fetch("/api/attendance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type, latitude, longitude }),
+            body: JSON.stringify({ 
+                type: requestType, // Kirim tipe IN atau OUT
+                latitude, 
+                longitude 
+            }),
           });
 
           const data = await res.json();
@@ -71,6 +84,7 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
           if (!res.ok) throw new Error(data.message || "Gagal absen.");
 
           setStep("SUCCESS");
+          toast.success(data.message);
           
         } catch (error: any) {
             setStep("ERROR");
@@ -81,8 +95,6 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
         setStep("ERROR");
         let msg = "Gagal ambil lokasi.";
         if (error.code === 1) msg = "Izin lokasi ditolak. Aktifkan GPS!";
-        else if (error.code === 2) msg = "Sinyal GPS lemah/hilang.";
-        else if (error.code === 3) msg = "Waktu habis (Timeout).";
         setErrorMessage(msg);
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
@@ -95,25 +107,29 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
     setTimeout(() => setStep("IDLE"), 300);
   };
 
+  // Jangan render tombol absen kalau lagi Izin/Sakit
+  if (todayLog && todayLog.status === "IZIN") {
+      return (
+        <Button disabled className={`h-14 px-10 rounded-xl text-lg font-bold w-full md:w-auto ${buttonStyle}`}>
+            <CheckCircle2 className="mr-2 h-6 w-6" /> Sedang Izin
+        </Button>
+      );
+  }
+
   return (
     <>
       <Button 
           onClick={() => {
-              if (!disabled) setIsOpen(true);
+              if (!isSelesai) setIsOpen(true);
           }}
-          disabled={disabled} 
-          className={`h-14 px-10 rounded-xl text-lg font-bold transition-all ${buttonStyle}`}
+          disabled={isSelesai} 
+          className={`h-14 px-10 rounded-xl text-lg font-bold transition-all w-full md:w-auto ${buttonStyle}`}
       >
-        {/* Logic Icon */}
-        {disabled ? (
-            <CheckCircle2 className="mr-2 h-6 w-6" />
-        ) : (
-            isMasuk ? <Clock className="mr-2 h-6 w-6 text-[#99775C]" /> : <MapPin className="mr-2 h-6 w-6" />
-        )}
+        <Icon className={`mr-2 h-6 w-6 ${isSelesai ? "" : (isPulang ? "text-orange-600" : "text-[#99775C]")}`} />
         {label}
       </Button>
 
-      {/* --- POP UP DIALOG --- */}
+      {/* DIALOG POPUP */}
       <Dialog open={isOpen} onOpenChange={(val) => {
         if (!val && (step === "LOCATING" || step === "SUBMITTING")) return;
         setIsOpen(val);
@@ -123,16 +139,17 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
           
           <div className={`h-32 w-full flex items-center justify-center ${
             step === "SUCCESS" ? "bg-green-100" : 
-            step === "ERROR" ? "bg-red-100" : "bg-[#EAE7DD]"
+            step === "ERROR" ? "bg-red-100" : 
+            isPulang ? "bg-orange-100" : "bg-[#EAE7DD]"
           }`}>
-             {step === "IDLE" && <MapPin className="h-16 w-16 text-[#99775C] animate-bounce" />}
+             {step === "IDLE" && (
+                isPulang ? <LogOut className="h-16 w-16 text-orange-500 animate-pulse" /> : <MapPin className="h-16 w-16 text-[#99775C] animate-bounce" />
+             )}
              
              {(step === "LOCATING" || step === "SUBMITTING") && (
                 <div className="relative flex items-center justify-center">
-                    <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-[#99775C] opacity-20"></span>
-                    <div className="relative bg-white p-4 rounded-full shadow-sm">
-                        <Loader2 className="h-10 w-10 text-[#99775C] animate-spin" />
-                    </div>
+                    <span className={`absolute inline-flex h-20 w-20 animate-ping rounded-full opacity-20 ${isPulang ? "bg-orange-500" : "bg-[#99775C]"}`}></span>
+                    <Loader2 className={`h-10 w-10 animate-spin ${isPulang ? "text-orange-500" : "text-[#99775C]"}`} />
                 </div>
              )}
 
@@ -143,43 +160,34 @@ export default function AttendanceButton({ type, disabled }: AttendanceButtonPro
           <div className="p-6">
             <DialogHeader className="mb-4">
               <DialogTitle className="text-center text-xl font-bold text-slate-800">
-                {step === "IDLE" && "Konfirmasi Lokasi"}
+                {step === "IDLE" && (isPulang ? "Konfirmasi Pulang?" : "Konfirmasi Masuk?")}
                 {(step === "LOCATING" || step === "SUBMITTING") && "Memproses..."}
-                {step === "SUCCESS" && "Presensi Berhasil!"}
-                {step === "ERROR" && "Gagal Absen"}
+                {step === "SUCCESS" && "Berhasil!"}
+                {step === "ERROR" && "Gagal"}
               </DialogTitle>
               <DialogDescription className="text-center text-slate-500">
-                {step === "IDLE" && "Pastikan kamu sudah berada di area kantor sebelum melanjutkan."}
-                {step === "LOCATING" && "Sedang mencari titik koordinat GPS..."}
-                {step === "SUBMITTING" && "Mengirim data ke server..."}
-                {step === "SUCCESS" && `Data ${label.toLowerCase()} kamu telah tersimpan.`}
+                {step === "IDLE" && (isPulang 
+                    ? "Pastikan pekerjaan hari ini sudah selesai." 
+                    : "Pastikan kamu sudah berada di area kantor.")}
                 {step === "ERROR" && errorMessage}
+                {step === "SUCCESS" && (isPulang ? "Sampai jumpa besok!" : "Selamat bekerja!")}
               </DialogDescription>
             </DialogHeader>
 
             <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center w-full">
                {step === "IDLE" && (
                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl hover:bg-slate-50">
-                        Batal
-                    </Button>
-                    
-                    <Button onClick={handleAttendance} className="h-11 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white">
-                        Ya, Absen
+                    <Button variant="outline" onClick={() => setIsOpen(false)} className="h-11 rounded-xl">Batal</Button>
+                    <Button onClick={handleAttendance} className={`h-11 rounded-xl text-white ${isPulang ? "bg-orange-500 hover:bg-orange-600" : "bg-[#99775C] hover:bg-[#7a5e48]"}`}>
+                        Ya, {isPulang ? "Pulang" : "Masuk"}
                     </Button>
                  </div>
                )}
-
                {step === "SUCCESS" && (
-                 <Button onClick={handleCloseSuccess} className="w-full h-11 rounded-xl bg-green-600 hover:bg-green-700 text-white">
-                    Tutup & Refresh
-                 </Button>
+                 <Button onClick={handleCloseSuccess} className="w-full h-11 rounded-xl bg-green-600 hover:bg-green-700 text-white">Tutup</Button>
                )}
-
                {step === "ERROR" && (
-                 <Button variant="outline" onClick={() => setStep("IDLE")} className="w-full h-11 rounded-xl border-red-200 text-red-600 hover:bg-red-50">
-                    Coba Lagi
-                 </Button>
+                 <Button variant="outline" onClick={() => setStep("IDLE")} className="w-full h-11 rounded-xl border-red-200 text-red-600 hover:bg-red-50">Coba Lagi</Button>
                )}
             </DialogFooter>
           </div>
