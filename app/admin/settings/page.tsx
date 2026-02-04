@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { 
   User, Shield, MapPin, Save, Building, AlertCircle, 
-  CheckCircle2, Eye, EyeOff, Lock, Loader2, XCircle 
+  CheckCircle2, Eye, EyeOff, Lock, Loader2, XCircle, Clock 
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,14 @@ export default function SettingsPage() {
     jabatan: ""
   });
 
+  // Tambahin endHourFriday di state
   const [officeData, setOfficeData] = useState({
     latitude: "",
     longitude: "",
     radius: "",
     startHour: "",
-    endHour: ""
+    endHour: "",
+    endHourFriday: "" 
   });
 
   const [securityData, setSecurityData] = useState({
@@ -109,7 +111,9 @@ export default function SettingsPage() {
   };
 
   const handleSaveOffice = async () => {
-    if (!officeData.latitude || !officeData.longitude || !officeData.radius || !officeData.startHour || !officeData.endHour) {
+    // Validasi input
+    if (!officeData.latitude || !officeData.longitude || !officeData.radius || 
+        !officeData.startHour || !officeData.endHour || !officeData.endHourFriday) {
         setErrorMessage("Data belum lengkap! Mohon isi semua field.");
         setShowError(true);
         return;
@@ -176,6 +180,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       
+      {/* DIALOG SUCCESS & ERROR (SAMA KAYA SEBELUMNYA) */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
@@ -221,7 +226,7 @@ export default function SettingsPage() {
         <p className="text-slate-500 dark:text-gray-400">Kelola preferensi aplikasi dan konfigurasi kantor.</p>
       </div>
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue="office" className="w-full">
         <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524]">
           <TabsTrigger value="profile" className="py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm rounded-lg transition-all dark:text-gray-400 dark:data-[state=active]:text-[#EAE7DD]">
             <User className="h-4 w-4 mr-2" /> Profil Admin
@@ -234,9 +239,11 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* PROFILE TAB (Gak Berubah) */}
         <TabsContent value="profile" className="mt-6 space-y-6">
           <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
-            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+             {/* ... (Konten Profile sama kayak sebelumnya) ... */}
+             <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
               <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Informasi Dasar</CardTitle>
               <CardDescription className="text-slate-500 dark:text-gray-400">
                 Nama ini yang akan muncul di dashboard dan laporan.
@@ -292,6 +299,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* OFFICE TAB (UPDATED) */}
         <TabsContent value="office" className="mt-6 space-y-6">
           <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
             <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
@@ -329,18 +337,32 @@ export default function SettingsPage() {
                 </div>
               </div>
               <Separator className="bg-slate-100 dark:bg-[#292524]" />
+              
               <div className="space-y-4">
-                 <h3 className="font-medium text-slate-900 dark:text-[#EAE7DD]">Batas Jam Presensi</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="flex items-center gap-2 text-slate-900 dark:text-[#EAE7DD] mb-2">
+                    <Clock className="h-5 w-5 text-[#99775C]" />
+                    <h3 className="font-medium">Jadwal Operasional</h3>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-gray-300">Jam Mulai Presensi</Label>
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Masuk (Semua Hari)</Label>
                         <Input type="time" value={officeData.startHour} onChange={(e) => setOfficeData({...officeData, startHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
+                    
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-gray-300">Jam Batas Presensi</Label>
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Pulang (Senin - Kamis)</Label>
                         <Input type="time" value={officeData.endHour} onChange={(e) => setOfficeData({...officeData, endHour: e.target.value})} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" />
                     </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-gray-300">Jam Pulang (Jumat)</Label>
+                        <Input type="time" value={officeData.endHourFriday} onChange={(e) => setOfficeData({...officeData, endHourFriday: e.target.value})} className="bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30 text-slate-900 dark:text-[#EAE7DD]" />
+                    </div>
                  </div>
+                 <p className="text-xs text-slate-500 dark:text-gray-500 italic">
+                    *Sabtu dan Minggu presensi otomatis dinonaktifkan sistem.
+                 </p>
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
@@ -352,42 +374,43 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* SECURITY TAB (Gak Berubah) */}
         <TabsContent value="security" className="mt-6 space-y-6">
-          <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
-            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
-              <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Ganti Password</CardTitle>
-              <CardDescription className="text-slate-500 dark:text-gray-400">
-                Ubah password akun admin anda di sini.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 max-w-lg pt-6">
-              <div className="grid gap-2">
-                <Label className="text-slate-700 dark:text-gray-300">Password Baru</Label>
-                <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
-                    <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Password Baru" />
-                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
-                        {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+            <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
+                <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+                <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Ganti Password</CardTitle>
+                <CardDescription className="text-slate-500 dark:text-gray-400">
+                    Ubah password akun admin anda di sini.
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 max-w-lg pt-6">
+                <div className="grid gap-2">
+                    <Label className="text-slate-700 dark:text-gray-300">Password Baru</Label>
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
+                        <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Password Baru" />
+                        <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
+                            {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
-              </div>
-              <div className="grid gap-2">
-                <Label className="text-slate-700 dark:text-gray-300">Konfirmasi Password Baru</Label>
-                <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
-                    <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Konfirmasi Password Baru" />
-                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
-                        {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                <div className="grid gap-2">
+                    <Label className="text-slate-700 dark:text-gray-300">Konfirmasi Password Baru</Label>
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
+                        <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-9 pr-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-none text-slate-900 dark:text-[#EAE7DD]" placeholder="Masukkan Konfirmasi Password Baru" />
+                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
+                            {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
-                <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Password"}
-                </Button>
-            </CardFooter>
-          </Card>
+                </CardContent>
+                <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                    <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Password"}
+                    </Button>
+                </CardFooter>
+            </Card>
         </TabsContent>
 
       </Tabs>

@@ -8,6 +8,9 @@ const prisma = new PrismaClient();
 
 async function getAnnouncements() {
   return await prisma.announcement.findMany({
+    where: {
+      isActive: true, 
+    },
     orderBy: { createdAt: "desc" },
     take: 5, 
   });

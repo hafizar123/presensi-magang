@@ -1,36 +1,45 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(null);
   }
 
-  const userId = session.user.id;
+  // LOGIC CARI DATA HARI INI (WIB AWARE)
+  const now = new Date();
   
-  // Set jam ke 00:00:00 buat cari data hari ini
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // 1. Geser waktu server (UTC) ke WIB (UTC+7)
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibTime = new Date(utc + (7 * 3600000));
 
-  const log = await prisma.attendance.findUnique({
-    where: {
-      userId_date: {
-        userId,
-        date: today
-      }
-    }
-  });
+  // 2. Set jam jadi 00:00:00 (Awal Hari WIB)
+  wibTime.setHours(0, 0, 0, 0);
 
-  // Return data absen (kalau null berarti belum absen)
-  return NextResponse.json({
-    in: log ? log.time : null,
-    // Kalau sistem lo ada absen pulang, tambahin logikanya disini
-    out: null 
-  });
+  // 3. Balikin lagi ke UTC biar query DB-nya bener
+  // (Karena di DB Prisma nyimpennya UTC, kita harus cocokin querynya)
+  const startOfDayUTC = new Date(wibTime.getTime() - (7 * 3600000));
+  
+  // 4. Bikin End of Day juga biar akurat (Optional tapi recommended)
+  const endOfDayUTC = new Date(startOfDayUTC.getTime() + (24 * 60 * 60 * 1000));
+
+  try {
+    const attendance = await prisma.attendance.findFirst({
+      where: {
+        userId: session.user.id,
+        date: {
+          gte: startOfDayUTC, // Lebih besar dari jam 00:00 WIB hari ini
+          lt: endOfDayUTC     // Kurang dari jam 00:00 WIB besok
+        },
+      },
+    });
+
+    return NextResponse.json(attendance); // Balikin object attendance atau null
+  } catch (error) {
+    return NextResponse.json(null, { status: 500 });
+  }
 }

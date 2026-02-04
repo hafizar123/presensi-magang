@@ -5,13 +5,14 @@ import path from "path";
 // Kita simpen config di file JSON biar gampang
 const configPath = path.join(process.cwd(), "settings.json");
 
-// Default Config
+// Default Config (Tambahin endHourFriday)
 const defaultConfig = {
   latitude: "-7.8011945",
   longitude: "110.364917",
   radius: "100",
   startHour: "07:30",
-  endHour: "16:00",
+  endHour: "16:00",       // Senin - Kamis
+  endHourFriday: "14:30", // Khusus Jumat
 };
 
 // GET: Ambil Settingan
@@ -19,7 +20,9 @@ export async function GET() {
   try {
     if (fs.existsSync(configPath)) {
       const data = fs.readFileSync(configPath, "utf-8");
-      return NextResponse.json(JSON.parse(data));
+      const parsed = JSON.parse(data);
+      // Merge sama default biar kalau ada key baru ga undefined
+      return NextResponse.json({ ...defaultConfig, ...parsed });
     }
     return NextResponse.json(defaultConfig);
   } catch (error) {
