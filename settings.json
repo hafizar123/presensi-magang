@@ -3,6 +3,12 @@
   "longitude": "110.3843496",
   "radius": "100",
   "startHour": "07:00",
-  "endHour": "16:00",
-  "endHourFriday": "14:30"
+  "endHour": "07:30",
+  "endHourFriday": "14:30",
+  "opStartMonThu": "07:30",
+  "opEndMonThu": "17:00",
+  "opStartFri": "07:30",
+  "opEndFri": "14:30",
+  "attendanceStart": "06:00",
+  "attendanceLimit": "07:30"
 }

@@ -21,7 +21,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -104,19 +103,19 @@ export default function RekapAbsensiPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Rekap Absensi</h1>
           <p className="text-slate-500 dark:text-gray-400">Pantau kedatangan dan kepulangan anak magang.</p>
         </div>
         
+        {/* TOMBOL EXPORT EXCEL (STYLE BARU - SAMA KAYA RIWAYAT) */}
         <Button 
-            variant="outline" 
-            className="border-slate-200 dark:border-[#292524] hover:bg-green-50 dark:hover:bg-green-900/20 text-slate-700 dark:text-[#EAE7DD] hover:text-green-700 dark:hover:text-green-400 transition-colors"
             onClick={handleExportExcel}
             disabled={filteredLogs.length === 0}
+            className="bg-white border-2 border-green-600 text-green-700 hover:bg-green-600 hover:text-white transition-all shadow-sm rounded-xl font-bold active:scale-95"
         >
-            <FileSpreadsheet className="mr-2 h-4 w-4 text-[#99775C]" />
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
             Export Excel
         </Button>
       </div>

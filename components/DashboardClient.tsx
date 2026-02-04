@@ -33,7 +33,6 @@ export default function DashboardClient({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // --- 1. LOGIC CEK PERIODE & AKUN ---
-  // Default: Kalau profile ga ada, statusnya UNVERIFIED (bukan ACTIVE)
   let periodStatus = user.internProfile ? "ACTIVE" : "UNVERIFIED"; 
   let periodMessage = "";
 
@@ -133,6 +132,8 @@ export default function DashboardClient({
       <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}><SidebarContent /></aside>
 
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
+        
+        {/* 1. HERO SECTION */}
         <div className="relative w-full rounded-[2.5rem] overflow-hidden shadow-xl shadow-[#99775C]/20 dark:shadow-none group animate-in fade-in zoom-in-95 duration-700">
             <div className="absolute inset-0 bg-gradient-to-br from-[#99775C] via-[#8a6b52] to-[#6d5440] dark:from-[#3f2e26] dark:via-[#271c19] dark:to-[#1c1917]"></div>
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
@@ -166,16 +167,7 @@ export default function DashboardClient({
             </div>
         </div>
 
-        <div>
-            <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] mb-4 px-2">Statistik Bulan Ini</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatsCard label="Hadir Tepat Waktu" value={stats.hadir} icon={CheckCircle2} color="text-green-600 dark:text-green-400" desc="Hari" delay={100} />
-                <StatsCard label="Terlambat" value={stats.telat} icon={Clock} color="text-orange-600 dark:text-orange-400" desc="Hari" delay={200} />
-                <StatsCard label="Izin / Sakit" value={stats.izin} icon={FileText} color="text-blue-600 dark:text-blue-400" desc="Hari" delay={300} />
-                <StatsCard label="Total Masuk" value={stats.total} icon={LayoutDashboard} color="text-[#99775C] dark:text-[#d6bba0]" desc="Akumulasi" delay={400} />
-            </div>
-        </div>
-
+        {/* 2. PAPAN INFORMASI (PINDAH KE ATAS) */}
         <div>
             <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] flex items-center gap-2 mb-4 px-2"><Bell className="h-5 w-5 text-yellow-500" />Papan Informasi</h3>
             <div className="bg-white dark:bg-[#1c1917] rounded-3xl p-1 shadow-sm border border-slate-100 dark:border-[#292524] overflow-hidden">
@@ -197,6 +189,18 @@ export default function DashboardClient({
                 )}
             </div>
         </div>
+
+        {/* 3. STATISTIK BULAN INI (PINDAH KE BAWAH) */}
+        <div>
+            <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] mb-4 px-2">Statistik Bulan Ini</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatsCard label="Hadir Tepat Waktu" value={stats.hadir} icon={CheckCircle2} color="text-green-600 dark:text-green-400" desc="Hari" delay={100} />
+                <StatsCard label="Terlambat" value={stats.telat} icon={Clock} color="text-orange-600 dark:text-orange-400" desc="Hari" delay={200} />
+                <StatsCard label="Izin / Sakit" value={stats.izin} icon={FileText} color="text-blue-600 dark:text-blue-400" desc="Hari" delay={300} />
+                <StatsCard label="Total Masuk" value={stats.total} icon={LayoutDashboard} color="text-[#99775C] dark:text-[#d6bba0]" desc="Akumulasi" delay={400} />
+            </div>
+        </div>
+
       </main>
     </div>
   );
