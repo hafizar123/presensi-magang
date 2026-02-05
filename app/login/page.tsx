@@ -32,10 +32,10 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        toast.error("Gagal Masuk", { description: "Kredensial yang Anda masukkan salah." });
+        toast.error("Gagal Masuk", { description: "Email / Password yang Anda masukkan salah." });
         setLoading(false);
       } else {
-        toast.success("Login Berhasil", { description: "Mengalihkan ke dashboard..." });
+        toast.success("Login Berhasil");
         router.push("/");
         router.refresh();
       }

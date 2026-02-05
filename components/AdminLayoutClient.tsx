@@ -29,10 +29,9 @@ interface AdminLayoutClientProps {
 
 export default function AdminLayoutClient({ children, user }: AdminLayoutClientProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMounted, setIsMounted] = useState(false); // 1. STATE BUAT CEK CLIENT SIDE
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
 
-  // 2. SET MOUNTED PAS RENDER DI CLIENT
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -51,6 +50,7 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
+        {/* Header */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
              <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
@@ -68,10 +68,10 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
                         key={item.href} 
                         href={item.href} 
                         className={`
-                            flex items-center gap-3 px-4 py-3 rounded-xl transition-all group
+                            flex items-center gap-3 px-4 py-3 rounded-xl transition-colors duration-200 group
                             ${active 
                                 ? "bg-[#99775C] dark:bg-[#3f2e26] text-white font-bold shadow-md" 
-                                : "text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white font-medium hover:scale-105 hover:shadow-sm active:scale-95"
+                                : "text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-[#99775C]/10 dark:hover:bg-white/5 hover:text-[#99775C] dark:hover:text-white font-medium"
                             }
                         `}
                     >
@@ -81,21 +81,22 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
                 )
             })}
 
-            <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2 mt-6">Akun</h4>
-            
-            {/* 3. HANDLE LOGOUT BUTTON HYDRATION */}
-            {isMounted ? (
-                <LogoutModal>
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium transition-all text-left hover:scale-105 hover:shadow-sm active:scale-95">
+            {/* Logout Section - DIGANTI DARI mt-auto JADI mt-6 BIAR GA JAUH DI BAWAH */}
+            <div className="mt-6 border-t border-[#d6d3c9] dark:border-white/10 pt-4">
+                <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Akun</h4>
+                
+                {isMounted ? (
+                    <LogoutModal>
+                        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium transition-colors text-left">
+                            <LogOut className="h-5 w-5" /> Keluar Aplikasi
+                        </button>
+                    </LogoutModal>
+                ) : (
+                    <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium transition-colors text-left">
                         <LogOut className="h-5 w-5" /> Keluar Aplikasi
                     </button>
-                </LogoutModal>
-            ) : (
-                // Fallback Button (Server Side) - Tampilan Sama Persis
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium transition-all text-left">
-                    <LogOut className="h-5 w-5" /> Keluar Aplikasi
-                </button>
-            )}
+                )}
+            </div>
         </div>
     </div>
   );
@@ -103,18 +104,17 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
+      {/* Navbar */}
       <nav className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}>
           <div className="flex items-center gap-4">
-             {/* Desktop Toggle */}
-             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white">
+             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white transition-colors">
                 <Menu className="h-6 w-6" />
              </Button>
 
-             {/* 4. HANDLE MOBILE MENU HYDRATION */}
              {isMounted ? (
                  <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white">
+                        <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white transition-colors">
                             <Menu className="h-6 w-6" />
                         </Button>
                     </SheetTrigger>
@@ -123,8 +123,7 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
                     </SheetContent>
                  </Sheet>
              ) : (
-                 // Fallback Button (Server Side)
-                 <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white">
+                 <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white transition-colors">
                     <Menu className="h-6 w-6" />
                  </Button>
              )}
@@ -136,10 +135,10 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
             <div className="h-6 w-px bg-white/20 hidden md:block mx-1"></div>
             <div className="flex items-center gap-3 pl-1 group cursor-default">
                 <div className="hidden md:flex flex-col items-end">
-                    <span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user?.name || "Admin"}</span>
+                    <span className="text-sm font-bold transition-colors">{user?.name || "Admin"}</span>
                     <span className="text-[10px] text-[#EAE7DD]/80 font-medium">Administrator</span>
                 </div>
-                <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
+                <Avatar className="h-9 w-9 border-2 border-white/20 transition-colors">
                     <AvatarImage src={user?.image || ""} />
                     <AvatarFallback className="bg-[#5c4a3d] text-white">A</AvatarFallback>
                 </Avatar>
@@ -147,11 +146,12 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
           </div>
       </nav>
 
-      {/* Sidebar Static (Desktop) */}
+      {/* Sidebar Static */}
       <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <SidebarContent />
       </aside>
 
+      {/* Content */}
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         {children}
       </main>
