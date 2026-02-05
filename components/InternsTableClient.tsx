@@ -1,130 +1,227 @@
 "use client"; 
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Briefcase, User, Search } from "lucide-react";
+import { User, Search, ChevronLeft, ChevronRight, School, ArrowRight, Calendar, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import ScheduleDialog from "@/components/ScheduleDialog";
 
 interface InternsTableProps {
   interns: any[];
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function InternsTableClient({ interns }: InternsTableProps) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [mounted, setMounted] = useState(false);
 
-  const filteredInterns = interns.filter((intern) =>
-    intern.name.toLowerCase().includes(search.toLowerCase()) ||
-    intern.email.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const filteredInterns = interns.filter((intern) => {
+    const matchesSearch =
+      intern.name.toLowerCase().includes(search.toLowerCase()) ||
+      intern.email.toLowerCase().includes(search.toLowerCase());
+
+    const isActive = !!intern.internProfile;
+    let matchesStatus = true;
+    
+    if (statusFilter === "ACTIVE") matchesStatus = isActive;
+    if (statusFilter === "PENDING") matchesStatus = !isActive;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = Math.ceil(filteredInterns.length / ITEMS_PER_PAGE);
+  const paginatedInterns = filteredInterns.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-6">
       
-      {/* HEADER PAGE (Judul Halaman) */}
+      {/* HEADER PAGE */}
       <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Data Peserta Magang</h1>
           <p className="text-slate-500 dark:text-gray-400">Database lengkap seluruh anak magang.</p>
       </div>
 
       {/* CARD UTAMA */}
-      <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden">
+      <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden rounded-2xl">
         
-        {/* HEADER CARD + SEARCH (Disatuin Disini) */}
-        <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4 bg-transparent">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        {/* HEADER CARD */}
+        <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4 bg-white/50 dark:bg-white/5 backdrop-blur-sm">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               
-              {/* JUDUL "Master Data Magang" */}
-              <CardTitle className="text-lg font-bold text-slate-800 dark:text-[#EAE7DD] flex items-center gap-2">
+              {/* JUDUL */}
+              <CardTitle className="text-lg font-bold text-slate-800 dark:text-[#EAE7DD] flex items-center gap-2 whitespace-nowrap">
                 <User className="h-5 w-5 text-[#99775C]" />
                 Master Data Magang
               </CardTitle>
 
-              {/* SEARCH BAR (Pindah Kesini) */}
-              <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                      placeholder="Cari nama / email..." 
-                      className="pl-9 bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] h-10"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                  />
+              {/* ACTION GROUP */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                  
+                  {/* 1. FILTER STATUS (Fixed 160px - TEKS PENDEK "SEMUA") */}
+                  <div className="w-full sm:w-[160px] shrink-0"> 
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
+                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
+                                <Filter className="h-3.5 w-3.5 shrink-0" />
+                                <SelectValue placeholder="Status" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524]">
+                            {/* TEKS DIUBAH JADI 'Semua' BIAR MUAT */}
+                            <SelectItem value="ALL">Semua</SelectItem>
+                            <SelectItem value="ACTIVE">Aktif</SelectItem>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 2. SEARCH BAR (Fixed 250px) */}
+                  <div className="relative w-full sm:w-[250px] shrink-0 group">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                      <Input 
+                          placeholder="Cari data..." 
+                          className="pl-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] h-10 text-sm rounded-xl focus-visible:ring-[#99775C] transition-all"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                      />
+                  </div>
               </div>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-[#99775C]">
-              <TableRow className="border-none hover:bg-[#99775C]">
-                <TableHead className="w-[50px] text-white font-semibold pl-6">No</TableHead>
-                <TableHead className="text-white font-semibold">Nama Lengkap</TableHead>
-                <TableHead className="text-white font-semibold">Divisi/Posisi</TableHead>
-                <TableHead className="text-white font-semibold">Durasi Magang</TableHead>
-                <TableHead className="text-white font-semibold">Status</TableHead>
-                <TableHead className="text-right text-white font-semibold pr-6">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInterns.length === 0 ? (
-                <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-slate-500 dark:text-gray-400">
-                        {interns.length === 0 ? "Belum ada data peserta magang." : `Tidak ditemukan "${search}".`}
-                    </TableCell>
-                </TableRow>
-              ) : (
-                filteredInterns.map((intern, i) => (
-                    <TableRow key={intern.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-slate-50 dark:hover:bg-[#292524] transition-colors">
-                    <TableCell className="text-slate-500 dark:text-gray-400 pl-6">{i + 1}</TableCell>
-                    <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                            <span className="text-slate-900 dark:text-[#EAE7DD]">{intern.name}</span>
-                            <span className="text-xs text-slate-500 dark:text-gray-500">{intern.email}</span>
-                        </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-gray-400 text-sm">
-                            <Briefcase className="h-3 w-3 text-[#99775C]" />
-                            <span className="italic">-</span>
-                        </div>
-                    </TableCell>
-                    <TableCell>
-                        {intern.internProfile ? (
-                        <div className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-[#EAE7DD] bg-slate-100 dark:bg-[#292524] px-2 py-1 rounded w-fit">
-                            <CalendarDays className="h-3 w-3 text-[#99775C]" />
-                            {new Date(intern.internProfile.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - 
-                            {new Date(intern.internProfile.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })}
-                        </div>
-                        ) : (
-                            <span className="text-xs text-slate-400 italic">-</span>
-                        )}
-                    </TableCell>
-                    <TableCell>
-                        {intern.internProfile ? (
-                            <Badge className="bg-green-100 text-green-700 border-none dark:bg-green-900/30 dark:text-green-400">
-                                Aktif
-                            </Badge>
-                        ) : (
-                            <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50">
-                                Pending
-                            </Badge>
-                        )}
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                        <ScheduleDialog user={intern} />
-                    </TableCell>
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              <Table className="min-w-[1400px]">
+                <TableHeader className="bg-[#99775C]">
+                  <TableRow className="border-none hover:bg-[#99775C]">
+                    <TableHead className="w-[60px] text-white font-bold text-center pl-6">No</TableHead>
+                    <TableHead className="text-white font-bold min-w-[300px]">Nama Peserta</TableHead>
+                    <TableHead className="text-white font-bold min-w-[250px]">Email</TableHead>
+                    <TableHead className="text-white font-bold min-w-[250px]">Posisi / Instansi</TableHead>
+                    <TableHead className="text-white font-bold min-w-[320px]">Periode Magang</TableHead>
+                    <TableHead className="text-white font-bold text-center min-w-[150px]">Status</TableHead>
+                    <TableHead className="text-white font-bold text-right pr-6 min-w-[120px]">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInterns.length === 0 ? (
+                    <TableRow>
+                        <TableCell colSpan={7} className="h-32 text-center text-slate-500 dark:text-gray-400">
+                            {interns.length === 0 ? "Belum ada data peserta magang." : "Tidak ditemukan data yang sesuai filter."}
+                        </TableCell>
                     </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                  ) : (
+                    paginatedInterns.map((intern, i) => (
+                        <TableRow key={intern.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] transition-colors group">
+                            
+                            <TableCell className="text-center font-medium text-slate-500 pl-6">
+                                {(currentPage - 1) * ITEMS_PER_PAGE + i + 1}
+                            </TableCell>
+                            
+                            <TableCell className="whitespace-nowrap">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9 border-2 border-white dark:border-[#292524] shadow-sm">
+                                        <AvatarImage src={intern.image} />
+                                        <AvatarFallback className="bg-[#99775C] text-white font-bold">{intern.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-medium text-slate-800 dark:text-[#EAE7DD]">{intern.name}</span>
+                                </div>
+                            </TableCell>
+
+                            <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                {intern.email}
+                            </TableCell>
+
+                            <TableCell className="whitespace-nowrap">
+                                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-sm font-medium">
+                                    <School className="h-4 w-4 text-slate-400" />
+                                    {intern.internProfile?.institution || "-"}
+                                </div>
+                            </TableCell>
+
+                            <TableCell className="whitespace-nowrap">
+                                {intern.internProfile ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#292524] rounded-lg border border-slate-200 dark:border-[#3f2e26] text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            <Calendar className="h-3 w-3 text-[#99775C]" />
+                                            {new Date(intern.internProfile.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </div>
+                                        <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#292524] rounded-lg border border-slate-200 dark:border-[#3f2e26] text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            <Calendar className="h-3 w-3 text-red-400" />
+                                            {new Date(intern.internProfile.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-slate-400 italic pl-2">-</span>
+                                )}
+                            </TableCell>
+
+                            <TableCell className="text-center whitespace-nowrap">
+                                {intern.internProfile ? (
+                                    <Badge className="bg-green-100 text-green-700 border-none dark:bg-green-900/30 dark:text-green-400 font-bold px-3 py-1">
+                                        Aktif
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/50 font-bold px-3 py-1">
+                                        Pending
+                                    </Badge>
+                                )}
+                            </TableCell>
+
+                            <TableCell className="text-right pr-6 whitespace-nowrap">
+                                <ScheduleDialog user={intern} />
+                            </TableCell>
+                        </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+          </div>
         </CardContent>
+
+        {totalPages > 1 && (
+            <div className="border-t border-slate-100 dark:border-[#292524] p-4 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                <p className="text-sm text-slate-500">
+                    Halaman <span className="font-bold text-slate-800 dark:text-white">{currentPage}</span> dari {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="h-9 w-9 p-0 rounded-lg border-slate-200 dark:border-[#3f2e26]">
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-9 w-9 p-0 rounded-lg border-slate-200 dark:border-[#3f2e26]">
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        )}
       </Card>
 
-      <div className="text-xs text-slate-400 dark:text-gray-600 text-center pt-10 border-t border-slate-100 dark:border-[#292524] mt-10">
-        Copyright © 2026 Dinas Pendidikan Pemuda dan Olahraga DIY, Code by Magang Informatika 2023 UPNVYK
+      <div className="text-xs text-slate-400 dark:text-gray-600 text-center pt-8 border-t border-slate-100 dark:border-[#292524] mt-8">
+        Copyright © 2026 Dinas Pendidikan Pemuda dan Olahraga DIY
       </div>
     </div>
   );

@@ -264,11 +264,11 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 </div>
                 <div className="space-y-2">
                     <Label>NIP / ID Pegawai</Label>
-                    <Input value={profileData.nip} onChange={(e) => setProfileData({...profileData, nip: e.target.value})} className="h-11" placeholder="198xxx" />
+                    <Input value={profileData.nip} onChange={(e) => setProfileData({...profileData, nip: e.target.value})} className="h-11" placeholder="" />
                 </div>
                 <div className="space-y-2">
                     <Label>Jabatan</Label>
-                    <Input value={profileData.jabatan} onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})} className="h-11" placeholder="Administrator" />
+                    <Input value={profileData.jabatan} onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})} className="h-11" placeholder="" />
                 </div>
               </div>
             </CardContent>
@@ -334,7 +334,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
                     <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
-                        <MousePointerClick className="h-5 w-5 text-[#99775C]" /> Logika Presensi
+                        <MousePointerClick className="h-5 w-5 text-[#99775C]" /> Waktu Presensi
                     </CardTitle>
                     <CardDescription>Atur kapan tombol absen muncul dan batas keterlambatan.</CardDescription>
                 </CardHeader>

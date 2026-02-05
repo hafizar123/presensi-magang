@@ -4,213 +4,221 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff, User, ArrowRight, CheckCircle2, IdCard } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
 
 export default function RegisterPage() {
   const router = useRouter();
-  
-  const [form, setForm] = useState({ 
-    name: "", 
-    email: "", 
-    password: "", 
-    confirmPassword: "" 
-  });
-  
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
+  
+  // State Form
+  const [name, setName] = useState("");
+  const [nip, setNip] = useState(""); // State Baru
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
 
-    if (form.password !== form.confirmPassword) {
-      setError("Password tidak cocok!");
-      setLoading(false);
-      return; 
-    }
-
-    if (form.password.length < 6) {
-      setError("Password minimal 6 karakter!");
-      setLoading(false);
+    if (password !== confirmPassword) {
+      toast.error("Validasi Gagal", { description: "Konfirmasi kata sandi tidak cocok." });
       return;
     }
 
+    setLoading(true);
+
     try {
+      // Kirim NIP juga ke API
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify({ name, nip, email, password }),
       });
 
-      if (res.ok) {
-        router.push("/login");
-      } else {
-        const data = await res.json();
-        setError(data.message);
-        setLoading(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal mendaftar");
       }
-    } catch (err) {
-      setError("Gagal connect ke server");
+
+      toast.success("Registrasi Berhasil", { description: "Akun Anda telah dibuat. Silakan masuk." });
+      router.push("/login");
+    } catch (error: any) {
+      toast.error("Gagal Mendaftar", { description: error.message });
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center p-4 font-sans">
-      
-      {/* === PERBAIKAN DI SINI === */}
-      {/* Gunakan 'fixed' supaya konsisten sama halaman Login */}
-      <div className="fixed inset-0 z-0">
-        <Image
-          src="/bkgdikpora.jpg" 
-          alt="Background Register"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-[#3f2e26]/60 mix-blend-multiply" />
-      </div>
-
-      {/* Card Form */}
-      <Card className="relative z-10 w-full max-w-[600px] border-white/10 bg-[#2e1d15]/70 backdrop-blur-xl shadow-2xl">
-        <CardHeader className="space-y-3 pb-2 text-center">
-          <div className="flex justify-center mb-2">
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#1c1917]">
+        
+        {/* --- 1. BACKGROUND --- */}
+        <div className="absolute inset-0 z-0">
             <Image 
-              src="/logo-disdikpora.png" 
-              alt="Logo Dinas" 
-              width={80} 
-              height={80}
-              priority
-              className="h-auto w-auto object-contain drop-shadow-md"
+                src="/bkgdikpora.jpg" 
+                alt="Background" 
+                fill 
+                className="object-cover opacity-40 blur-sm scale-105"
+                priority
             />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Registrasi Akun</h2>
-            <p className="text-sm text-[#EAE7DD]/80">
-              Pastikan anda mengisi data diri dengan benar untuk membuat akun presensi magang
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 p-3 text-sm font-medium text-red-200 bg-red-900/40 border border-red-500/30 rounded-xl text-center animate-in fade-in-50">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-transparent to-[#0c0a09]/50" />
+        </div>
+
+        {/* --- 2. CARD CONTAINER --- */}
+        <div className="relative z-10 w-full max-w-[480px] px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-[#EAE7DD]">Nama Lengkap</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#EAE7DD]/60" />
-                <Input
-                  id="name"
-                  placeholder="Masukkan Nama Lengkap"
-                  className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-[#EAE7DD]/40 focus:bg-white/10 focus:border-[#99775C] transition-all rounded-xl"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                />
-              </div>
+            {/* Glow Effect */}
+            <div className="absolute inset-0 bg-[#99775C] blur-[60px] opacity-20 rounded-full pointer-events-none transform translate-y-4"></div>
+
+            <div className="bg-white dark:bg-[#0c0a09] border border-white/20 dark:border-[#292524] rounded-3xl shadow-2xl p-8 relative overflow-hidden">
+                
+                {/* Aksen Garis Atas */}
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#99775C] to-[#7a5e48]"></div>
+
+                {/* Header */}
+                <div className="flex flex-col items-center text-center space-y-4 mb-8">
+                    <div className="p-3 bg-slate-50 dark:bg-[#1c1917] rounded-2xl shadow-sm border border-slate-100 dark:border-[#292524]">
+                        <Image src="/logo-disdikpora.png" width={42} height={42} alt="Logo" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Registrasi Peserta</h1>
+                        <p className="text-slate-500 dark:text-gray-400 text-sm">Buat akun baru untuk memulai magang.</p>
+                    </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleRegister} className="space-y-4">
+                    
+                    {/* Nama Lengkap */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Nama Lengkap</Label>
+                        <div className="relative group">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                            <Input 
+                                type="text" 
+                                required 
+                                placeholder="Masukkan Nama Lengkap" 
+                                className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* NIP / NIM (FIELD BARU) */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">NIP / NIM</Label>
+                        <div className="relative group">
+                            <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                            <Input 
+                                type="text" 
+                                required 
+                                placeholder="Masukkan NIP / NIM" 
+                                className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                value={nip}
+                                onChange={(e) => setNip(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Email</Label>
+                        <div className="relative group">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                            <Input 
+                                type="email" 
+                                required 
+                                placeholder="Masukkan Email" 
+                                className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Password Grid (Sebelahan) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Kata Sandi</Label>
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                                <Input 
+                                    type={showPassword ? "text" : "password"} 
+                                    required 
+                                    placeholder="••••••" 
+                                    className="h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] p-1">
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Konfirmasi</Label>
+                            <div className="relative group">
+                                <CheckCircle2 className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${confirmPassword && password === confirmPassword ? "text-green-500" : "text-slate-400 group-focus-within:text-[#99775C]"}`} />
+                                <Input 
+                                    type={showConfirmPassword ? "text" : "password"} 
+                                    required 
+                                    placeholder="••••••" 
+                                    className={`h-11 pl-10 pr-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium ${confirmPassword && password !== confirmPassword ? "border-red-500 focus-visible:border-red-500" : ""}`}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] p-1">
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        className="w-full h-11 bg-[#99775C] hover:bg-[#7a5e48] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#99775C]/20 transition-all active:scale-[0.98] mt-4" 
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                Daftar Sekarang 
+                            </div>
+                        )}
+                    </Button>
+
+                </form>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#292524] text-center">
+                    <p className="text-sm text-slate-500 dark:text-gray-400">
+                        Sudah punya akun?{' '}
+                        <Link href="/login" className="font-bold text-[#99775C] hover:text-[#7a5e48] transition-colors">
+                            Masuk Disini
+                        </Link>
+                    </p>
+                </div>
+
+            </div>
+            
+            {/* Copyright Footer */}
+            <div className="mt-6 text-center">
+                <p className="text-xs text-white/30 font-medium">
+                    © 2026 SIP-MAGANG Disdikpora DIY
+                </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-[#EAE7DD]">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#EAE7DD]/60" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Masukkan Email"
-                  className="pl-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-[#EAE7DD]/40 focus:bg-white/10 focus:border-[#99775C] transition-all rounded-xl"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-[#EAE7DD]">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#EAE7DD]/60" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Buat password minimal 6 karakter"
-                  className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-[#EAE7DD]/40 focus:bg-white/10 focus:border-[#99775C] transition-all rounded-xl"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EAE7DD]/60 hover:text-white transition-colors focus:outline-none"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword"  className="text-[#EAE7DD]">Konfirmasi Password</Label>
-              <div className="relative">
-                <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#EAE7DD]/60" />
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Ketik ulang password"
-                  className="pl-10 pr-10 h-11 bg-white/5 border-white/10 text-white placeholder:text-[#EAE7DD]/40 focus:bg-white/10 focus:border-[#99775C] transition-all rounded-xl"
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EAE7DD]/60 hover:text-white transition-colors focus:outline-none"
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <Button className="w-full font-bold mt-6 h-11 rounded-xl bg-[#99775C] text-white hover:bg-[#7a5e48] shadow-lg shadow-black/20" type="submit" disabled={loading} size="lg">
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Mendaftarkan..." : "Buat Akun Sekarang"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center pb-8">
-          <p className="text-sm text-[#EAE7DD]/80">
-            Sudah punya akun?{" "}
-            <Link href="/login" className="text-[#99775C] font-bold hover:text-[#EAE7DD] hover:underline transition-all">
-              Login di sini
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+        </div>
     </div>
   );
 }

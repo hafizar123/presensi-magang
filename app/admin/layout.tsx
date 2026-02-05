@@ -1,31 +1,20 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Providers from "@/components/Providers";
-import { Toaster } from "@/components/ui/sonner";
-import SessionTimeout from "@/components/SessionTimeout"; // <-- IMPORT INI
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import AdminLayoutClient from "@/components/AdminLayoutClient";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "SIP-MAGANG",
-  description: "Sistem Presensi Magang Disdikpora",
-};
-
-export default function RootLayout({
+export default async function AdminLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>
-          <SessionTimeout /> {/* <-- PASANG DISINI, WAJIB! */}
-          {children}
-          <Toaster richColors position="top-center" />
-        </Providers>
-      </body>
-    </html>
-  );
+}) {
+  const session = await getServerSession(authOptions);
+
+  // Cek Login & Role
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
+  // Oper data user ke Client Component biar bisa nampilin Nama & Foto
+  return <AdminLayoutClient user={session.user}>{children}</AdminLayoutClient>;
 }
