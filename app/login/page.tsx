@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  
+  // 1. STATE REMEMBER ME
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // 2. CEK PENYIMPANAN SAAT LOAD
+  useEffect(() => {
+    const savedData = localStorage.getItem("magangCreds");
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(atob(savedData)); // Decode rahasia
+        setEmail(parsed.e);
+        setPassword(parsed.p);
+        setRememberMe(true);
+      } catch (e) {
+        localStorage.removeItem("magangCreds");
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +53,14 @@ export default function LoginPage() {
         toast.error("Gagal Masuk", { description: "Email / Password yang Anda masukkan salah." });
         setLoading(false);
       } else {
+        // 3. LOGIC SIMPAN / HAPUS INFO
+        if (rememberMe) {
+             const secretData = btoa(JSON.stringify({ e: email, p: password }));
+             localStorage.setItem("magangCreds", secretData);
+        } else {
+             localStorage.removeItem("magangCreds");
+        }
+
         toast.success("Login Berhasil");
         router.push("/");
         router.refresh();
@@ -48,28 +74,25 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#1c1917]">
         
-        {/* --- 1. BACKGROUND --- */}
+        {/* --- BACKGROUND --- */}
         <div className="absolute inset-0 z-0">
             <Image 
                 src="/bkgdikpora.jpg" 
                 alt="Background" 
                 fill 
-                className="object-cover opacity-40 blur-sm scale-105" // Agak gelap & blur biar fokus ke tengah
+                className="object-cover opacity-40 blur-sm scale-105"
                 priority
             />
-            {/* Overlay Gradient Halus */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-transparent to-[#0c0a09]/50" />
         </div>
 
-        {/* --- 2. CARD (FOKUS UTAMA) --- */}
+        {/* --- CARD UTAMA --- */}
         <div className="relative z-10 w-full max-w-[400px] px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            {/* Glow Effect di belakang card */}
             <div className="absolute inset-0 bg-[#99775C] blur-[60px] opacity-20 rounded-full pointer-events-none transform translate-y-4"></div>
 
             <div className="bg-white dark:bg-[#0c0a09] border border-white/20 dark:border-[#292524] rounded-3xl shadow-2xl p-8 relative overflow-hidden">
                 
-                {/* Aksen Garis Atas */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#99775C] to-[#7a5e48]"></div>
 
                 {/* Header */}
@@ -102,9 +125,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <div className="flex justify-between items-center px-1">
-                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Password</Label>
-                        </div>
+                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Password</Label>
                         <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                             <Input 
@@ -123,6 +144,20 @@ export default function LoginPage() {
                                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                         </div>
+                    </div>
+
+                    {/* --- CHECKBOX REMEMBER ME (Di sini letaknya) --- */}
+                    <div className="flex items-center gap-2 pt-1 px-1">
+                        <input 
+                            type="checkbox" 
+                            id="remember" 
+                            className="h-4 w-4 rounded border-slate-300 text-[#99775C] focus:ring-[#99775C] cursor-pointer"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                        />
+                        <label htmlFor="remember" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none hover:text-[#99775C] transition-colors">
+                            Simpan info login
+                        </label>
                     </div>
 
                     <Button 
@@ -152,10 +187,9 @@ export default function LoginPage() {
 
             </div>
             
-            {/* Copyright Footer */}
             <div className="mt-6 text-center">
                 <p className="text-xs text-white/30 font-medium">
-                    © 2026 SIP-MAGANG Disdikpora DIY
+                    © 2026 SIP-MAGANG Disdikpora DIY by IF UPNVY
                 </p>
             </div>
 

@@ -214,7 +214,7 @@ export default function RegisterPage() {
             {/* Copyright Footer */}
             <div className="mt-6 text-center">
                 <p className="text-xs text-white/30 font-medium">
-                    © 2026 SIP-MAGANG Disdikpora DIY
+                    © 2026 SIP-MAGANG Disdikpora DIY by IF UPNVY
                 </p>
             </div>
 
