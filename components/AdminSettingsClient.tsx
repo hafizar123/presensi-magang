@@ -23,13 +23,12 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 
-// 1. DEFINISI PROPS (SOLUSI ERROR)
 interface AdminSettingsClientProps {
   user: any;
 }
 
 export default function AdminSettingsClient({ user }: AdminSettingsClientProps) {
-  const { update } = useSession(); // Kita tetep butuh ini buat update session kalau ganti nama
+  const { update } = useSession(); 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -39,12 +38,12 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 1. Data Profil (LANGSUNG DARI PROPS - LEBIH CEPAT)
+  // 1. Data Profil
   const [profileData, setProfileData] = useState({
     name: user.name || "",
     email: user.email || "",
-    nip: user.nip || "",       // Kalau di session belum ada, nanti di-update pas fetch
-    jabatan: user.jabatan || "" // Sama, ini buat initial render aja biar ga kosong
+    nip: user.nip || "",       
+    jabatan: user.jabatan || "" 
   });
 
   // 2. Data Pengaturan
@@ -71,7 +70,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
 
   // --- FETCH DATA ---
   useEffect(() => {
-    // Fetch Profil (Buat dapetin data yg mungkin ga ada di session, misal NIP/Jabatan)
     fetch("/api/admin/profile")
       .then(res => res.json())
       .then(data => {
@@ -87,7 +85,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
       })
       .catch(err => console.error("Gagal load profile", err));
     
-    // Fetch Settings
     fetch("/api/admin/settings")
         .then(res => res.json())
         .then(data => {
@@ -112,8 +109,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
         });
 
         if (res.ok) {
-            // Update session client-side biar nama di navbar berubah langsung
-            await update({ name: profileData.name });
+            // await update({ name: profileData.name }); // Opsional: disable update session client biar gak logout
             setSuccessMessage("Profil admin berhasil diperbarui!");
             setShowSuccess(true);
             router.refresh();
@@ -166,7 +162,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
 
     setLoading(true);
     try {
-        // Panggil API Ganti Password (pakai endpoint profile yang udah ada logic-nya)
         const res = await fetch("/api/admin/profile", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -192,29 +187,36 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   return (
     <div className="space-y-6 w-full pb-10">
       
-      {/* DIALOG SUCCESS & ERROR */}
+      {/* DIALOG SUCCESS (DENGAN ANIMASI LOMPAT) */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5">
-                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+                {/* Container Icon */}
+                <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 animate-in zoom-in-0 duration-300">
+                    {/* ICON ANIMATE BOUNCE DISINI BRE */}
+                    <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil!</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm">{successMessage}</p>
-                <Button onClick={() => setShowSuccess(false)} className="mt-6 bg-[#99775C] hover:bg-[#86664d] text-white w-full rounded-xl">Tutup</Button>
+                <Button onClick={() => setShowSuccess(false)} className="mt-6 bg-[#99775C] hover:bg-[#86664d] text-white w-full rounded-xl shadow-md transition-all active:scale-95">
+                    Tutup
+                </Button>
             </div>
         </DialogContent>
       </Dialog>
 
+      {/* DIALOG ERROR */}
       <Dialog open={showError} onOpenChange={setShowError}>
         <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                <div className="h-20 w-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-5">
+                <div className="h-20 w-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-5 animate-in zoom-in-0 duration-300">
                     <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Gagal!</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm">{errorMessage}</p>
-                <Button onClick={() => setShowError(false)} className="mt-6 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl">Coba Lagi</Button>
+                <Button onClick={() => setShowError(false)} className="mt-6 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl shadow-md transition-all active:scale-95">
+                    Coba Lagi
+                </Button>
             </div>
         </DialogContent>
       </Dialog>
@@ -225,7 +227,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
         <p className="text-slate-500 dark:text-gray-400">Kelola profil admin, jam operasional, dan lokasi kantor.</p>
       </div>
 
-      {/* TABS NAVIGATION (4 TAB) */}
+      {/* TABS */}
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524] mb-6">
           <TabsTrigger value="profile" className="py-2.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm data-[state=active]:text-[#99775C] transition-all">
@@ -273,17 +275,15 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
-                <Button onClick={handleSaveProfile} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md">
+                <Button onClick={handleSaveProfile} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Profil
                 </Button>
             </CardFooter>
           </Card>
         </TabsContent>
 
-        {/* --- 2. TAB WAKTU & PRESENSI (NEW) --- */}
+        {/* --- 2. TAB WAKTU & PRESENSI --- */}
         <TabsContent value="time" className="space-y-6">
-            
-            {/* KARTU 1: WAKTU OPERASIONAL */}
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
                     <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
@@ -330,7 +330,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 </CardContent>
             </Card>
 
-            {/* KARTU 2: LOGIKA PRESENSI */}
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
                     <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
@@ -339,8 +338,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                     <CardDescription>Atur kapan tombol absen muncul dan batas keterlambatan.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                    
-                    {/* PRESENSI MASUK */}
                     <div className="space-y-3">
                         <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 border-l-4 border-[#99775C] pl-2">1. Presensi Masuk</h4>
                         <div className="grid grid-cols-2 gap-4">
@@ -357,7 +354,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                         </div>
                     </div>
 
-                    {/* PRESENSI PULANG (AUTO) */}
                     <div className="space-y-2">
                         <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 border-l-4 border-orange-500 pl-2">2. Presensi Pulang</h4>
                         <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/30 p-4 rounded-xl flex gap-3">
@@ -365,15 +361,14 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                             <div className="space-y-1">
                                 <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Otomatis Mengikuti Jam Selesai Operasional</p>
                                 <p className="text-xs text-orange-600/80 dark:text-orange-400/70 leading-relaxed">
-                                    Tombol "Absen Pulang" baru bisa diklik setelah <b>Jam Selesai</b> (16:00 untuk Sen-Kam, 14:30 untuk Jumat). Tidak perlu setting manual lagi.
+                                    Tombol "Absen Pulang" baru bisa diklik setelah <b>Jam Selesai</b>.
                                 </p>
                             </div>
                         </div>
                     </div>
-
                 </CardContent>
                 <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
-                    <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md">
+                    <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Pengaturan Waktu
                     </Button>
                 </CardFooter>
@@ -409,7 +404,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
               </div>
             </CardContent>
             <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
-                <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md">
+                <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Lokasi
                 </Button>
             </CardFooter>
@@ -446,7 +441,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 </div>
                 </CardContent>
                 <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
-                    <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-md">
+                    <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-md active:scale-95 transition-all">
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Password"}
                     </Button>
                 </CardFooter>
@@ -454,10 +449,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
         </TabsContent>
 
       </Tabs>
-      
-      <div className="text-xs text-slate-400 dark:text-gray-600 text-center pt-10 border-t border-slate-100 dark:border-[#292524] mt-10">
-        Copyright © 2026 Dinas Pendidikan Pemuda dan Olahraga DIY, Code by Magang Informatika 2023 UPNVYK
-      </div>
     </div>
   );
 }

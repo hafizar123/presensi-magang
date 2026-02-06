@@ -71,7 +71,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
         <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4 bg-white/50 dark:bg-white/5 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               
-              {/* JUDUL */}
               <CardTitle className="text-lg font-bold text-slate-800 dark:text-[#EAE7DD] flex items-center gap-2 whitespace-nowrap">
                 <User className="h-5 w-5 text-[#99775C]" />
                 Master Data Magang
@@ -79,8 +78,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
               {/* ACTION GROUP */}
               <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  
-                  {/* 1. FILTER STATUS (Fixed 160px - TEKS PENDEK "SEMUA") */}
                   <div className="w-full sm:w-[160px] shrink-0"> 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
@@ -90,7 +87,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             </div>
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524]">
-                            {/* TEKS DIUBAH JADI 'Semua' BIAR MUAT */}
                             <SelectItem value="ALL">Semua</SelectItem>
                             <SelectItem value="ACTIVE">Aktif</SelectItem>
                             <SelectItem value="PENDING">Pending</SelectItem>
@@ -98,7 +94,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                     </Select>
                   </div>
 
-                  {/* 2. SEARCH BAR (Fixed 250px) */}
                   <div className="relative w-full sm:w-[250px] shrink-0 group">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                       <Input 
@@ -123,7 +118,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                     <TableHead className="text-white font-bold min-w-[250px]">Posisi / Instansi</TableHead>
                     <TableHead className="text-white font-bold min-w-[320px]">Periode Magang</TableHead>
                     <TableHead className="text-white font-bold text-center min-w-[150px]">Status</TableHead>
-                    <TableHead className="text-white font-bold text-right pr-6 min-w-[120px]">Aksi</TableHead>
+                    <TableHead className="text-white font-bold text-right pr-6 min-w-[150px]">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -147,7 +142,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                         <AvatarImage src={intern.image} />
                                         <AvatarFallback className="bg-[#99775C] text-white font-bold">{intern.name[0]}</AvatarFallback>
                                     </Avatar>
-                                    <span className="font-medium text-slate-800 dark:text-[#EAE7DD]">{intern.name}</span>
+                                    <span className="font-bold text-slate-800 dark:text-[#EAE7DD]">{intern.name}</span>
                                 </div>
                             </TableCell>
 
@@ -193,6 +188,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             </TableCell>
 
                             <TableCell className="text-right pr-6 whitespace-nowrap">
+                                {/* HANYA ADA TOMBOL INI SAJA, SESUAI REQUEST */}
                                 <ScheduleDialog user={intern} />
                             </TableCell>
                         </TableRow>
@@ -203,6 +199,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
           </div>
         </CardContent>
 
+        {/* PAGINATION */}
         {totalPages > 1 && (
             <div className="border-t border-slate-100 dark:border-[#292524] p-4 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
                 <p className="text-sm text-slate-500">

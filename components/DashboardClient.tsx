@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   LogOut, MapPin, Bell, History, FileText, Clock, 
   CheckCircle2, AlertCircle, User, Menu, 
-  LayoutDashboard, CalendarX, ShieldAlert
+  LayoutDashboard, CalendarX, ShieldAlert, CalendarOff // <-- Nambah ini doang bre
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -30,11 +30,10 @@ export default function DashboardClient({
   user, announcements, todayLog, stats, greeting 
 }: DashboardClientProps) {
   
-  // STATE LAYOUT & ANIMASI (SAMA KEK IZIN)
+  // STATE LAYOUT & ANIMASI
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [startAnimation, setStartAnimation] = useState(false);
 
-  // Trigger animasi saat masuk halaman
   useEffect(() => {
     setStartAnimation(true);
   }, []);
@@ -90,11 +89,11 @@ export default function DashboardClient({
       }
   }
 
-  // --- SIDEBAR (SAMA PLEK STRUKTURNYA) ---
+  // --- SIDEBAR ---
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         
-        {/* HEADER: ANIMASI LOGO (SAMA KEK IZIN) */}
+        {/* HEADER: ANIMASI LOGO */}
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
              <div className={`p-1.5 bg-white/20 rounded-lg backdrop-blur-sm transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100 rotate-0" : "scale-0 opacity-0 -rotate-180"}`}>
                 <Image src="/logo-disdikpora.png" width={24} height={24} alt="Logo" />
@@ -105,7 +104,6 @@ export default function DashboardClient({
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
             
-            {/* ACTIVE STATE */}
             <Link href="/" className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <LayoutDashboard className="h-5 w-5" /> Dashboard
             </Link>
@@ -152,7 +150,7 @@ export default function DashboardClient({
             <Link href="/profile" className="flex items-center gap-3 pl-1 group">
                 <div className="hidden md:flex flex-col items-end"><span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span><span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span></div>
                 
-                {/* ANIMASI AVATAR (SAMA KEK IZIN) */}
+                {/* ANIMASI AVATAR */}
                 <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
                     <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
                         <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
@@ -169,7 +167,7 @@ export default function DashboardClient({
       {/* MAIN CONTENT */}
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         
-        {/* HERO SECTION (ANIMASI ENTRANCE) */}
+        {/* HERO SECTION */}
         <div className={`relative w-full rounded-[2.5rem] overflow-hidden shadow-xl shadow-[#99775C]/20 dark:shadow-none group transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-[#99775C] via-[#8a6b52] to-[#6d5440] dark:from-[#3f2e26] dark:via-[#271c19] dark:to-[#1c1917]"></div>
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
@@ -193,6 +191,7 @@ export default function DashboardClient({
                       <div className="w-full flex justify-center">
                         {periodStatus !== "ACTIVE" ? (
                             <Button disabled className="h-14 px-6 rounded-xl bg-red-500/20 border border-red-500/50 text-red-100 w-full cursor-not-allowed">
+                                {/* FIX: Pake icon yang udah diimport */}
                                 <CalendarOff className="mr-2 h-5 w-5" /> {periodMessage}
                             </Button>
                         ) : (
@@ -203,7 +202,7 @@ export default function DashboardClient({
             </div>
         </div>
 
-        {/* PAPAN INFORMASI (CARD INTERACTION SAMA KEK IZIN) */}
+        {/* PAPAN INFORMASI */}
         <div>
             <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] flex items-center gap-2 mb-4 px-2"><Bell className="h-5 w-5 text-yellow-500" />Papan Informasi</h3>
             <div className="bg-white dark:bg-[#1c1917] rounded-3xl p-1 shadow-sm border border-slate-100 dark:border-[#292524] overflow-hidden">
@@ -214,7 +213,6 @@ export default function DashboardClient({
                         <div 
                             key={info.id} 
                             className="group flex items-start gap-4 p-6 hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] rounded-2xl cursor-pointer border-b border-dashed border-slate-100 dark:border-[#292524] last:border-0 relative
-                            /* CARD ANIMATION STYLE IZIN */
                             transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
                             hover:shadow-md hover:-translate-y-1 hover:scale-[1.01]
                             active:scale-[0.99]
@@ -252,7 +250,6 @@ export default function DashboardClient({
   );
 }
 
-// UPDATE STATS CARD BIAR SAMA ANIMASINYA
 function StatsCard({ label, value, icon: Icon, color, desc, delay }: any) {
     return (
         <Card 

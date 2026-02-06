@@ -140,7 +140,9 @@ export default function IzinPage() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="mt-2">
-                <AlertDialogCancel className="bg-slate-100 dark:bg-[#292524] border-0 rounded-lg text-slate-900 dark:text-[#EAE7DD]">Batal</AlertDialogCancel>
+                <AlertDialogCancel className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-lg text-slate-900 dark:text-[#EAE7DD] hover:bg-slate-100 dark:hover:bg-[#3f2e26]/80">
+                    Batal
+                </AlertDialogCancel>
                 <AlertDialogAction 
                     onClick={(e) => { e.preventDefault(); handleProcess(); }}
                     disabled={isProcessing}
@@ -179,11 +181,15 @@ export default function IzinPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Approval Izin</h1>
           <p className="text-slate-500 dark:text-gray-400">Validasi pengajuan izin sakit atau cuti magang.</p>
         </div>
-        <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
+        
+        {/* === FILTER FIX: COPY-PASTE DR INTERNS TABLE === */}
+        <div className="w-full sm:w-[160px] shrink-0">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[150px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
-                    <SelectValue placeholder="Status" />
+                <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
+                        <Filter className="h-3.5 w-3.5 shrink-0" />
+                        <SelectValue placeholder="Status" />
+                    </div>
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
                     <SelectItem value="PENDING">Menunggu</SelectItem>
@@ -208,11 +214,11 @@ export default function IzinPage() {
             </div>
         ) : (
             filteredRequests.map((req) => (
-                <Card key={req.id} className="border-none shadow-sm bg-white dark:bg-[#1c1917] hover:shadow-md transition-all overflow-hidden">
+                <Card key={req.id} className="border-none shadow-sm bg-white dark:bg-[#1c1917] hover:shadow-md transition-all overflow-hidden rounded-2xl">
                     <CardHeader className="pb-3 border-b border-slate-50 dark:border-[#292524]">
                         <div className="flex justify-between items-start">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 bg-[#99775C]/20 text-[#99775C] rounded-full mt-1">
+                                <div className="p-2 bg-[#99775C]/10 text-[#99775C] rounded-xl mt-1">
                                     <FileText className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -233,7 +239,8 @@ export default function IzinPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="mt-4">
-                        <div className="bg-slate-50 dark:bg-[#292524]/50 p-4 rounded-lg border border-slate-100 dark:border-[#292524] space-y-3">
+                        {/* Box Dalam Card: Konsisten pake style input (dark:bg-[#292524]) */}
+                        <div className="bg-slate-50 dark:bg-[#292524] p-4 rounded-xl border border-slate-200 dark:border-[#3f2e26] space-y-3">
                             {/* ALASAN */}
                             <div className="flex items-start gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Keterangan</span>
@@ -245,7 +252,7 @@ export default function IzinPage() {
                             {/* TANGGAL */}
                             <div className="flex items-center gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Tanggal Izin</span>
-                                <div className="flex items-center gap-2 text-sm text-slate-900 dark:text-[#EAE7DD] font-bold bg-white dark:bg-[#1c1917] px-2 py-1 rounded border border-slate-200 dark:border-[#292524]">
+                                <div className="flex items-center gap-2 text-sm text-slate-900 dark:text-[#EAE7DD] font-bold bg-white dark:bg-[#1c1917] px-2 py-1 rounded border border-slate-200 dark:border-[#3f2e26]">
                                     <Calendar className="h-3.5 w-3.5 text-[#99775C]" />
                                     {new Date(req.date).toLocaleDateString("id-ID", { 
                                         weekday: 'long', 
@@ -265,7 +272,7 @@ export default function IzinPage() {
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                     >
-                                        <Button variant="outline" size="sm" className="h-8 text-xs border-[#99775C]/30 bg-[#99775C]/10 text-[#99775C] hover:bg-[#99775C]/20 dark:border-[#292524] dark:text-[#EAE7DD]">
+                                        <Button variant="outline" size="sm" className="h-8 text-xs border-[#99775C]/30 bg-[#99775C]/10 text-[#99775C] hover:bg-[#99775C]/20 dark:border-[#3f2e26] dark:text-[#EAE7DD] rounded-lg">
                                             <Eye className="h-3 w-3 mr-2" />
                                             Lihat Surat
                                         </Button>
@@ -281,14 +288,14 @@ export default function IzinPage() {
                             <div className="flex gap-3 mt-4 justify-end">
                                 <Button 
                                     variant="outline" 
-                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20 hover:text-red-700 h-9"
+                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:bg-[#292524] dark:border-[#3f2e26] dark:hover:bg-red-900/20 hover:text-red-700 h-9 rounded-xl"
                                     onClick={() => openConfirm(req.id, "REJECTED")}
                                 >
                                     <X className="h-4 w-4 mr-2" />
                                     Tolak
                                 </Button>
                                 <Button 
-                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-9 border-none"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 h-9 border-none rounded-xl"
                                     onClick={() => openConfirm(req.id, "APPROVED")}
                                 >
                                     <Check className="h-4 w-4 mr-2" />

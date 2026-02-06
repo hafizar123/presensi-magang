@@ -23,7 +23,7 @@ export default function SessionTimeout() {
   const [isOpen, setIsOpen] = useState(false);
 
   // SETTING WAKTU: 7 Menit
-  const TIMEOUT_MS = 7 * 60 * 1000; 
+  const TIMEOUT_MS = 30 * 60 * 1000; 
   const STORAGE_KEY = "lastTimeStamp";
 
   // Fungsi Logout (Dipanggil pas klik tombol "Login Ulang")
