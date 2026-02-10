@@ -378,7 +378,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                             <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-slate-900 p-2 rounded-full border-4 border-[#8a6b52] shadow-sm"><Building2 className="h-5 w-5" /></div>
                         </div>
                         <div className="relative z-10 text-center md:text-left text-white space-y-3 flex-1">
-                            <div><h2 className="text-3xl md:text-4xl font-bold tracking-tight">{user.name}</h2><p className="text-[#EAE7DD] text-lg font-medium opacity-90 mt-1">{user.jabatan || "Mahasiswa Magang"}</p></div>
+                            <div><h2 className="text-3xl md:text-4xl font-bold tracking-tight">{user.name}</h2><p className="text-[#EAE7DD] text-lg font-medium opacity-90 mt-1">{user.jabatan || "Peserta Magang"}</p></div>
                             <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2"><div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-sm"><Mail className="h-3.5 w-3.5 opacity-70" /> {user.email}</div></div>
                         </div>
                         <div className="relative z-10 hidden md:block opacity-80"><Image src="/logo-disdikpora.png" width={100} height={100} alt="Logo" className="opacity-50 grayscale brightness-200" /></div>

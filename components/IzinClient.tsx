@@ -60,10 +60,20 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
     try {
         const res = await fetch("/api/upload", { method: "POST", body: uploadData });
         if (!res.ok) throw new Error("Gagal upload");
+        
         const data = await res.json();
-        setFormData(prev => ({ ...prev, proofFile: data.url })); 
-        toast.success("File terupload", { description: "Bukti lampiran berhasil diunggah." });
+        
+        // --- FIX DISINI BRE ---
+        // Ganti data.url jadi data.filepath sesuai return API
+        if (data.filepath) {
+            setFormData(prev => ({ ...prev, proofFile: data.filepath })); 
+            toast.success("File terupload", { description: "Bukti lampiran berhasil diunggah." });
+        } else {
+            throw new Error("Respon server tidak valid");
+        }
+
     } catch (error) {
+        console.error(error);
         toast.error("Gagal Upload", { description: "Coba lagi atau gunakan file lain." });
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     } finally {
@@ -73,6 +83,13 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // VALIDASI SEBELUM KIRIM
+    if (!formData.date || !formData.reason) {
+        toast.warning("Data Belum Lengkap", { description: "Tanggal dan alasan wajib diisi." });
+        return;
+    }
+
     setIsSubmitting(true);
     try {
         const res = await fetch("/api/izin", {
@@ -80,10 +97,14 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formData),
         });
+        
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Gagal mengajukan izin");
+        
+        // Reset Form kalo sukses
         setFormData({ date: "", reason: "", proofFile: "" }); 
         if (fileInputRef.current) fileInputRef.current.value = "";
+        
         router.refresh(); 
         toast.success("Berhasil", { description: "Pengajuan izin berhasil dikirim." });
     } catch (error: any) {

@@ -11,28 +11,36 @@ export async function POST(req: Request) {
     }
 
     // Ambil data dari body request
-    const { date, reason, proofFile } = await req.json();
+    const body = await req.json();
+    const { date, reason, proofFile } = body;
+
+    console.log("📥 API IZIN RECEIVED DATA:", { date, reason, proofFile }); // DEBUG
 
     if (!date || !reason) {
         return NextResponse.json({ message: "Tanggal dan Alasan wajib diisi." }, { status: 400 });
     }
 
-    // Validasi Tanggal (Biar aman masuk database)
+    // Validasi Tanggal
     const izinDate = new Date(date);
     if (isNaN(izinDate.getTime())) {
         return NextResponse.json({ message: "Format tanggal tidak valid." }, { status: 400 });
     }
 
     // Simpan ke Database
+    // Pastikan proofFile yang disimpan valid (bukan string kosong atau undefined)
+    const finalProofFile = proofFile && proofFile.trim() !== "" ? proofFile : null;
+
     await prisma.leaveRequest.create({
       data: {
         userId: session.user.id,
         date: izinDate,
         reason: reason,
-        proofFile: proofFile || null, // Simpan nama file (atau null kalo ga ada)
+        proofFile: finalProofFile,
         status: "PENDING",
       },
     });
+
+    console.log("Izin berhasil diajukan");
 
     return NextResponse.json({ message: "Pengajuan izin berhasil dikirim." });
 
