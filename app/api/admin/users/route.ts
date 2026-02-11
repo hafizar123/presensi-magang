@@ -7,15 +7,8 @@ export async function GET() {
   try {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        nip: true,
-        jabatan: true,
-        image: true,
-      },
+      // PENTING: Include internProfile biar data tanggal magang kebawa
+      include: { internProfile: true }, 
     });
     return NextResponse.json(users);
   } catch (error) {
@@ -23,19 +16,17 @@ export async function GET() {
   }
 }
 
-// POST: Tambah User Baru
+// POST: Tambah User Baru (Tetap sama kayak default)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, email, password, role, nip, jabatan } = body;
 
-    // Cek email duplikat
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json({ message: "Email sudah terdaftar" }, { status: 400 });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
@@ -55,7 +46,7 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE: Hapus User
+// DELETE: Hapus User (Tetap sama)
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -70,26 +61,54 @@ export async function DELETE(req: Request) {
   }
 }
 
-// PUT: Edit User (Simple version)
+// PUT: Edit User (INI YANG KITA MODIFIKASI)
 export async function PUT(req: Request) {
     try {
       const body = await req.json();
-      const { id, name, email, role, nip, jabatan, password } = body;
+      // Kita terima startDate & endDate juga di sini selain data user biasa
+      const { id, name, email, role, nip, jabatan, password, startDate, endDate } = body;
   
-      const dataToUpdate: any = { name, email, role, nip, jabatan };
+      const dataToUpdate: any = { };
       
-      // Kalo password diisi, update password juga
-      if (password) {
+      // Update field standard user kalo ada
+      if (name) dataToUpdate.name = name;
+      if (email) dataToUpdate.email = email;
+      if (role) dataToUpdate.role = role;
+      if (nip !== undefined) dataToUpdate.nip = nip;
+      if (jabatan !== undefined) dataToUpdate.jabatan = jabatan;
+      
+      if (password && password.trim() !== "") {
         dataToUpdate.password = await bcrypt.hash(password, 10);
       }
+
+      // --- LOGIC MAGIC BUAT INTERN PROFILE ---
+      // Kalo ada kiriman tanggal, kita update tabel sebelah (InternProfile)
+      // Pake 'upsert' biar pinter: kalo belum ada dibuat baru, kalo udah ada diupdate.
+      if (startDate && endDate) {
+        dataToUpdate.internProfile = {
+            upsert: {
+                create: {
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
+                },
+                update: {
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
+                }
+            }
+        };
+      }
+      // -------------------------------------------
   
-      await prisma.user.update({
-        where: { id },
+      const updatedUser = await prisma.user.update({
+        where: { id }, // ID-nya pake ID User
         data: dataToUpdate,
+        include: { internProfile: true } // Return data lengkap buat konfirmasi
       });
   
-      return NextResponse.json({ message: "User diupdate" });
+      return NextResponse.json(updatedUser);
     } catch (error) {
+      console.error("Update error:", error);
       return NextResponse.json({ message: "Gagal update user" }, { status: 500 });
     }
 }

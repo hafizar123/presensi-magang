@@ -113,6 +113,7 @@ export default function IzinPage() {
     }
   };
 
+  // Filter Logic
   const filteredRequests = requests.filter(req => 
     filterStatus === "ALL" ? true : req.status === filterStatus
   );
@@ -182,7 +183,7 @@ export default function IzinPage() {
           <p className="text-slate-500 dark:text-gray-400">Validasi pengajuan izin sakit atau cuti magang.</p>
         </div>
         
-        {/* === FILTER FIX: COPY-PASTE DR INTERNS TABLE === */}
+        {/* FILTER */}
         <div className="w-full sm:w-[160px] shrink-0">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
@@ -239,7 +240,6 @@ export default function IzinPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="mt-4">
-                        {/* Box Dalam Card: Konsisten pake style input (dark:bg-[#292524]) */}
                         <div className="bg-slate-50 dark:bg-[#292524] p-4 rounded-xl border border-slate-200 dark:border-[#3f2e26] space-y-3">
                             {/* ALASAN */}
                             <div className="flex items-start gap-3">
@@ -263,12 +263,12 @@ export default function IzinPage() {
                                 </div>
                             </div>
 
-                            {/* FILE BUKTI */}
+                            {/* FILE BUKTI - FIX ADA DI SINI */}
                             <div className="flex items-center gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Lampiran</span>
                                 {req.proofFile ? (
                                     <a 
-                                        href={`/uploads/${req.proofFile}`} 
+                                        href={req.proofFile.startsWith("/uploads/") ? req.proofFile : `/uploads/${req.proofFile}`} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                     >

@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { User, Search, ChevronLeft, ChevronRight, School, ArrowRight, Calendar, Filter } from "lucide-react";
+import { User, Search, ChevronLeft, ChevronRight, School, ArrowRight, Calendar, Filter, Briefcase, Edit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
-import ScheduleDialog from "@/components/ScheduleDialog";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // Kalau ga pake sonner, bisa ganti alert biasa
 
 interface InternsTableProps {
   interns: any[];
@@ -18,10 +21,19 @@ interface InternsTableProps {
 const ITEMS_PER_PAGE = 20;
 
 export default function InternsTableClient({ interns }: InternsTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [mounted, setMounted] = useState(false);
+
+  // --- STATE MODAL ATUR (DIVISI + TANGGAL) ---
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedIntern, setSelectedIntern] = useState<any>(null);
+  const [divisi, setDivisi] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -53,11 +65,100 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
   useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
+  // --- FUNGSI BUKA MODAL ---
+  const openEditModal = (user: any) => {
+    setSelectedIntern(user);
+    setDivisi(user.jabatan || ""); // Load Divisi yang udah ada
+    
+    if (user.internProfile) {
+        setStartDate(new Date(user.internProfile.startDate).toISOString().split("T")[0]);
+        setEndDate(new Date(user.internProfile.endDate).toISOString().split("T")[0]);
+    } else {
+        setStartDate("");
+        setEndDate("");
+    }
+    setIsEditOpen(true);
+  };
+
+  // --- FUNGSI SIMPAN DATA ---
+  const handleSave = async () => {
+    if (!selectedIntern) return;
+
+    setIsSaving(true);
+    try {
+        // Nembak ke API yang udah kita siapin sebelumnya
+        const res = await fetch("/api/admin/users", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                id: selectedIntern.id, 
+                jabatan: divisi,       // Update Divisi
+                startDate: startDate,  // Update Tanggal
+                endDate: endDate
+            })
+        });
+
+        if (res.ok) {
+            setIsEditOpen(false);
+            toast.success("Data berhasil disimpan!");
+            router.refresh(); // Refresh otomatis
+        } else {
+            alert("Gagal update data.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan.");
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   if (!mounted) return null;
 
   return (
     <div className="space-y-6">
       
+      {/* --- MODAL INPUT DIVISI & TANGGAL --- */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524]">
+            <DialogHeader>
+                <DialogTitle className="text-slate-900 dark:text-[#EAE7DD]">Atur Data Magang</DialogTitle>
+                <DialogDescription className="text-slate-500 dark:text-gray-400">
+                    Input divisi dan periode magang untuk <b>{selectedIntern?.name}</b>.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-5 py-4">
+                {/* INPUT DIVISI */}
+                <div className="grid gap-2">
+                    <Label className="text-slate-700 dark:text-gray-300">Divisi / Posisi</Label>
+                    <Input 
+                        placeholder="Contoh: Frontend Dev, UI/UX..."
+                        value={divisi}
+                        onChange={(e) => setDivisi(e.target.value)}
+                        className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26]"
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label className="text-slate-700 dark:text-gray-300">Mulai</Label>
+                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26]" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label className="text-slate-700 dark:text-gray-300">Selesai</Label>
+                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26]" />
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)} className="dark:bg-[#292524] dark:text-[#EAE7DD]">Batal</Button>
+                <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* HEADER PAGE */}
       <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Data Peserta Magang</h1>
@@ -150,10 +251,19 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                 {intern.email}
                             </TableCell>
 
+                            {/* --- INI BAGIAN YANG NAMPILIN DIVISI & INSTANSI --- */}
                             <TableCell className="whitespace-nowrap">
-                                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-sm font-medium">
-                                    <School className="h-4 w-4 text-slate-400" />
-                                    {intern.internProfile?.institution || "-"}
+                                <div className="flex flex-col gap-1">
+                                    {/* DIVISI (ATAS) */}
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                        <Briefcase className="h-3.5 w-3.5 text-slate-500" />
+                                        {intern.jabatan || "-"}
+                                    </div>
+                                    {/* INSTANSI (BAWAH) */}
+                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                                        <School className="h-3.5 w-3.5" />
+                                        {intern.internProfile?.institution || "-"}
+                                    </div>
                                 </div>
                             </TableCell>
 
@@ -188,8 +298,15 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             </TableCell>
 
                             <TableCell className="text-right pr-6 whitespace-nowrap">
-                                {/* HANYA ADA TOMBOL INI SAJA, SESUAI REQUEST */}
-                                <ScheduleDialog user={intern} />
+                                {/* GANTI ScheduleDialog JADI TOMBOL ATUR (Biar bisa input Divisi) */}
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => openEditModal(intern)}
+                                    className="h-8 border-slate-200 dark:border-[#3f2e26] text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+                                >
+                                    <Edit className="h-3.5 w-3.5 mr-2" /> Atur
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   History, FileText, User, Menu, LayoutDashboard, 
   Clock, Mail, Camera, Eye, EyeOff, Save, Lock, 
-  LogOut, Settings, CheckCircle2, Building2
+  LogOut, Settings, CheckCircle2, Building2, Briefcase
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,7 +47,6 @@ interface ProfileClientProps { user: any; }
 export default function ProfileClient({ user }: ProfileClientProps) {
   const router = useRouter();
   
-  // STATE ANIMASI (SAMA KEK RIWAYAT/IZIN)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [startAnimation, setStartAnimation] = useState(false);
   
@@ -91,10 +90,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     fetchSettings();
   }, []);
 
-  // --- LOGIC JAM OPERASIONAL ---
   const getOperationalInfo = () => {
     if (!opsSettings) return { time: "--:--", desc: "Memuat..." };
-
     const today = new Date().getDay(); 
     const isWeekend = today === 0 || today === 6;
     const isFriday = today === 5;
@@ -104,13 +101,9 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     const startF = opsSettings.opStartFri || "07:30";
     const endF = opsSettings.opEndFri || "14:30";
 
-    if (isWeekend) {
-        return { time: "Libur", desc: "Akhir Pekan" };
-    } else if (isFriday) {
-        return { time: `${startF} - ${endF}`, desc: "Jumat (Khusus)" };
-    } else {
-        return { time: `${startMT} - ${endMT}`, desc: "Senin - Kamis" };
-    }
+    if (isWeekend) return { time: "Libur", desc: "Akhir Pekan" };
+    else if (isFriday) return { time: `${startF} - ${endF}`, desc: "Jumat (Khusus)" };
+    else return { time: `${startMT} - ${endMT}`, desc: "Senin - Kamis" };
   };
 
   const schedule = getOperationalInfo();
@@ -119,7 +112,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     const file = e.target.files?.[0];
     if (file) {
         if (file.size > 2 * 1024 * 1024) {
-            toast.error("File terlalu besar", { description: "Maksimal 2MB bre." });
+            toast.error("File terlalu besar", { description: "Maksimal 2MB." });
             return;
         }
         const previewUrl = URL.createObjectURL(file);
@@ -210,7 +203,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             body: JSON.stringify({
                 name: profileData.name,
                 nip: profileData.nip,
-                jabatan: profileData.jabatan,
+                // Jabatan GAK dikirim biar aman dari bypass inspect element
                 image: finalImagePath,
             }),
         });
@@ -239,9 +232,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ password: passData.new }),
         });
-
         if (!res.ok) throw new Error("Gagal ganti password");
-
         setPassData({ new: "", confirm: "" }); 
         toast.success("Password Diganti", { description: "Silakan login ulang jika diperlukan." });
     } catch (error) {
@@ -269,7 +260,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   };
   const progressValue = calculateProgress();
 
-  // --- SIDEBAR ---
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
@@ -359,7 +349,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className={`transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
                 
-                {/* --- BAGIAN TABS DI UBAH BIAR SAMA KEK RIWAYAT (KOTAK ROUNDED-XL) --- */}
                 <div className="flex justify-center mb-8">
                     <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524]">
                         <TabsTrigger value="overview" className="py-2.5 rounded-lg text-sm font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm data-[state=active]:text-[#99775C] transition-all">Ringkasan</TabsTrigger>
@@ -385,7 +374,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* CARD MASA MAGANG - BG-WHITE SOLID */}
                         <Card className="border-none shadow-sm transition-all bg-white dark:bg-[#1c1917] border-l-4 border-l-[#99775C] hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
                             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Masa Magang</CardTitle></CardHeader>
                             <CardContent>
@@ -394,22 +382,16 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                 <p className="text-xs text-slate-400 mt-3 font-medium">{user.internProfile ? `${formatDate(user.internProfile.startDate)} - ${formatDate(user.internProfile.endDate)}` : "Belum ditentukan"}</p>
                             </CardContent>
                         </Card>
-                        
-                        {/* CARD JAM OP - BG-WHITE SOLID */}
                         <Card className="border-none shadow-sm transition-all bg-white dark:bg-[#1c1917] border-l-4 border-l-orange-500 hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
                             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Jam Operasional</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="flex items-center gap-2">
                                     <Clock className="h-5 w-5 text-orange-500" />
-                                    <div className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">
-                                        {schedule.time}
-                                    </div>
+                                    <div className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">{schedule.time}</div>
                                 </div>
                                 <p className="text-xs text-slate-400 mt-3 font-medium">{schedule.desc} (WIB)</p>
                             </CardContent>
                         </Card>
-
-                        {/* CARD STATUS - BG-WHITE SOLID */}
                         <Card className="border-none shadow-sm transition-all bg-white dark:bg-[#1c1917] border-l-4 border-l-blue-500 hover:shadow-md hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
                             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Status Akun</CardTitle></CardHeader>
                             <CardContent>
@@ -421,7 +403,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                 </TabsContent>
 
                 <TabsContent value="settings" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    {/* SETTINGS CARD - BG-WHITE SOLID */}
                     <Card className="border-none shadow-md bg-white dark:bg-[#1c1917]">
                         <CardHeader><CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5 text-slate-500" />Ubah Informasi Dasar</CardTitle><CardDescription>Update foto profil dan data diri kamu disini.</CardDescription></CardHeader>
                         <CardContent>
@@ -438,11 +419,26 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                     <div className="flex-1 w-full space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2"><Label>Nama Lengkap</Label><Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} /></div>
-                                            <div className="space-y-2"><Label>Email</Label><Input value={profileData.email} disabled className="bg-slate-50 text-slate-500 cursor-not-allowed" /></div>
+                                            <div className="space-y-2"><Label>Email</Label><Input value={profileData.email} disabled className="bg-slate-50 text-slate-900 font-bold dark:text-slate-100 disabled:opacity-100 cursor-not-allowed" /></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2"><Label>NIP / NIM</Label><Input value={profileData.nip} onChange={(e) => setProfileData({...profileData, nip: e.target.value})} placeholder="Masukkan NIP/NIM" /></div>
-                                            <div className="space-y-2"><Label>Divisi / Jabatan</Label><Input value={profileData.jabatan} onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})} placeholder="Masukkan Divisi" /></div>
+                                            
+                                            {/* DIVISI / JABATAN - LOCKED VERSION */}
+                                            <div className="space-y-2">
+                                                <Label>Divisi / Posisi</Label>
+                                                <div className="relative">
+                                                    <Input 
+                                                        value={profileData.jabatan || "Belum ditentukan"} 
+                                                        disabled 
+                                                        className="bg-slate-100 border-slate-200 dark:bg-[#1c1917] dark:border-[#292524] font-bold text-slate-900 dark:text-slate-100 disabled:opacity-100 cursor-default" 
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        <Lock className="h-3 w-3 text-slate-400" />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 italic mt-1">*Divisi hanya dapat diatur oleh Admin.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -452,7 +448,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         </CardContent>
                     </Card>
                     
-                    {/* PASSWORD CARD - BG-WHITE SOLID */}
                     <Card className="border-none shadow-md bg-white dark:bg-[#1c1917]">
                         <CardHeader><CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5 text-orange-500" />Keamanan Akun</CardTitle><CardDescription>Buat password baru untuk akun kamu.</CardDescription></CardHeader>
                         <CardContent>
