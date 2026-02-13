@@ -4,7 +4,7 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import { Toaster } from "@/components/ui/sonner"; 
 import { ThemeProvider } from "@/components/theme-provider";
-import SessionTimeout from "@/components/SessionTimeout"; // 1. IMPORT
+import SessionTimeout from "@/components/SessionTimeout"; 
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -24,7 +24,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning> 
-      <body className={`${inter.className} tracking-tight antialiased`}>
+      <body 
+        suppressHydrationWarning={true} // <--- INI OBATNYA BRE
+        className={`${inter.className} tracking-tight antialiased`}
+      >
         <AuthProvider>
            <ThemeProvider
             attribute="class"
@@ -32,8 +35,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {/* 2. PASANG DISINI (DI DALAM AUTH PROVIDER) */}
-            {/* Logic ini bakal jalan di User DAN Admin secara otomatis */}
+            {/* Logic Logout Otomatis */}
             <SessionTimeout />
 
             {children}

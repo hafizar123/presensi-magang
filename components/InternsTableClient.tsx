@@ -216,7 +216,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                     <TableHead className="w-[60px] text-white font-bold text-center pl-6">No</TableHead>
                     <TableHead className="text-white font-bold min-w-[300px]">Nama Peserta</TableHead>
                     <TableHead className="text-white font-bold min-w-[250px]">Email</TableHead>
-                    <TableHead className="text-white font-bold min-w-[250px]">Posisi / Instansi</TableHead>
+                    <TableHead className="text-white font-bold min-w-[250px]">Divisi</TableHead>
                     <TableHead className="text-white font-bold min-w-[320px]">Periode Magang</TableHead>
                     <TableHead className="text-white font-bold text-center min-w-[150px]">Status</TableHead>
                     <TableHead className="text-white font-bold text-right pr-6 min-w-[150px]">Aksi</TableHead>
@@ -258,11 +258,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                     <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                                         <Briefcase className="h-3.5 w-3.5 text-slate-500" />
                                         {intern.jabatan || "-"}
-                                    </div>
-                                    {/* INSTANSI (BAWAH) */}
-                                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                                        <School className="h-3.5 w-3.5" />
-                                        {intern.internProfile?.institution || "-"}
                                     </div>
                                 </div>
                             </TableCell>
