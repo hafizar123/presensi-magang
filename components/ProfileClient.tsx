@@ -175,6 +175,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     if (!fileToUpload) return null;
     const formData = new FormData();
     formData.append("file", fileToUpload);
+    formData.append("type", "profile"); // <--- TAMBAHAN PENTING: TIPE PROFILE
+
     try {
         const res = await fetch("/api/upload", { method: "POST", body: formData });
         const data = await res.json();
@@ -203,8 +205,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             body: JSON.stringify({
                 name: profileData.name,
                 nip: profileData.nip,
-                // Jabatan GAK dikirim biar aman dari bypass inspect element
                 image: finalImagePath,
+                // Jabatan sengaja tidak dikirim agar aman
             }),
         });
 

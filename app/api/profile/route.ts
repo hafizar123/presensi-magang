@@ -4,18 +4,22 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { unlink } from "fs/promises";
 import path from "path";
-import fs from "fs"; // Tambahin ini buat baca JSON
+import fs from "fs";
 import bcrypt from "bcrypt";
 
-// Helper hapus file (Tetap sama)
-async function deleteOldFile(filePath: string) {
+// Helper: Hapus file fisik
+async function deleteFile(filePath: string) {
   try {
+    // Pastikan cuma hapus file di dalam folder uploads biar aman
     if (filePath && filePath.startsWith("/uploads/")) {
       const absolutePath = path.join(process.cwd(), "public", filePath);
-      await unlink(absolutePath);
+      if (fs.existsSync(absolutePath)) {
+        await unlink(absolutePath);
+        console.log(`🗑️ Berhasil hapus file lama: ${filePath}`);
+      }
     }
   } catch (error) {
-    console.error("Gagal hapus file lama:", error);
+    console.error("Gagal hapus file:", error);
   }
 }
 
@@ -26,47 +30,37 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 1. Ambil Data User dari Database
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
     select: {
-      id: true,
       name: true,
       email: true,
       image: true,
       nip: true,
       jabatan: true,
-      role: true,
       internProfile: true, 
     },
   });
 
-  // 2. Ambil Settingan Jam Universal dari settings.json
+  // Ambil setting jam kerja (biar Dashboard gak error)
   const configPath = path.join(process.cwd(), "settings.json");
-  let globalSettings = { startHour: "07:30", endHour: "16:00" }; // Default kalau file ga ada
-
+  let globalSettings = { startHour: "07:30", endHour: "16:00" };
   try {
     if (fs.existsSync(configPath)) {
       const settingsData = fs.readFileSync(configPath, "utf-8");
       const parsed = JSON.parse(settingsData);
-      // Ambil jamnya aja
       globalSettings = {
-        startHour: parsed.startHour || "07:30",
-        endHour: parsed.endHour || "16:00"
+        startHour: parsed.opStartMonThu || "07:30",
+        endHour: parsed.opEndMonThu || "16:00"
       };
     }
   } catch (e) {
-    console.error("Gagal baca settings global di profile API", e);
+    console.error("Gagal baca settings", e);
   }
 
-  // 3. Gabungin Data User + Global Settings
-  return NextResponse.json({ 
-    ...user, 
-    globalSettings // Kirim ini ke frontend
-  });
+  return NextResponse.json({ ...user, globalSettings });
 }
 
-// ... (Bagian PUT tetap sama kaya sebelumnya, ga usah diubah)
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -78,22 +72,38 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { name, nip, jabatan, image, password } = body;
 
+    // 1. Ambil data user LAMA (sebelum diupdate)
+    const currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { image: true }
+    });
+
     const dataToUpdate: any = {};
+
+    // 2. LOGIC HAPUS FOTO LAMA (PENTING!)
+    // Cek apakah ada request update image?
+    if (image !== undefined) {
+        // Kondisi A: User klik "Hapus Foto" (image dikirim kosong/null)
+        if (image === "" || image === null) {
+            if (currentUser?.image) {
+                await deleteFile(currentUser.image); // Hapus file lama
+            }
+            dataToUpdate.image = null; // Set DB jadi null
+        } 
+        // Kondisi B: User GANTI foto baru
+        else if (image !== currentUser?.image) {
+            // Hapus foto lama dulu kalo ada
+            if (currentUser?.image) {
+                await deleteFile(currentUser.image);
+            }
+            dataToUpdate.image = image; // Update path baru
+        }
+    }
 
     if (name) dataToUpdate.name = name;
     if (nip !== undefined) dataToUpdate.nip = nip;
+    // Jabatan kita bolehin update di sini (tapi di frontend udah kita lock)
     if (jabatan !== undefined) dataToUpdate.jabatan = jabatan;
-
-    if (image) {
-        dataToUpdate.image = image;
-        const oldUser = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { image: true }
-        });
-        if (oldUser?.image && oldUser.image !== image) {
-            await deleteOldFile(oldUser.image);
-        }
-    }
 
     if (password && password.trim() !== "") {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -107,6 +117,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(updatedUser);
   } catch (error) {
+    console.error("Error update profile:", error);
     return NextResponse.json({ error: "Gagal update profile" }, { status: 500 });
   }
 }
