@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Check, X, FileText, Calendar, User, 
-  CheckCircle2, Loader2, Filter, Eye
+  CheckCircle2, Loader2, Filter, Eye, Briefcase
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Update Tipe Data untuk menyertakan jabatan
 type LeaveRequest = {
   id: string;
-  user: { name: string; email: string };
+  user: { 
+    name: string; 
+    email: string;
+    jabatan: string | null; // Tambahkan ini
+  };
   date: string;
   reason: string;
   proofFile: string | null;
@@ -113,7 +118,6 @@ export default function IzinPage() {
     }
   };
 
-  // Filter Logic
   const filteredRequests = requests.filter(req => 
     filterStatus === "ALL" ? true : req.status === filterStatus
   );
@@ -121,7 +125,7 @@ export default function IzinPage() {
   return (
     <div className="space-y-6 pb-10">
       
-      {/* POP-UP KONFIRMASI */}
+      {/* MODALS TETAP SAMA SEPERTI SEBELUMNYA */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl">
             <AlertDialogHeader>
@@ -155,7 +159,6 @@ export default function IzinPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* POP-UP SUKSES */}
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
         <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center animate-in zoom-in-95 duration-300">
@@ -183,7 +186,6 @@ export default function IzinPage() {
           <p className="text-slate-500 dark:text-gray-400">Validasi pengajuan izin sakit atau cuti magang.</p>
         </div>
         
-        {/* FILTER */}
         <div className="w-full sm:w-[160px] shrink-0">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
@@ -229,19 +231,26 @@ export default function IzinPage() {
                                         {req.status === "APPROVED" && <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 text-[10px]">Disetujui</Badge>}
                                         {req.status === "REJECTED" && <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 text-[10px]">Ditolak</Badge>}
                                     </CardTitle>
-                                    <CardDescription className="text-xs mt-1 flex items-center gap-1 dark:text-gray-500">
-                                        <User className="h-3 w-3" /> {req.user.name} 
-                                    </CardDescription>
+                                    
+                                    {/* MENAMPILKAN DIVISI DI SINI */}
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-gray-300">
+                                            <User className="h-3.5 w-3.5" /> {req.user.name} 
+                                        </div>
+                                        <div className="text-[11px] flex items-center gap-1.5 font-bold text-[#99775C] dark:text-[#d6bba0] uppercase tracking-wide">
+                                            <Briefcase className="h-3 w-3" /> {req.user.jabatan || "Tanpa Divisi"}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="text-right text-xs text-slate-400 dark:text-gray-600">
+                            <div className="text-right text-xs text-slate-400 dark:text-gray-600 font-medium">
                                 {new Date(req.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'})}
                             </div>
                         </div>
                     </CardHeader>
+                    
                     <CardContent className="mt-4">
                         <div className="bg-slate-50 dark:bg-[#292524] p-4 rounded-xl border border-slate-200 dark:border-[#3f2e26] space-y-3">
-                            {/* ALASAN */}
                             <div className="flex items-start gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Keterangan</span>
                                 <p className="text-sm text-slate-700 dark:text-gray-300 font-medium leading-relaxed italic">
@@ -249,7 +258,6 @@ export default function IzinPage() {
                                 </p>
                             </div>
                             
-                            {/* TANGGAL */}
                             <div className="flex items-center gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Tanggal Izin</span>
                                 <div className="flex items-center gap-2 text-sm text-slate-900 dark:text-[#EAE7DD] font-bold bg-white dark:bg-[#1c1917] px-2 py-1 rounded border border-slate-200 dark:border-[#3f2e26]">
@@ -263,7 +271,6 @@ export default function IzinPage() {
                                 </div>
                             </div>
 
-                            {/* FILE BUKTI - FIX ADA DI SINI */}
                             <div className="flex items-center gap-3">
                                 <span className="text-slate-400 text-xs w-20 flex-shrink-0 font-medium dark:text-gray-500">Lampiran</span>
                                 {req.proofFile ? (
@@ -283,7 +290,6 @@ export default function IzinPage() {
                             </div>
                         </div>
 
-                        {/* TOMBOL AKSI */}
                         {req.status === "PENDING" && (
                             <div className="flex gap-3 mt-4 justify-end">
                                 <Button 

@@ -130,7 +130,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
             <div className="grid gap-5 py-4">
                 {/* INPUT DIVISI */}
                 <div className="grid gap-2">
-                    <Label className="text-slate-700 dark:text-gray-300">Divisi / Posisi</Label>
+                    <Label className="text-slate-700 dark:text-gray-300">Divisi</Label>
                     <Input 
                         placeholder="Contoh: Frontend Dev, UI/UX..."
                         value={divisi}

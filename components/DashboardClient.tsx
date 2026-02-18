@@ -5,7 +5,7 @@ import {
   LogOut, MapPin, Bell, History, FileText, Clock, 
   CheckCircle2, AlertCircle, User, Menu, 
   LayoutDashboard, CalendarX, ShieldAlert, CalendarOff
-} from "lucide-react"; // <-- UDAH FIX DISINI BRE
+} from "lucide-react"; 
 import Link from "next/link";
 import Image from "next/image";
 
@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/ModeToggle"; 
 import LogoutModal from "@/components/LogoutModal";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 interface DashboardClientProps {
   user: any;
@@ -42,6 +42,30 @@ export default function DashboardClient({
     return () => clearInterval(timer);
   }, []);
 
+  // --- LOGIC JAM PULANG DINAMIS ---
+  const getScheduledEndHour = () => {
+    const today = currentTime.getDay(); // 0: Minggu, 1: Senin, ..., 5: Jumat, 6: Sabtu
+    const isFriday = today === 5;
+    
+    // Ambil jam dari settings admin atau pake default
+    if (isFriday) {
+      return user.globalSettings?.endHourFri || "14:30";
+    }
+    return user.globalSettings?.endHour || "16:00";
+  };
+
+  const scheduledEndHour = getScheduledEndHour();
+
+  const checkIsWorkTimeOver = () => {
+    const [hours, minutes] = scheduledEndHour.split(":").map(Number);
+    const targetTime = new Date(currentTime);
+    targetTime.setHours(hours, minutes, 0, 0);
+
+    return currentTime >= targetTime;
+  };
+
+  const isWorkTimeOver = checkIsWorkTimeOver();
+
   // --- LOGIC STATUS PERIODE ---
   let periodStatus = user.internProfile ? "ACTIVE" : "UNVERIFIED"; 
   let periodMessage = "";
@@ -64,19 +88,6 @@ export default function DashboardClient({
           periodMessage = "Periode Magang Telah Selesai";
       }
   }
-
-  // --- LOGIC JAM PULANG (PENJAGA GAWANG) ---
-  const checkIsWorkTimeOver = () => {
-    // Ambil jam pulang dari globalSettings, default jam 4 sore
-    const endHourStr = user.globalSettings?.endHour || "16:00";
-    const [hours, minutes] = endHourStr.split(":").map(Number);
-    
-    const targetTime = new Date();
-    targetTime.setHours(hours, minutes, 0, 0);
-
-    return currentTime >= targetTime;
-  };
-  const isWorkTimeOver = checkIsWorkTimeOver();
 
   // --- LOGIC TAMPILAN STATUS ---
   let statusText = "Belum Presensi";
@@ -107,7 +118,6 @@ export default function DashboardClient({
       }
   }
 
-  // --- SIDEBAR CONTENT ---
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
@@ -149,7 +159,10 @@ export default function DashboardClient({
              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white"><Menu className="h-6 w-6" /></Button>
              <Sheet>
                 <SheetTrigger asChild><Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white"><Menu className="h-6 w-6" /></Button></SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none"><SidebarContent /></SheetContent>
+                <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
+                    <SheetTitle className="hidden">Menu Navigasi</SheetTitle>
+                    <SidebarContent />
+                </SheetContent>
              </Sheet>
              <h1 className="font-bold text-xl text-white">Dashboard</h1>
           </div>
@@ -205,7 +218,8 @@ export default function DashboardClient({
                                 <Button disabled className="h-14 px-6 rounded-xl bg-orange-500/20 border border-orange-500/50 text-orange-100 w-full cursor-not-allowed opacity-70">
                                     <Clock className="mr-2 h-5 w-5" /> Belum Jam Pulang
                                 </Button>
-                                <span className="text-[10px] text-white/60 italic font-medium tracking-tight">Tombol aktif pukul {user.globalSettings?.endHour || "16:00"} WIB</span>
+                                {/* INI YANG DIUBAH BRE JADI DINAMIS */}
+                                <span className="text-[10px] text-white/60 italic font-medium tracking-tight">Tombol aktif pukul {scheduledEndHour} WIB</span>
                             </div>
                         ) : (
                             <AttendanceButton todayLog={todayLog} />

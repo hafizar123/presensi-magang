@@ -42,6 +42,14 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
     setStartAnimation(true);
   }, []);
 
+  // --- HELPER FIX URL ---
+  const getFileUrl = (path: string) => {
+    if (!path) return "#";
+    if (path.startsWith("http")) return path;
+    const cleanPath = path.replace(/^\/+/, "").replace(/^uploads\//, "");
+    return `/uploads/${cleanPath}`;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,7 +62,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
     setIsUploading(true);
     const uploadData = new FormData();
     uploadData.append("file", file);
-    uploadData.append("type", "izin"); // <--- TAMBAHAN: TIPE IZIN
+    uploadData.append("type", "izin"); 
 
     try {
         const res = await fetch("/api/upload", { method: "POST", body: uploadData });
@@ -303,7 +311,10 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                                                 {req.status === "PENDING" && <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">Menunggu Konfirmasi</Badge>}
                                                 {req.status === "APPROVED" && <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Disetujui</Badge>}
                                                 {req.status === "REJECTED" && <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Ditolak</Badge>}
-                                                {req.proofFile && <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200 dark:hover:bg-[#292524] active:scale-95 transition-transform" onClick={() => window.open(req.proofFile, '_blank')}>Lihat Bukti 📎</Badge>}
+                                                
+                                                {/* LINK FIX DISINI JUGA */}
+                                                {req.proofFile && <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200 dark:hover:bg-[#292524] active:scale-95 transition-transform" onClick={() => window.open(getFileUrl(req.proofFile), '_blank')}>Lihat Bukti 📎</Badge>}
+                                            
                                             </div>
                                         </div>
                                     </div>
