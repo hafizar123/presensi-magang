@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   History, FileText, User, Menu, LayoutDashboard, 
-  Calendar, Upload, Send, Loader2, Clock, X, CheckCircle2, LogOut 
+  Calendar, Upload, Send, Loader2, Clock, X, CheckCircle2, LogOut, GraduationCap
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -144,6 +144,10 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
             
             <Link href="/izin" className="flex items-center gap-3 px-4 py-3 bg-[#99775C] dark:bg-[#3f2e26] text-white rounded-xl font-bold transition-all shadow-md">
                 <FileText className="h-5 w-5" /> Pengajuan Izin
+            </Link>
+
+            <Link href="/selesai-magang" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
+                <GraduationCap className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Selesai Magang
             </Link>
 
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2 mt-6">Akun Pengguna</h4>

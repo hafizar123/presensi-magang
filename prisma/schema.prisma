@@ -24,6 +24,7 @@ model User {
   internProfile InternProfile?
   attendance    Attendance[]
   leaveRequests LeaveRequest[] 
+  finalEvaluation FinalEvaluation?
 }
 
 model InternProfile {
@@ -77,4 +78,27 @@ model NotificationDismissal {
   createdAt DateTime @default(now())
 
   @@unique([refId, type]) // Biar gak duplikat
+}
+
+model FinalEvaluation {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // -- DIISI OLEH USER --
+  pekerjaan           String   @db.Text 
+  deskripsi           String   @db.Text 
+  
+  // -- DIISI OLEH ADMIN --
+  nilaiDisiplin       Int?
+  nilaiTanggungJawab  Int?
+  nilaiInisiatif      Int?
+  nilaiKerjasama      Int?
+  nilaiKualitas       Int?
+  rataRata            Float?
+  
+  status              String   @default("PENDING") // PENDING (Nunggu dinilai), GRADED (Selesai dinilai)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

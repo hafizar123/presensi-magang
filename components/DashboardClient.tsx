@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { 
   LogOut, MapPin, Bell, History, FileText, Clock, 
   CheckCircle2, AlertCircle, User, Menu, 
-  LayoutDashboard, CalendarX, ShieldAlert, CalendarOff
+  LayoutDashboard, CalendarX, ShieldAlert, CalendarOff,
+  GraduationCap 
 } from "lucide-react"; 
 import Link from "next/link";
 import Image from "next/image";
@@ -44,10 +45,9 @@ export default function DashboardClient({
 
   // --- LOGIC JAM PULANG DINAMIS ---
   const getScheduledEndHour = () => {
-    const today = currentTime.getDay(); // 0: Minggu, 1: Senin, ..., 5: Jumat, 6: Sabtu
+    const today = currentTime.getDay(); 
     const isFriday = today === 5;
     
-    // Ambil jam dari settings admin atau pake default
     if (isFriday) {
       return user.globalSettings?.endHourFri || "14:30";
     }
@@ -137,6 +137,10 @@ export default function DashboardClient({
             <Link href="/izin" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <FileText className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Pengajuan Izin
             </Link>
+            <Link href="/selesai-magang" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
+                <GraduationCap className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Selesai Magang
+            </Link>
+
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2 mt-6">Akun Pengguna</h4>
             <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <User className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Profil Saya
@@ -218,7 +222,6 @@ export default function DashboardClient({
                                 <Button disabled className="h-14 px-6 rounded-xl bg-orange-500/20 border border-orange-500/50 text-orange-100 w-full cursor-not-allowed opacity-70">
                                     <Clock className="mr-2 h-5 w-5" /> Belum Jam Pulang
                                 </Button>
-                                {/* INI YANG DIUBAH BRE JADI DINAMIS */}
                                 <span className="text-[10px] text-white/60 italic font-medium tracking-tight">Tombol aktif pukul {scheduledEndHour} WIB</span>
                             </div>
                         ) : (

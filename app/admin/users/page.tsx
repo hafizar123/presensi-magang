@@ -161,7 +161,7 @@ export default function AdminUsersClient() {
                         <TableHead className="text-white font-bold">Email</TableHead>
                         <TableHead className="text-white font-bold">NIP / NIM</TableHead>
                         <TableHead className="text-white font-bold">Role</TableHead>
-                        <TableHead className="text-white font-bold">Jabatan</TableHead>
+                        <TableHead className="text-white font-bold">Divisi</TableHead>
                         <TableHead className="text-white font-bold text-right pr-6">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -299,7 +299,7 @@ export default function AdminUsersClient() {
                             <div className="relative"><Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" /><Input value={formData.nip} onChange={(e) => setFormData({...formData, nip: e.target.value})} placeholder="" className={`${inputStyle} pl-12`} /></div>
                         </div>
                         <div className="space-y-1">
-                            <Label className={labelStyle}>Jabatan</Label>
+                            <Label className={labelStyle}>Divisi</Label>
                             <div className="relative"><Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" /><Input value={formData.jabatan} onChange={(e) => setFormData({...formData, jabatan: e.target.value})} placeholder="" className={`${inputStyle} pl-12`} /></div>
                         </div>
                     </div>

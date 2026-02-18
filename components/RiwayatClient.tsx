@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 import { 
   LayoutDashboard, History, FileText, User, LogOut, Menu, 
   CalendarDays, Clock, ArrowUpRight, ArrowDownLeft, Search, Filter, 
-  FileSpreadsheet 
+  FileSpreadsheet, GraduationCap
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,10 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
             
             <Link href="/izin" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
                 <FileText className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Pengajuan Izin
+            </Link>
+
+            <Link href="/selesai-magang" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 hover:text-[#99775C] dark:hover:text-white rounded-xl font-medium transition-all group">
+                <GraduationCap className="h-5 w-5 group-hover:text-[#99775C] dark:group-hover:text-white" /> Selesai Magang
             </Link>
 
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2 mt-6">Akun Pengguna</h4>
