@@ -5,14 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { User, Search, ChevronLeft, ChevronRight, School, ArrowRight, Calendar, Filter, Briefcase, Edit, Loader2 } from "lucide-react";
+import { User, Search, ChevronLeft, ChevronRight, ArrowRight, Calendar, Filter, Briefcase, Edit, Loader2, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; 
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner"; // Kalau ga pake sonner, bisa ganti alert biasa
+import { toast } from "sonner"; 
 
 interface InternsTableProps {
   interns: any[];
@@ -20,25 +20,39 @@ interface InternsTableProps {
 
 const ITEMS_PER_PAGE = 20;
 
+const DIVISI_OPTIONS = [
+    "Kepegawaian",
+    "Perencanaan",
+    "Umum",
+    "Pendidikan Khusus",
+    "Pendidikan Menengah",
+    "Pendidikan Anak Usia Dini dan Dasar",
+    "Balai Tekkomdik",
+];
+
 export default function InternsTableClient({ interns }: InternsTableProps) {
   const router = useRouter();
+  
+  // STATE FILTERING BARU
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [filterDivisi, setFilterDivisi] = useState("ALL"); 
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [mounted, setMounted] = useState(false);
 
-  // --- STATE MODAL ATUR (DIVISI + TANGGAL) ---
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState<any>(null);
+  
   const [divisi, setDivisi] = useState("");
+  const [openDivisi, setOpenDivisi] = useState(false); 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
+  // 🔥 LOGIC FILTER DIVISI GABUNGAN 🔥
   const filteredInterns = interns.filter((intern) => {
     const matchesSearch =
       intern.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -50,25 +64,26 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
     if (statusFilter === "ACTIVE") matchesStatus = isActive;
     if (statusFilter === "PENDING") matchesStatus = !isActive;
 
-    return matchesSearch && matchesStatus;
+    const matchesDivisi = filterDivisi === "ALL" ? true : intern.jabatan === filterDivisi;
+
+    return matchesSearch && matchesStatus && matchesDivisi;
   });
 
   const totalPages = Math.ceil(filteredInterns.length / ITEMS_PER_PAGE);
-  const paginatedInterns = filteredInterns.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+  const paginatedInterns = filteredInterns.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const goToPage = (page: number) => { if (page >= 1 && page <= totalPages) setCurrentPage(page); };
+
+  // Reset page kalo user mainin filter
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, filterDivisi]);
+
+  const filteredDivisiOptions = DIVISI_OPTIONS.filter(d => 
+    d.toLowerCase().includes(divisi.toLowerCase())
   );
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  };
-
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
-
-  // --- FUNGSI BUKA MODAL ---
   const openEditModal = (user: any) => {
     setSelectedIntern(user);
-    setDivisi(user.jabatan || ""); // Load Divisi yang udah ada
+    setDivisi(user.jabatan || ""); 
     
     if (user.internProfile) {
         setStartDate(new Date(user.internProfile.startDate).toISOString().split("T")[0]);
@@ -77,23 +92,27 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
         setStartDate("");
         setEndDate("");
     }
+    setOpenDivisi(false);
     setIsEditOpen(true);
   };
 
-  // --- FUNGSI SIMPAN DATA ---
   const handleSave = async () => {
     if (!selectedIntern) return;
 
+    if (divisi && !DIVISI_OPTIONS.includes(divisi)) {
+        toast.error("Divisi ga ada di list bos, pilih yang bener!");
+        return;
+    }
+
     setIsSaving(true);
     try {
-        // Nembak ke API yang udah kita siapin sebelumnya
         const res = await fetch("/api/admin/users", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 id: selectedIntern.id, 
-                jabatan: divisi,       // Update Divisi
-                startDate: startDate,  // Update Tanggal
+                jabatan: divisi,      
+                startDate: startDate,  
                 endDate: endDate
             })
         });
@@ -101,13 +120,13 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
         if (res.ok) {
             setIsEditOpen(false);
             toast.success("Data berhasil disimpan!");
-            router.refresh(); // Refresh otomatis
+            router.refresh(); 
         } else {
-            alert("Gagal update data.");
+            toast.error("Gagal update data.");
         }
     } catch (err) {
         console.error(err);
-        alert("Terjadi kesalahan.");
+        toast.error("Terjadi kesalahan sistem.");
     } finally {
         setIsSaving(false);
     }
@@ -118,9 +137,8 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
   return (
     <div className="space-y-6">
       
-      {/* --- MODAL INPUT DIVISI & TANGGAL --- */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524]">
+        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] !overflow-visible">
             <DialogHeader>
                 <DialogTitle className="text-slate-900 dark:text-[#EAE7DD]">Atur Data Magang</DialogTitle>
                 <DialogDescription className="text-slate-500 dark:text-gray-400">
@@ -128,15 +146,55 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-5 py-4">
-                {/* INPUT DIVISI */}
-                <div className="grid gap-2">
+                
+                <div className="grid gap-2 relative">
                     <Label className="text-slate-700 dark:text-gray-300">Divisi</Label>
-                    <Input 
-                        placeholder="Contoh: Frontend Dev, UI/UX..."
-                        value={divisi}
-                        onChange={(e) => setDivisi(e.target.value)}
-                        className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26]"
-                    />
+                    <div className="relative">
+                        <Input 
+                            placeholder="Pilih divisi..."
+                            value={divisi}
+                            onChange={(e) => { 
+                                setDivisi(e.target.value); 
+                                setOpenDivisi(true); 
+                            }}
+                            onFocus={() => setOpenDivisi(true)}
+                            onBlur={() => setTimeout(() => {
+                                setOpenDivisi(false);
+                                setDivisi(prev => DIVISI_OPTIONS.includes(prev) ? prev : "");
+                            }, 150)}
+                            className="bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] pr-10"
+                        />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 opacity-50 pointer-events-none" />
+                    </div>
+                    
+                    {openDivisi && (
+                        <div className="absolute top-[100%] left-0 w-full mt-1 z-50 bg-white dark:bg-[#1c1917] border border-slate-200 dark:border-[#3f2e26] rounded-md shadow-md max-h-60 overflow-y-auto animate-in fade-in-0 zoom-in-95">
+                            <div className="p-1">
+                                {filteredDivisiOptions.length > 0 ? (
+                                    filteredDivisiOptions.map(divItem => (
+                                        <div 
+                                            key={divItem} 
+                                            className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-[#292524] dark:hover:text-slate-50 transition-colors font-medium text-slate-700 dark:text-slate-300"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault(); 
+                                                setDivisi(divItem);
+                                                setOpenDivisi(false);
+                                            }}
+                                        >
+                                            <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                                                {divisi === divItem && <Check className="h-4 w-4" />}
+                                            </span>
+                                            {divItem}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="py-2 pl-2 pr-2 text-center text-sm text-red-500 font-medium italic">
+                                        Divisi tidak ditemukan
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -167,8 +225,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
       {/* CARD UTAMA */}
       <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] transition-colors overflow-hidden rounded-2xl">
-        
-        {/* HEADER CARD */}
         <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4 bg-white/50 dark:bg-white/5 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               
@@ -177,9 +233,29 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                 Master Data Magang
               </CardTitle>
 
-              {/* ACTION GROUP */}
-              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  <div className="w-full sm:w-[160px] shrink-0"> 
+              {/* 🔥 ACTION BAR (Filter Divisi, Status & Search) 🔥 */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto flex-wrap sm:flex-nowrap">
+                  
+                  {/* DROPDOWN FILTER DIVISI */}
+                  <div className="w-full sm:w-[180px] shrink-0">
+                      <Select value={filterDivisi} onValueChange={setFilterDivisi}>
+                          <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
+                              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
+                                  <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                  <SelectValue placeholder="Semua Divisi" />
+                              </div>
+                          </SelectTrigger>
+                          <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524]">
+                              <SelectItem value="ALL">Semua Divisi</SelectItem>
+                              {DIVISI_OPTIONS.map((divisi) => (
+                                  <SelectItem key={divisi} value={divisi}>{divisi}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+
+                  {/* FILTER STATUS */}
+                  <div className="w-full sm:w-[140px] shrink-0"> 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
                             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
@@ -195,7 +271,8 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                     </Select>
                   </div>
 
-                  <div className="relative w-full sm:w-[250px] shrink-0 group">
+                  {/* SEARCH BAR */}
+                  <div className="relative w-full sm:w-[220px] shrink-0 group">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                       <Input 
                           placeholder="Cari data..." 
@@ -251,10 +328,8 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                 {intern.email}
                             </TableCell>
 
-                            {/* --- INI BAGIAN YANG NAMPILIN DIVISI & INSTANSI --- */}
                             <TableCell className="whitespace-nowrap">
                                 <div className="flex flex-col gap-1">
-                                    {/* DIVISI (ATAS) */}
                                     <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                                         <Briefcase className="h-3.5 w-3.5 text-slate-500" />
                                         {intern.jabatan || "-"}
@@ -293,7 +368,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             </TableCell>
 
                             <TableCell className="text-right pr-6 whitespace-nowrap">
-                                {/* GANTI ScheduleDialog JADI TOMBOL ATUR (Biar bisa input Divisi) */}
                                 <Button 
                                     variant="outline" 
                                     size="sm" 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import {
   AlertDialog,
@@ -17,43 +17,31 @@ import {
 export default function SessionTimeout() {
   const { status } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
   
-  // State buat munculin popup
   const [isOpen, setIsOpen] = useState(false);
 
-  // SETTING WAKTU: 7 Menit
   const TIMEOUT_MS = 30 * 60 * 1000; 
   const STORAGE_KEY = "lastTimeStamp";
 
-  // Fungsi Logout (Dipanggil pas klik tombol "Login Ulang")
   const handleLogout = useCallback(() => {
-    // Hapus data waktu
     localStorage.removeItem(STORAGE_KEY);
-    
-    // Logout dan arahkan ke login (TANPA query param aneh-aneh)
     signOut({ callbackUrl: "/login" }); 
   }, []);
 
-  // Fungsi Update Waktu (Biar ga timeout kalo lagi aktif)
   const updateActivity = useCallback(() => {
     if (status === "authenticated" && !isOpen) {
       localStorage.setItem(STORAGE_KEY, Date.now().toString());
     }
   }, [status, isOpen]);
 
-  // Logic Pengecekan Waktu
   useEffect(() => {
     if (status !== "authenticated") return;
 
-    // Set waktu awal pas refresh/masuk
     if (!localStorage.getItem(STORAGE_KEY)) {
       localStorage.setItem(STORAGE_KEY, Date.now().toString());
     }
 
-    // Interval Checker (Jalan tiap detik)
     const interval = setInterval(() => {
-      // Kalo popup udah muncul, gausah cek lagi (tunggu user klik)
       if (isOpen) return;
 
       const lastStamp = localStorage.getItem(STORAGE_KEY);
@@ -61,20 +49,16 @@ export default function SessionTimeout() {
         const now = Date.now();
         const timePassed = now - parseInt(lastStamp);
         
-        // Kalo udah lewat 7 menit -> MUNCULIN POPUP
         if (timePassed > TIMEOUT_MS) {
           setIsOpen(true);
         }
       }
     }, 1000);
 
-    // Event Listener (Mendeteksi gerakan mouse/keyboard)
     const events = ["click", "mousemove", "keydown", "scroll", "touchstart"];
     
-    // Throttle dikit biar enteng
     let timeoutId: NodeJS.Timeout;
     const eventHandler = () => {
-        // Cuma update kalo popup BELUM muncul
         if (!isOpen && !timeoutId) {
             timeoutId = setTimeout(() => {
                 updateActivity();
@@ -93,28 +77,33 @@ export default function SessionTimeout() {
     };
   }, [status, updateActivity, isOpen, TIMEOUT_MS]);
 
-  // Kalo user belum login, ga usah render apa-apa
   if (status !== "authenticated") return null;
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border-none shadow-2xl max-w-sm rounded-2xl">
-        <AlertDialogHeader className="items-center text-center">
-          <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-full mb-2">
-             <LogOut className="h-10 w-10 text-red-600 dark:text-red-500" />
+      <AlertDialogContent className="w-[95vw] sm:max-w-[400px] p-6 sm:p-8 bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] gap-6">
+        <AlertDialogHeader className="flex flex-col items-center text-center space-y-4">
+          
+          {/* Icon dengan efek ping/denyut di belakangnya */}
+          <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center relative">
+             <div className="absolute inset-0 bg-red-500/20 dark:bg-red-500/10 rounded-full animate-ping"></div>
+             <LogOut className="h-8 w-8 text-red-600 dark:text-red-500 relative z-10 ml-1" />
           </div>
-          <AlertDialogTitle className="text-xl font-bold text-slate-800 dark:text-[#EAE7DD]">
-            Sesi Telah Berakhir
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
-            Waktu sesi Anda habis karena tidak ada aktivitas. Silakan login ulang untuk melanjutkan.
-          </AlertDialogDescription>
+          
+          <div className="space-y-2">
+            <AlertDialogTitle className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">
+              Sesi Berakhir
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400 text-sm sm:text-base px-2 sm:px-4">
+              Waktu sesi habis karena tidak ada aktivitas. Silakan login ulang untuk melanjutkan.
+            </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="sm:justify-center">
+        <AlertDialogFooter className="w-full mt-2">
           <AlertDialogAction 
             onClick={handleLogout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-11 rounded-xl transition-all shadow-md active:scale-95"
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95 text-base m-0"
           >
             Login Ulang
           </AlertDialogAction>

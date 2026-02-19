@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { 
   Check, X, FileText, Calendar, User, 
-  CheckCircle2, Loader2, Filter, Eye, Briefcase
+  CheckCircle2, Loader2, Filter, Eye, Briefcase, Search
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -37,13 +38,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Update Tipe Data untuk menyertakan jabatan
+// 👇 LIST DIVISI PATEN BIAR SERAGAM SAMA HALAMAN LAIN 👇
+const DIVISI_OPTIONS = [
+  "Kepegawaian",
+  "Perencanaan",
+  "Umum",
+  "Pendidikan Khusus",
+  "Pendidikan Menengah",
+  "Pendidikan Anak Usia Dini dan Dasar",
+  "Balai Tekkomdik",
+];
+
 type LeaveRequest = {
   id: string;
   user: { 
     name: string; 
     email: string;
-    jabatan: string | null; // Tambahkan ini
+    jabatan: string | null; 
   };
   date: string;
   reason: string;
@@ -55,7 +66,11 @@ type LeaveRequest = {
 export default function IzinPage() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // STATE FILTERING BARU BRAY
   const [filterStatus, setFilterStatus] = useState("PENDING");
+  const [filterDivisi, setFilterDivisi] = useState("ALL");
+  const [searchName, setSearchName] = useState("");
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [actionType, setActionType] = useState<"APPROVED" | "REJECTED" | null>(null);
@@ -118,14 +133,18 @@ export default function IzinPage() {
     }
   };
 
-  const filteredRequests = requests.filter(req => 
-    filterStatus === "ALL" ? true : req.status === filterStatus
-  );
+  // 🔥 LOGIC FILTER GABUNGAN (STATUS, DIVISI, NAMA) 🔥
+  const filteredRequests = requests.filter(req => {
+    const matchStatus = filterStatus === "ALL" ? true : req.status === filterStatus;
+    const matchDivisi = filterDivisi === "ALL" ? true : req.user.jabatan === filterDivisi;
+    const matchName = req.user.name.toLowerCase().includes(searchName.toLowerCase());
+    return matchStatus && matchDivisi && matchName;
+  });
 
   return (
     <div className="space-y-6 pb-10">
       
-      {/* MODALS TETAP SAMA SEPERTI SEBELUMNYA */}
+      {/* MODALS TETAP SAMA */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl">
             <AlertDialogHeader>
@@ -180,27 +199,61 @@ export default function IzinPage() {
       </Dialog>
 
       {/* Header & Filter */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Approval Izin</h1>
           <p className="text-slate-500 dark:text-gray-400">Validasi pengajuan izin sakit atau cuti magang.</p>
         </div>
         
-        <div className="w-full sm:w-[160px] shrink-0">
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
-                        <Filter className="h-3.5 w-3.5 shrink-0" />
-                        <SelectValue placeholder="Status" />
-                    </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
-                    <SelectItem value="PENDING">Menunggu</SelectItem>
-                    <SelectItem value="APPROVED">Disetujui</SelectItem>
-                    <SelectItem value="REJECTED">Ditolak</SelectItem>
-                    <SelectItem value="ALL">Semua</SelectItem>
-                </SelectContent>
-            </Select>
+        {/* BARISAN FILTER: DIVISI, STATUS, PENCARIAN BRAY */}
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+            
+            {/* 1. FILTER DIVISI */}
+            <div className="w-full sm:w-[180px] shrink-0">
+                <Select value={filterDivisi} onValueChange={setFilterDivisi}>
+                    <SelectTrigger className="h-10 w-full bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
+                            <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                            <SelectValue placeholder="Semua Divisi" />
+                        </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
+                        <SelectItem value="ALL">Semua Divisi</SelectItem>
+                        {DIVISI_OPTIONS.map((div) => (
+                            <SelectItem key={div} value={div}>{div}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* 2. FILTER STATUS */}
+            <div className="w-full sm:w-[160px] shrink-0">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="h-10 w-full bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
+                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 truncate">
+                            <Filter className="h-3.5 w-3.5 shrink-0" />
+                            <SelectValue placeholder="Status" />
+                        </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] dark:text-[#EAE7DD]">
+                        <SelectItem value="PENDING">Menunggu</SelectItem>
+                        <SelectItem value="APPROVED">Disetujui</SelectItem>
+                        <SelectItem value="REJECTED">Ditolak</SelectItem>
+                        <SelectItem value="ALL">Semua</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* 3. PENCARIAN (Bonus sekalian dibikin biar mantep) */}
+            <div className="relative w-full sm:w-[220px] shrink-0 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                <Input 
+                    placeholder="Cari nama..."
+                    className="pl-10 bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#3f2e26] h-10 text-sm rounded-xl focus-visible:ring-[#99775C] transition-all"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                />
+            </div>
         </div>
       </div>
 
@@ -213,7 +266,7 @@ export default function IzinPage() {
             </div>
         ) : filteredRequests.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-[#292524] rounded-xl">
-                <p className="text-slate-400">Tidak ada pengajuan izin dengan status ini.</p>
+                <p className="text-slate-400">Tidak ada pengajuan izin yang sesuai dengan filter.</p>
             </div>
         ) : (
             filteredRequests.map((req) => (

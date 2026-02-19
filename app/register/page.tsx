@@ -116,13 +116,13 @@ export default function RegisterPage() {
 
                     {/* NIP / NIM (FIELD BARU) */}
                     <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">NIP / NIM</Label>
+                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">NIM / NISN</Label>
                         <div className="relative group">
                             <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                             <Input 
                                 type="text" 
                                 required 
-                                placeholder="Masukkan NIP / NIM" 
+                                placeholder="Masukkan NIM / NISN" 
                                 className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
                                 value={nip}
                                 onChange={(e) => setNip(e.target.value)}

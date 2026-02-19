@@ -5,33 +5,34 @@ const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const dateParam = searchParams.get("date"); // Format: YYYY-MM-DD
-
-  if (!dateParam) {
-    return NextResponse.json([]);
-  }
-
-  // Kita cari log berdasarkan tanggal
-  const searchDate = new Date(dateParam);
-  
-  // Karena di DB nyimpen DateTime, kita harus filter range dari 00:00 sampe 23:59 hari itu
-  const startOfDay = new Date(searchDate.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(searchDate.setHours(23, 59, 59, 999));
+  const dateParam = searchParams.get("date"); // Format: YYYY-MM-DD atau "ALL"
 
   try {
-    const logs = await prisma.attendance.findMany({
-      where: {
+    let whereClause = {};
+    
+    // Kalo misal bukan "ALL", baru kita filter pake tanggal
+    if (dateParam && dateParam !== "ALL") {
+      const searchDate = new Date(dateParam);
+      const startOfDay = new Date(searchDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(searchDate.setHours(23, 59, 59, 999));
+      
+      whereClause = {
         date: {
           gte: startOfDay,
           lte: endOfDay,
         },
-      },
+      };
+    }
+
+    const logs = await prisma.attendance.findMany({
+      where: whereClause,
       include: {
-        user: true, // Join tabel user buat dapet nama
+        user: true, 
       },
-      orderBy: {
-        time: "asc", // Urutin dari yang dateng pagi
-      },
+      orderBy: [
+        { date: "desc" }, // Urutin tanggal dari yang paling baru
+        { time: "asc" }   // Terus urutin dari yang berangkat paling pagi
+      ],
     });
 
     return NextResponse.json(logs);

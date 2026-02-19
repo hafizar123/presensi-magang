@@ -7,7 +7,9 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    
+    // 1. TAMBAHIN nip DI SINI BRAY 👇
+    const { name, email, password, nip } = body;
 
     // 1. Cek kelengkapan data
     if (!name || !email || !password) {
@@ -36,10 +38,10 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
-        role: "INTERN", // <--- GANTI INI JADI INTERN
+        role: "INTERN", 
+        nip, // 2. MASUKIN nip KE DALAM PRISMA CREATE SINI 👇
       },
     });
-    // ... kode bawahnya sama
 
     return NextResponse.json(
       { message: "User berhasil dibuat!", user },
