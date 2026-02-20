@@ -41,13 +41,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const DIVISI_OPTIONS = [
-    "Kepegawaian",
-    "Perencanaan",
-    "Umum",
-    "Pendidikan Khusus",
-    "Pendidikan Menengah",
-    "Pendidikan Anak Usia Dini dan Dasar",
-    "Balai Tekkomdik",
+    "Sub Bagian Keuangan",
+    "Sub Bagian Kepegawaian",
+    "Sub Bagian Umum",
+    "Bidang Perencanaan dan Pengembangan Mutu Pendidikan, Pemuda, dan Olahraga",
+    "Bidang Pembinaan Sekolah Menengah Atas",
+    "Bidang Pembinaan Sekolah Menengah Kejuruan",
+    "Bidang Pendidikan Khusus dan Layanan Khusus",
 ];
 
 type AttendanceLog = {
