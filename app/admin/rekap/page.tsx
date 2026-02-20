@@ -159,7 +159,7 @@ export default function RekapAbsensiPage() {
                         onClick={() => setIsAllDays(!isAllDays)}
                         className={`rounded-xl h-10 px-4 font-bold transition-all w-full sm:w-auto ${isAllDays ? 'bg-[#99775C] text-white hover:bg-[#7a5e48]' : 'text-slate-600 border-slate-200 dark:border-[#3f2e26] dark:text-slate-300'}`}
                     >
-                        {isAllDays ? "Tampilkan Semua Hari" : "Filter Per Tanggal"}
+                        {isAllDays ? "Filter Per Tanggal" : "Tampilkan Semua Hari"}
                     </Button>
                     
                     {/* Date picker disembunyiin kalo mode "Semua Hari" lagi nyala */}

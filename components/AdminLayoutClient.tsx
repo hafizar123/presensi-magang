@@ -44,13 +44,14 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
     { href: "/admin/izin", label: "Validasi Izin", icon: FileText },
     { href: "/admin/announcements", label: "Pengumuman", icon: Bell },
     { href: "/admin/users", label: "Manajemen User", icon: UserCog },
-    { href: "/admin/penilaian", label: "Penilaian Magang", icon: Star }, // MENU BARU DISINI BRE
+    { href: "/admin/penilaian", label: "Penilaian Magang", icon: Star },
     { href: "/admin/settings", label: "Pengaturan", icon: Settings },
   ];
 
   const isActive = (path: string) => pathname === path;
 
-  const SidebarContent = () => (
+  // --- INI YANG GUA UBAH JADI VARIABEL JSX (Huruf kecil & ga pake () => ) ---
+  const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
              <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -118,7 +119,8 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 w-[280px] border-none bg-transparent shadow-none">
-                        <SidebarContent />
+                        {/* MANGGILNYA DI SINI */}
+                        {sidebarContent}
                     </SheetContent>
                  </Sheet>
              ) : (
@@ -146,7 +148,8 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
       </nav>
 
       <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <SidebarContent />
+        {/* MANGGILNYA DI SINI JUGA */}
+        {sidebarContent}
       </aside>
 
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>

@@ -122,7 +122,8 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
       if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const SidebarContent = () => (
+  // --- INI YANG DIUBAH JADI VARIABEL JSX ---
+  const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
              <div className={`p-1.5 bg-white/20 rounded-lg backdrop-blur-sm transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100 rotate-0" : "scale-0 opacity-0 -rotate-180"}`}>
@@ -185,7 +186,8 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
                     <SheetTitle className="hidden">Menu Navigasi</SheetTitle>
-                    <SidebarContent />
+                    {/* MANGGILNYA DI SINI */}
+                    {sidebarContent}
                 </SheetContent>
              </Sheet>
              
@@ -214,7 +216,8 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
         className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block 
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <SidebarContent />
+        {/* MANGGILNYA DI SINI JUGA */}
+        {sidebarContent}
       </aside>
 
       <main 
@@ -316,9 +319,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                                                 {req.status === "APPROVED" && <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Disetujui</Badge>}
                                                 {req.status === "REJECTED" && <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Ditolak</Badge>}
                                                 
-                                                {/* LINK FIX DISINI JUGA */}
                                                 {req.proofFile && <Badge variant="secondary" className="cursor-pointer hover:bg-slate-200 dark:hover:bg-[#292524] active:scale-95 transition-transform" onClick={() => window.open(getFileUrl(req.proofFile), '_blank')}>Lihat Bukti 📎</Badge>}
-                                            
                                             </div>
                                         </div>
                                     </div>

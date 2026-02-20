@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react"; // <-- Tambahan buat narik data user
 import { 
   Loader2, Send, FileText, Download, 
   Menu, LayoutDashboard, History, User, LogOut,
@@ -21,6 +22,10 @@ import LogoutModal from "@/components/LogoutModal";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export default function SelesaiMagangPage() {
+  // --- AMBIL DATA USER DARI SESSION ---
+  const { data: session } = useSession();
+  const user = session?.user || { name: "Memuat...", image: "" };
+
   // --- STATE LAYOUT ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [startAnimation, setStartAnimation] = useState(false);
@@ -67,8 +72,7 @@ export default function SelesaiMagangPage() {
     }
   };
 
-  // --- SIDEBAR CONTENT (SAMA KAYA DASHBOARD) ---
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26]">
              <div className="p-1.5 bg-white/20 rounded-lg">
@@ -107,28 +111,51 @@ export default function SelesaiMagangPage() {
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
       {/* NAVBAR */}
-      <nav className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}>
+      <nav className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}>
           <div className="flex items-center gap-4 text-white">
-             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10"><Menu className="h-6 w-6" /></Button>
+             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white transition-colors">
+                <Menu className="h-6 w-6" />
+             </Button>
              <Sheet>
-                <SheetTrigger asChild><Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10"><Menu className="h-6 w-6" /></Button></SheetTrigger>
-                <SheetContent side="left" className="p-0 w-[300px] border-none"><SidebarContent /></SheetContent>
+                <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white transition-colors">
+                        <Menu className="h-6 w-6" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
+                  <SheetTitle className="hidden">Menu Navigasi</SheetTitle>
+                  {sidebarContent}
+                </SheetContent>
              </Sheet>
-             <h1 className="font-bold text-xl">Laporan Akhir</h1>
+             <h1 className="font-bold text-xl text-white">Laporan Akhir</h1>
           </div>
+
+          {/* BAGIAN PROFIL NAVBAR YANG UDAH DIKASIH ANIMASI SAMA KAYA LAINNYA */}
           <div className="flex items-center gap-3 text-white">
             <ModeToggle />
-            <Avatar className="h-9 w-9 border-2 border-white/20">
-                <AvatarFallback>U</AvatarFallback>
-            </Avatar>
+            <div className="h-6 w-px bg-white/20 hidden md:block mx-1"></div>
+            <Link href="/profile" className="flex items-center gap-3 pl-1 group cursor-pointer">
+                <div className="hidden md:flex flex-col items-end">
+                    <span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span>
+                    <span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span>
+                </div>
+                <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
+                    <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
+                        <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
+                        <AvatarFallback className="bg-[#5c4a3d] text-white">U</AvatarFallback>
+                    </Avatar>
+                </div>
+            </Link>
           </div>
       </nav>
 
       {/* SIDEBAR DESKTOP */}
-      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}><SidebarContent /></aside>
+      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {sidebarContent}
+      </aside>
 
       {/* MAIN CONTENT */}
-      <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
+      <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         
         {loading ? (
             <div className="flex flex-col items-center justify-center h-[60vh] text-[#99775C]">

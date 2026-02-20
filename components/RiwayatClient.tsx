@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/ModeToggle"; 
 import LogoutModal from "@/components/LogoutModal";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"; // <-- Tambah SheetTitle
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
@@ -77,7 +77,8 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
     XLSX.writeFile(workbook, `Riwayat_Presensi_${user.name}.xlsx`);
   };
 
-  const SidebarContent = () => (
+  // --- UBAH JADI VARIABEL JSX BIAR GA RE-RENDER ---
+  const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
              <div className={`p-1.5 bg-white/20 rounded-lg backdrop-blur-sm transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100 rotate-0" : "scale-0 opacity-0 -rotate-180"}`}>
@@ -120,7 +121,8 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
     </div>
   );
 
-  const FilterControls = () => (
+  // --- UBAH JADI VARIABEL JSX JUGA BIAR INPUT PENCARIAN GAK ILANG FOKUS ---
+  const filterControls = (
     <div className="flex gap-2 w-full sm:w-auto">
         <div className="relative flex-1 sm:w-60">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -159,9 +161,9 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
              <Sheet>
                 <SheetTrigger asChild><Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10 text-white"><Menu className="h-6 w-6" /></Button></SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
-                    {/* INI DIA SOLUSINYA */}
                     <SheetTitle className="hidden">Menu Navigasi</SheetTitle> 
-                    <SidebarContent />
+                    {/* PANGGIL VARIABEL SIDEBAR */}
+                    {sidebarContent}
                 </SheetContent>
              </Sheet>
              <h1 className="font-bold text-xl text-white">Riwayat Presensi</h1>
@@ -182,7 +184,10 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
           </div>
       </nav>
 
-      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}><SidebarContent /></aside>
+      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          {/* PANGGIL VARIABEL SIDEBAR */}
+          {sidebarContent}
+      </aside>
 
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         
@@ -219,7 +224,8 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                                 <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-[#EAE7DD]">
                                     <Clock className="h-5 w-5 text-green-600" /> Riwayat Masuk
                                 </CardTitle>
-                                <FilterControls />
+                                {/* PANGGIL VARIABEL FILTER */}
+                                {filterControls}
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -277,7 +283,8 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                                 <CardTitle className="flex items-center gap-2 text-lg text-slate-800 dark:text-[#EAE7DD]">
                                     <LogOut className="h-5 w-5 text-orange-600" /> Riwayat Pulang
                                 </CardTitle>
-                                <FilterControls />
+                                {/* PANGGIL VARIABEL FILTER */}
+                                {filterControls}
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
