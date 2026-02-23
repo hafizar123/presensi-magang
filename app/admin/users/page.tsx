@@ -322,7 +322,7 @@ export default function AdminUsersClient() {
                             <Label className={labelStyle}>Role Akses</Label>
                             <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
                                 <SelectTrigger className={`${inputStyle} bg-white dark:bg-[#1c1917]`}><SelectValue /></SelectTrigger>
-                                <SelectContent><SelectItem value="INTERN">Peserta Magang</SelectItem><SelectItem value="ADMIN">Administrator</SelectItem></SelectContent>
+                                <SelectContent><SelectItem value="INTERN">Peserta Magang</SelectItem><SelectItem value="ADMIN">Admin</SelectItem></SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1">

@@ -269,7 +269,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                     <Input value={profileData.nip} onChange={(e) => setProfileData({...profileData, nip: e.target.value})} className="h-11" placeholder="" />
                 </div>
                 <div className="space-y-2">
-                    <Label>Jabatan</Label>
+                    <Label>Divisi</Label>
                     <Input value={profileData.jabatan} onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})} className="h-11" placeholder="" />
                 </div>
               </div>
