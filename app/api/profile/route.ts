@@ -70,54 +70,68 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { name, nip, jabatan, image, password } = body;
+    // Tambahin oldPassword buat dicek
+    const { name, nip, jabatan, image, oldPassword, newPassword } = body;
 
-    // 1. Ambil data user LAMA (sebelum diupdate)
+    // 1. Ambil data user LENGKAP (buat cek password & image)
     const currentUser = await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { image: true }
+        select: { image: true, password: true }
     });
 
     const dataToUpdate: any = {};
 
-    // 2. LOGIC HAPUS FOTO LAMA (PENTING!)
-    // Cek apakah ada request update image?
+    // 2. LOGIC UPDATE PASSWORD DENGAN VERIFIKASI
+    if (newPassword && newPassword.trim() !== "") {
+        // Cek apakah password lama dikirim?
+        if (!oldPassword) {
+            return NextResponse.json({ message: "Password lama harus diisi." }, { status: 400 });
+        }
+
+        // Bandingkan password lama dengan hash di DB
+        const isMatch = await bcrypt.compare(oldPassword, currentUser?.password || "");
+        if (!isMatch) {
+            return NextResponse.json({ message: "Password lama yang Anda masukkan salah." }, { status: 400 });
+        }
+
+        // Kalau cocok, baru hash password baru
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        dataToUpdate.password = hashedPassword;
+    }
+
+    // 3. LOGIC HAPUS FOTO LAMA (Logic awal lu tetep aman)
     if (image !== undefined) {
-        // Kondisi A: User klik "Hapus Foto" (image dikirim kosong/null)
         if (image === "" || image === null) {
-            if (currentUser?.image) {
-                await deleteFile(currentUser.image); // Hapus file lama
-            }
-            dataToUpdate.image = null; // Set DB jadi null
-        } 
-        // Kondisi B: User GANTI foto baru
-        else if (image !== currentUser?.image) {
-            // Hapus foto lama dulu kalo ada
             if (currentUser?.image) {
                 await deleteFile(currentUser.image);
             }
-            dataToUpdate.image = image; // Update path baru
+            dataToUpdate.image = null;
+        } 
+        else if (image !== currentUser?.image) {
+            if (currentUser?.image) {
+                await deleteFile(currentUser.image);
+            }
+            dataToUpdate.image = image;
         }
     }
 
     if (name) dataToUpdate.name = name;
     if (nip !== undefined) dataToUpdate.nip = nip;
-    // Jabatan kita bolehin update di sini (tapi di frontend udah kita lock)
     if (jabatan !== undefined) dataToUpdate.jabatan = jabatan;
-
-    if (password && password.trim() !== "") {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        dataToUpdate.password = hashedPassword;
-    }
 
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
       data: dataToUpdate,
     });
 
-    return NextResponse.json(updatedUser);
+    return NextResponse.json({ 
+        success: true, 
+        message: "Profil berhasil diperbarui.",
+        user: { name: updatedUser.name, image: updatedUser.image }
+    });
+
   } catch (error) {
     console.error("Error update profile:", error);
-    return NextResponse.json({ error: "Gagal update profile" }, { status: 500 });
+    return NextResponse.json({ message: "Gagal memperbarui profil sistem." }, { status: 500 });
   }
 }

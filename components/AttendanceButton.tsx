@@ -101,41 +101,70 @@ export default function AttendanceButton({ todayLog }: AttendanceButtonProps) {
         setIsOpen(val);
         if (!val) setTimeout(() => setStep("IDLE"), 300);
       }}>
-        {/* Adaptive Size: Ramping di HP (78vw), Elegan di Laptop (440px) */}
         <DialogContent className="!w-[78vw] sm:!w-full sm:!max-w-[440px] p-0 border-none bg-transparent shadow-none outline-none overflow-hidden">
           <div className="bg-white/95 dark:bg-[#0c0a09]/95 border border-white/20 dark:border-[#292524] rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-xl">
-            <div className={`h-28 sm:h-36 w-full flex items-center justify-center ${
-              step === "SUCCESS" ? "bg-green-100/60 dark:bg-green-950/20 text-green-600" : 
-              step === "ERROR" ? "bg-red-100/60 dark:bg-red-950/20 text-red-600" : 
-              isPulang ? "bg-orange-100/60 dark:bg-orange-950/20 text-orange-600" : "bg-[#EAE7DD]/60 dark:bg-[#99775C]/10 text-[#99775C]"
+            
+            {/* Header Visual dengan Animasi */}
+            <div className={`h-28 sm:h-36 w-full flex items-center justify-center transition-colors duration-500 ${
+              step === "SUCCESS" ? "bg-green-100/40 dark:bg-green-950/20 text-[#99775C]" : 
+              step === "ERROR" ? "bg-red-100/40 dark:bg-red-950/20 text-red-600" : 
+              isPulang ? "bg-orange-100/40 dark:bg-orange-950/20 text-orange-600" : "bg-[#EAE7DD]/60 dark:bg-[#99775C]/10 text-[#99775C]"
             }`}>
-               {step === "IDLE" && (isPulang ? <LogOut className="h-12 w-12 sm:h-16 sm:w-16" /> : <MapPin className="h-12 w-12 sm:h-16 sm:w-16" />)}
-               {(step === "LOCATING" || step === "SUBMITTING") && <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin" />}
-               {step === "SUCCESS" && <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16" />}
-               {step === "ERROR" && <XCircle className="h-12 w-12 sm:h-16 sm:w-16" />}
+               {step === "IDLE" && (
+                  isPulang ? <LogOut className="h-12 w-12 sm:h-16 sm:w-16 animate-pulse" /> : <MapPin className="h-12 w-12 sm:h-16 sm:w-16 animate-bounce" />
+               )}
+               {(step === "LOCATING" || step === "SUBMITTING") && (
+                 <div className="relative flex items-center justify-center">
+                   <div className="absolute h-20 w-20 bg-[#99775C]/20 rounded-full animate-ping" />
+                   <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-[#99775C]" />
+                 </div>
+               )}
+               {step === "SUCCESS" && <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-[#99775C] animate-in zoom-in duration-500" />}
+               {step === "ERROR" && <XCircle className="h-12 w-12 sm:h-16 sm:w-16 text-red-600 animate-in shake duration-300" />}
             </div>
+
             <div className="p-6 sm:p-10 flex flex-col items-center">
-              <DialogHeader className="mb-6 flex flex-col items-center justify-center w-full">
-                <DialogTitle className="text-center text-lg sm:text-2xl font-bold w-full">
-                  {step === "IDLE" && (isPulang ? "Presensi Pulang" : "Presensi Masuk")}
-                  {step === "SUCCESS" && "Berhasil"}
-                  {step === "ERROR" && "Gagal"}
+              <DialogHeader className="mb-8 flex flex-col items-center justify-center w-full">
+                <DialogTitle className="text-center text-lg sm:text-2xl font-bold w-full text-slate-900 dark:text-[#EAE7DD]">
+                  {step === "IDLE" && (isPulang ? "Konfirmasi Pulang" : "Konfirmasi Masuk")}
+                  {step === "LOCATING" && "Mencari Lokasi..."}
+                  {step === "SUBMITTING" && "Mengirim Data..."}
+                  {step === "SUCCESS" && "Presensi Berhasil"}
+                  {step === "ERROR" && "Presensi Gagal"}
                 </DialogTitle>
-                <DialogDescription className="text-center text-slate-500 dark:text-gray-400 text-[10px] sm:text-sm leading-relaxed px-2 w-full">
-                  {step === "IDLE" && (isPulang ? "Pastikan seluruh tugas Anda telah terselesaikan." : "Pastikan Anda berada di area kantor yang ditentukan.")}
+                <DialogDescription className="text-center text-slate-500 dark:text-gray-400 text-[10px] sm:text-sm leading-relaxed px-2 w-full mt-2">
+                  {step === "IDLE" && (isPulang ? "Pastikan seluruh kewajiban Anda hari ini telah terselesaikan." : "Pastikan Anda berada di area kantor yang telah ditentukan.")}
                   {step === "ERROR" && errorMessage}
-                  {step === "SUCCESS" && "Data kehadiran Anda telah tercatat secara resmi."}
+                  {step === "SUCCESS" && "Data kehadiran Anda telah tercatat secara resmi dalam sistem."}
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="flex flex-col gap-2 w-full items-center">
+
+              <DialogFooter className="flex flex-col gap-3 w-full items-center">
                  {step === "IDLE" && (
                    <div className="grid grid-cols-2 gap-3 w-full">
-                      <Button variant="outline" onClick={() => setIsOpen(false)} className="h-10 sm:h-12 rounded-xl text-xs sm:text-sm font-semibold">Batal</Button>
-                      <Button onClick={handleAttendance} className={`h-10 sm:h-12 rounded-xl text-white text-xs sm:text-sm font-bold ${isPulang ? "bg-orange-500" : "bg-[#99775C]"}`}>Konfirmasi</Button>
+                      <Button variant="outline" onClick={() => setIsOpen(false)} className="h-10 sm:h-12 rounded-xl text-xs sm:text-sm font-semibold hover:bg-slate-50 transition-all active:scale-95">Batal</Button>
+                      <Button onClick={handleAttendance} className="h-10 sm:h-12 rounded-xl text-white text-xs sm:text-sm font-bold bg-[#99775C] hover:bg-[#7a5e48] transition-all active:scale-95 shadow-lg shadow-[#99775C]/20 border-none">Konfirmasi</Button>
                    </div>
                  )}
-                 {step === "SUCCESS" && <Button onClick={handleCloseSuccess} className="w-full h-10 sm:h-12 rounded-xl bg-green-600 text-white text-xs sm:text-sm font-bold">Tutup</Button>}
-                 {step === "ERROR" && <Button variant="outline" onClick={() => setStep("IDLE")} className="w-full h-10 sm:h-12 rounded-xl border-red-200 text-red-600 text-xs sm:text-sm font-bold">Coba Lagi</Button>}
+                 
+                 {step === "SUCCESS" && (
+                   <Button 
+                    onClick={handleCloseSuccess} 
+                    className="w-full h-10 sm:h-12 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white text-xs sm:text-sm font-bold animate-in fade-in slide-in-from-bottom-2 duration-500 shadow-xl shadow-[#99775C]/20 border-none active:scale-95"
+                   >
+                    Tutup
+                   </Button>
+                 )}
+
+                 {step === "ERROR" && (
+                   <Button 
+                    variant="outline" 
+                    onClick={() => setStep("IDLE")} 
+                    className="w-full h-10 sm:h-12 rounded-xl border-[#99775C]/30 text-[#99775C] text-xs sm:text-sm font-bold hover:bg-[#99775C]/5 active:scale-95"
+                   >
+                    Coba Lagi
+                   </Button>
+                 )}
               </DialogFooter>
             </div>
           </div>

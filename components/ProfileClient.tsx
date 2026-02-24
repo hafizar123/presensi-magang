@@ -6,7 +6,7 @@ import {
   History, FileText, User, Menu, LayoutDashboard, 
   Clock, Mail, Camera, Eye, EyeOff, Save, Lock, 
   LogOut, Settings, CheckCircle2, Building2, GraduationCap,
-  Shield, Edit3, Loader2 // <-- Loader2 udah ditambahin bre
+  Shield, Edit3, Loader2, ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -67,8 +67,11 @@ export default function ProfileClient({ user }: ProfileClientProps) {
   });
 
   const [opsSettings, setOpsSettings] = useState<any>(null);
-  const [passData, setPassData] = useState({ new: "", confirm: "" });
-  const [showPass, setShowPass] = useState({ new: false, confirm: false });
+  
+  // Update State Password buat nampung Password Lama
+  const [passData, setPassData] = useState({ old: "", new: "", confirm: "" });
+  const [showPass, setShowPass] = useState({ old: false, new: false, confirm: false });
+  
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
@@ -225,13 +228,19 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         const res = await fetch("/api/profile", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: passData.new }),
+            body: JSON.stringify({ 
+              oldPassword: passData.old, // Kirim password lama
+              newPassword: passData.new 
+            }),
         });
-        if (!res.ok) throw new Error("Gagal ganti password");
-        setPassData({ new: "", confirm: "" }); 
-        toast.success("Password Diganti", { description: "Silakan login ulang jika diperlukan." });
-    } catch (error) {
-        toast.error("Gagal", { description: "Terjadi kesalahan." });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal ganti password");
+
+        setPassData({ old: "", new: "", confirm: "" }); 
+        toast.success("Password Diganti", { description: "Perubahan sandi berhasil disimpan." });
+    } catch (error: any) {
+        toast.error("Gagal", { description: error.message });
     } finally {
         setIsLoading(false);
     }
@@ -342,7 +351,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
           <div className="flex items-center gap-3 text-white">
             <ModeToggle />
             <div className="h-6 w-px bg-white/20 hidden md:block mx-1"></div>
-            <Link href="/profile" className="flex items-center gap-3 pl-1 group">
+            <div className="flex items-center gap-3 pl-1 group">
                 <div className="hidden md:flex flex-col items-end"><span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span><span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span></div>
                 <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
                     <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
@@ -350,7 +359,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         <AvatarFallback className="bg-[#5c4a3d] text-white">U</AvatarFallback>
                     </Avatar>
                 </div>
-            </Link>
+            </div>
           </div>
       </nav>
 
@@ -469,8 +478,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
 
                                 {/* FORM FIELDS (CLEAN GRID) */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
-                                    
-                                    {/* NAMA - EDITABLE */}
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Nama Lengkap</Label>
                                         <Input 
@@ -479,8 +486,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                             className="h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 dark:bg-black/20 dark:hover:bg-black/40 border-slate-200 dark:border-white/10 focus:bg-white focus:ring-[#99775C] px-4 transition-colors font-normal text-slate-700 dark:text-slate-200" 
                                         />
                                     </div>
-                                    
-                                    {/* EMAIL - DISABLED (LOCKED AESTHETIC) */}
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Email Pribadi</Label>
                                         <div className="relative">
@@ -494,8 +499,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* NIP - EDITABLE */}
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">NIP / NIM / NIS</Label>
                                         <Input 
@@ -505,8 +508,6 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                             className="h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 dark:bg-black/20 dark:hover:bg-black/40 border-slate-200 dark:border-white/10 focus:bg-white focus:ring-[#99775C] px-4 transition-colors font-normal text-slate-700 dark:text-slate-200" 
                                         />
                                     </div>
-                                    
-                                    {/* JABATAN - DISABLED (LOCKED AESTHETIC) */}
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Divisi / Penempatan</Label>
                                         <div className="relative">
@@ -531,12 +532,12 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         </CardContent>
                     </Card>
                     
-                    {/* SECURITY CARD */}
+                    {/* SECURITY CARD (UPDATE: TAMBAH PASSWORD LAMA) */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl shadow-slate-200/40 dark:shadow-none bg-white dark:bg-[#1c1917] overflow-hidden">
                         <div className="p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center md:items-start">
                             <div className="w-full md:w-1/3 text-center md:text-left space-y-2">
-                                <div className="mx-auto md:mx-0 h-12 w-12 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center mb-4">
-                                    <Shield className="h-6 w-6" />
+                                <div className="mx-auto md:mx-0 h-12 w-12 bg-[#99775C]/10 text-[#99775C] rounded-2xl flex items-center justify-center mb-4">
+                                    <ShieldCheck className="h-6 w-6" />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">Ganti Password</h3>
                                 <p className="text-sm text-slate-500">Pastikan akun kamu selalu aman dengan memperbarui password secara berkala.</p>
@@ -544,24 +545,45 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                             
                             <div className="flex-1 w-full">
                                 <form onSubmit={handleChangePassword} className="space-y-6">
+                                    
+                                    {/* PASSWORD LAMA (TAMBAHAN REQ) */}
+                                    <div className="space-y-2.5">
+                                        <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Password Saat Ini</Label>
+                                        <div className="relative">
+                                            <Input 
+                                              type={showPass.old ? "text" : "password"} 
+                                              placeholder="Masukkan password lama" 
+                                              value={passData.old} 
+                                              onChange={(e) => setPassData({...passData, old: e.target.value})} 
+                                              required 
+                                              className="h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border-slate-200 pr-12 focus:bg-white focus:ring-[#99775C] transition-colors font-normal text-slate-700" 
+                                            />
+                                            <button type="button" onClick={() => setShowPass({...showPass, old: !showPass.old})} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] transition-colors">
+                                              {showPass.old ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Password Baru</Label>
                                         <div className="relative">
-                                            <Input type={showPass.new ? "text" : "password"} placeholder="Minimal 6 karakter" value={passData.new} onChange={(e) => setPassData({...passData, new: e.target.value})} required minLength={6} className="h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border-slate-200 pr-12 focus:bg-white focus:ring-orange-500 transition-colors font-normal text-slate-700" />
-                                            <button type="button" onClick={() => setShowPass({...showPass, new: !showPass.new})} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 transition-colors">{showPass.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                                            <Input type={showPass.new ? "text" : "password"} placeholder="Minimal 6 karakter" value={passData.new} onChange={(e) => setPassData({...passData, new: e.target.value})} required minLength={6} className="h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border-slate-200 pr-12 focus:bg-white focus:ring-[#99775C] transition-colors font-normal text-slate-700" />
+                                            <button type="button" onClick={() => setShowPass({...showPass, new: !showPass.new})} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] transition-colors">{showPass.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                         </div>
                                     </div>
+
                                     <div className="space-y-2.5">
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Konfirmasi Password</Label>
                                         <div className="relative">
-                                            <Input type={showPass.confirm ? "text" : "password"} placeholder="Ulangi password baru" value={passData.confirm} onChange={(e) => setPassData({...passData, confirm: e.target.value})} required minLength={6} className={`h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border-slate-200 pr-12 focus:bg-white focus:ring-orange-500 transition-colors font-normal text-slate-700 ${passData.confirm && passData.new !== passData.confirm ? "border-red-500 ring-1 ring-red-500 bg-red-50" : ""}`} />
-                                            <button type="button" onClick={() => setShowPass({...showPass, confirm: !showPass.confirm})} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 transition-colors">{showPass.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                                            <Input type={showPass.confirm ? "text" : "password"} placeholder="Ulangi password baru" value={passData.confirm} onChange={(e) => setPassData({...passData, confirm: e.target.value})} required minLength={6} className={`h-12 rounded-2xl bg-slate-50/50 hover:bg-slate-50 border-slate-200 pr-12 focus:bg-white focus:ring-[#99775C] transition-colors font-normal text-slate-700 ${passData.confirm && passData.new !== passData.confirm ? "border-red-500 ring-1 ring-red-500 bg-red-50" : ""}`} />
+                                            <button type="button" onClick={() => setShowPass({...showPass, confirm: !showPass.confirm})} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] transition-colors">{showPass.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                                         </div>
-                                        {passData.confirm && passData.new !== passData.confirm && <p className="text-[11px] text-red-500 font-bold ml-1">Password belum cocok.</p>}
+                                        {passData.confirm && passData.new !== passData.confirm && <p className="text-[11px] text-red-500 font-bold ml-1">Password baru belum cocok.</p>}
                                     </div>
+
                                     <div className="pt-2">
-                                        <Button type="submit" variant="outline" className="h-12 px-6 rounded-2xl font-bold border-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 active:scale-95 transition-all" disabled={isLoading || (passData.new !== passData.confirm)}>
-                                            {isLoading ? "Memproses..." : "Update Password"}
+                                        <Button type="submit" className="h-12 px-8 rounded-2xl font-bold bg-[#99775C] hover:bg-[#7a5e48] text-white shadow-xl shadow-[#99775C]/20 active:scale-95 transition-all w-full sm:w-auto" disabled={isLoading || (passData.new !== passData.confirm)}>
+                                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Update Password"}
                                         </Button>
                                     </div>
                                 </form>
