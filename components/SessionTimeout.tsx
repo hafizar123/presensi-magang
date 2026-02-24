@@ -68,7 +68,7 @@ export default function SessionTimeout() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 w-full flex justify-center">
-            <AlertDialogAction onClick={handleLogout} className="w-full h-10 sm:h-12 bg-[#99775C] hover:bg-[#7a5e48] text-white font-bold text-xs sm:text-sm rounded-xl border-none shadow-md shadow-[#99775C]/20">Autentikasi Ulang</AlertDialogAction>
+            <AlertDialogAction onClick={handleLogout} className="w-full sm:flex-1 h-9 sm:h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] sm:text-xs m-0 order-1 sm:order-2 shadow-lg shadow-red-600/10 border-none">Autentikasi Ulang</AlertDialogAction>
           </AlertDialogFooter>
         </div>
       </AlertDialogContent>
