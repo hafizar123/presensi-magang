@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  User, Shield, MapPin, Save, Building, AlertCircle, 
+  User, Shield, MapPin, Save, AlertCircle, 
   CheckCircle2, Eye, EyeOff, Lock, Loader2, XCircle, Clock, CalendarDays, MousePointerClick
 } from "lucide-react";
 
@@ -21,7 +21,19 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // <-- TAMBAHAN IMPORT SELECT
 import { useRouter } from "next/navigation";
+
+// <-- TAMBAHAN: Daftar Divisi
+const DIVISI_OPTIONS = [
+    "Sub Bagian Keuangan",
+    "Sub Bagian Kepegawaian",
+    "Sub Bagian Umum",
+    "Bidang Perencanaan dan Pengembangan Mutu Pendidikan, Pemuda, dan Olahraga",
+    "Bidang Pembinaan Sekolah Menengah Atas",
+    "Bidang Pembinaan Sekolah Menengah Kejuruan",
+    "Bidang Pendidikan Khusus dan Layanan Khusus",
+];
 
 interface AdminSettingsClientProps {
   user: any;
@@ -38,14 +50,14 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 1. Data Profil
-  const [profileData, setProfileData] = useState({ 
-    name: user.name || "", 
-    email: user.email || "", 
-    image: user.image || "",
-    nip: user.nomorInduk || "", // <-- UBAH INI
-    jabatan: user.divisi || ""  // <-- UBAH INI
+  // 1. Data Profil (UPDATE: nip -> nomorInduk, jabatan -> divisi)
+  const [profileData, setProfileData] = useState({
+    name: user.name || "",
+    email: user.email || "",
+    nomorInduk: user.nomorInduk || "",       
+    divisi: user.divisi || "" 
   });
+
   // 2. Data Pengaturan
   const [settingsData, setSettingsData] = useState({
     latitude: "",
@@ -78,8 +90,8 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 ...prev,
                 name: data.name || prev.name,
                 email: data.email || prev.email,
-                nip: data.nip || "",
-                jabatan: data.jabatan || ""
+                nomorInduk: data.nomorInduk || "", // UPDATE
+                divisi: data.divisi || ""          // UPDATE
             }));
         }
       })
@@ -103,22 +115,21 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: profileData.name,
-                nomorInduk: profileData.nip, 
-                divisi: profileData.jabatan, 
-            }),
+                nomorInduk: profileData.nomorInduk, // UPDATE
+                divisi: profileData.divisi          // UPDATE
+            })
         });
 
         if (res.ok) {
-            // await update({ name: profileData.name }); // Opsional: disable update session client biar gak logout
-            setSuccessMessage("Profil admin berhasil diperbarui!");
+            setSuccessMessage("Profil administrator berhasil diperbarui.");
             setShowSuccess(true);
             router.refresh();
         } else {
-            setErrorMessage("Gagal menyimpan profil.");
+            setErrorMessage("Gagal menyimpan profil. Silakan coba lagi.");
             setShowError(true);
         }
     } catch (error) {
-        setErrorMessage("Terjadi kesalahan server.");
+        setErrorMessage("Terjadi kesalahan pada server.");
         setShowError(true);
     } finally {
         setLoading(false);
@@ -134,14 +145,14 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             body: JSON.stringify(settingsData)
         });
         if(res.ok) {
-            setSuccessMessage("Pengaturan sistem berhasil disimpan!");
+            setSuccessMessage("Pengaturan sistem berhasil disimpan.");
             setShowSuccess(true);
         } else {
-            setErrorMessage("Gagal menyimpan pengaturan.");
+            setErrorMessage("Gagal menyimpan pengaturan sistem.");
             setShowError(true);
         }
     } catch (error) {
-        setErrorMessage("Terjadi kesalahan sistem.");
+        setErrorMessage("Terjadi kesalahan pada server.");
         setShowError(true);
     } finally {
         setLoading(false);
@@ -150,12 +161,17 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
 
   const handleSaveSecurity = async () => {
     if (!securityData.newPassword || !securityData.confirmPassword) {
-        setErrorMessage("Form password belum lengkap!");
+        setErrorMessage("Formulasi kata sandi belum lengkap.");
         setShowError(true);
         return;
     }
     if (securityData.newPassword !== securityData.confirmPassword) {
-        setErrorMessage("Password dan konfirmasi tidak cocok!");
+        setErrorMessage("Konfirmasi kata sandi tidak sesuai.");
+        setShowError(true);
+        return;
+    }
+    if (securityData.newPassword.length < 6) {
+        setErrorMessage("Kata sandi harus terdiri dari minimal 6 karakter.");
         setShowError(true);
         return;
     }
@@ -165,19 +181,19 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
         const res = await fetch("/api/admin/profile", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: securityData.newPassword })
+            body: JSON.stringify({ newPassword: securityData.newPassword })
         });
 
         if (res.ok) {
-            setSuccessMessage("Password berhasil diubah!");
+            setSuccessMessage("Kata sandi berhasil diubah.");
             setShowSuccess(true);
             setSecurityData({ newPassword: "", confirmPassword: "" });
         } else {
-            setErrorMessage("Gagal mengubah password.");
+            setErrorMessage("Gagal mengubah kata sandi.");
             setShowError(true);
         }
     } catch (e) {
-        setErrorMessage("Gagal koneksi server.");
+        setErrorMessage("Terjadi kesalahan pada server.");
         setShowError(true);
     } finally {
         setLoading(false);
@@ -187,16 +203,14 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   return (
     <div className="space-y-6 w-full pb-10">
       
-      {/* DIALOG SUCCESS (DENGAN ANIMASI LOMPAT) */}
+      {/* DIALOG SUCCESS */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-[400px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] p-0 overflow-hidden rounded-2xl">
             <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                {/* Container Icon */}
                 <div className="h-20 w-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-5 animate-in zoom-in-0 duration-300">
-                    {/* ICON ANIMATE BOUNCE DISINI BRE */}
                     <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil!</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm">{successMessage}</p>
                 <Button onClick={() => setShowSuccess(false)} className="mt-6 bg-[#99775C] hover:bg-[#86664d] text-white w-full rounded-xl shadow-md transition-all active:scale-95">
                     Tutup
@@ -212,7 +226,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 <div className="h-20 w-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-5 animate-in zoom-in-0 duration-300">
                     <XCircle className="h-10 w-10 text-red-600 dark:text-red-400" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Gagal!</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Peringatan</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm">{errorMessage}</p>
                 <Button onClick={() => setShowError(false)} className="mt-6 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl shadow-md transition-all active:scale-95">
                     Coba Lagi
@@ -224,7 +238,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Pengaturan Sistem</h1>
-        <p className="text-slate-500 dark:text-gray-400">Kelola profil admin, jam operasional, dan lokasi kantor.</p>
+        <p className="text-slate-500 dark:text-gray-400">Kelola profil administrator, jam operasional, dan geofencing.</p>
       </div>
 
       {/* TABS */}
@@ -249,32 +263,44 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
           <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
              <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
               <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Informasi Dasar</CardTitle>
-              <CardDescription>Nama ini yang akan muncul di dashboard.</CardDescription>
+              <CardDescription>Perbarui identitas yang digunakan dalam sistem manajemen.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label>Nama Lengkap</Label>
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Nama Lengkap</Label>
                     <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-[#99775C]" />
-                        <Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} className="pl-9 h-11" />
+                        <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                        <Input value={profileData.name} onChange={(e) => setProfileData({...profileData, name: e.target.value})} className="pl-10 h-11 border-slate-200 focus-visible:ring-[#99775C]" />
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <Label>Email Dinas</Label>
-                    <Input value={profileData.email} disabled className="h-11 bg-slate-100 dark:bg-black/20" />
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Alamat Email</Label>
+                    <Input value={profileData.email} disabled className="h-11 bg-slate-100 dark:bg-black/20 text-slate-500 cursor-not-allowed" />
                 </div>
                 <div className="space-y-2">
-                    <Label>NIP / ID Pegawai</Label>
-                    <Input value={profileData.nip} onChange={(e) => setProfileData({...profileData, nip: e.target.value})} className="h-11" placeholder="" />
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">NIP / Nomor Pegawai</Label>
+                    <Input value={profileData.nomorInduk} onChange={(e) => setProfileData({...profileData, nomorInduk: e.target.value})} className="h-11 border-slate-200 focus-visible:ring-[#99775C]" placeholder="Masukkan Nomor Induk" />
                 </div>
+                
+                {/* UPDATE: Divisi Input diubah jadi Dropdown Select */}
                 <div className="space-y-2">
-                    <Label>Divisi</Label>
-                    <Input value={profileData.jabatan} onChange={(e) => setProfileData({...profileData, jabatan: e.target.value})} className="h-11" placeholder="" />
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Divisi / Penempatan</Label>
+                    <Select value={profileData.divisi} onValueChange={(val) => setProfileData({...profileData, divisi: val})}>
+                        <SelectTrigger className="h-11 bg-white dark:bg-[#1c1917] border-slate-200 focus:ring-[#99775C]">
+                            <SelectValue placeholder="Pilih Divisi" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#1c1917] border-slate-200">
+                            {DIVISI_OPTIONS.map((divisi) => (
+                                <SelectItem key={divisi} value={divisi}>{divisi}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
+
               </div>
             </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4 flex justify-end">
                 <Button onClick={handleSaveProfile} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Profil
                 </Button>
@@ -289,7 +315,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                     <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
                         <Clock className="h-5 w-5 text-[#99775C]" /> Waktu Operasional Kantor
                     </CardTitle>
-                    <CardDescription>Atur jam kerja untuk hari biasa dan khusus hari Jumat.</CardDescription>
+                    <CardDescription>Atur jam kerja institusi untuk hari biasa dan khusus hari Jumat.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                     {/* Senin - Kamis */}
@@ -300,11 +326,11 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label className="text-xs text-slate-500">Jam Mulai</Label>
-                                <Input type="time" className="h-11" value={settingsData.opStartMonThu} onChange={(e) => setSettingsData({...settingsData, opStartMonThu: e.target.value})} />
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.opStartMonThu} onChange={(e) => setSettingsData({...settingsData, opStartMonThu: e.target.value})} />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs text-slate-500">Jam Selesai</Label>
-                                <Input type="time" className="h-11" value={settingsData.opEndMonThu} onChange={(e) => setSettingsData({...settingsData, opEndMonThu: e.target.value})} />
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.opEndMonThu} onChange={(e) => setSettingsData({...settingsData, opEndMonThu: e.target.value})} />
                             </div>
                         </div>
                     </div>
@@ -319,11 +345,11 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label className="text-xs text-slate-500">Jam Mulai</Label>
-                                <Input type="time" className="h-11" value={settingsData.opStartFri} onChange={(e) => setSettingsData({...settingsData, opStartFri: e.target.value})} />
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.opStartFri} onChange={(e) => setSettingsData({...settingsData, opStartFri: e.target.value})} />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-xs text-slate-500">Jam Selesai</Label>
-                                <Input type="time" className="h-11" value={settingsData.opEndFri} onChange={(e) => setSettingsData({...settingsData, opEndFri: e.target.value})} />
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.opEndFri} onChange={(e) => setSettingsData({...settingsData, opEndFri: e.target.value})} />
                             </div>
                         </div>
                     </div>
@@ -333,9 +359,9 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
                     <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
-                        <MousePointerClick className="h-5 w-5 text-[#99775C]" /> Waktu Presensi
+                        <MousePointerClick className="h-5 w-5 text-[#99775C]" /> Ketentuan Presensi
                     </CardTitle>
-                    <CardDescription>Atur kapan tombol absen muncul dan batas keterlambatan.</CardDescription>
+                    <CardDescription>Atur jendela waktu ketersediaan absensi sistem.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                     <div className="space-y-3">
@@ -343,13 +369,13 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label className="text-xs text-slate-500">Akses Dibuka</Label>
-                                <Input type="time" className="h-11" value={settingsData.attendanceStart} onChange={(e) => setSettingsData({...settingsData, attendanceStart: e.target.value})} />
-                                <p className="text-[10px] text-slate-400">Jam tombol "Absen Masuk" muncul.</p>
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.attendanceStart} onChange={(e) => setSettingsData({...settingsData, attendanceStart: e.target.value})} />
+                                <p className="text-[10px] text-slate-400 mt-1">Waktu tombol absensi muncul.</p>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-xs text-slate-500">Batas Terlambat</Label>
-                                <Input type="time" className="h-11" value={settingsData.attendanceLimit} onChange={(e) => setSettingsData({...settingsData, attendanceLimit: e.target.value})} />
-                                <p className="text-[10px] text-slate-400">Lewat ini status jadi "Telat".</p>
+                                <Label className="text-xs text-slate-500">Batas Keterlambatan</Label>
+                                <Input type="time" className="h-11 focus-visible:ring-[#99775C]" value={settingsData.attendanceLimit} onChange={(e) => setSettingsData({...settingsData, attendanceLimit: e.target.value})} />
+                                <p className="text-[10px] text-slate-400 mt-1">Lewat dari waktu ini akan tercatat Telat.</p>
                             </div>
                         </div>
                     </div>
@@ -359,15 +385,15 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                         <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/30 p-4 rounded-xl flex gap-3">
                             <AlertCircle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Otomatis Mengikuti Jam Selesai Operasional</p>
+                                <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Terintegrasi dengan Jam Selesai Operasional</p>
                                 <p className="text-xs text-orange-600/80 dark:text-orange-400/70 leading-relaxed">
-                                    Tombol "Absen Pulang" baru bisa diklik setelah <b>Jam Selesai</b>.
+                                    Tombol "Absen Pulang" baru akan tersedia setelah melewati batas <b>Jam Selesai</b> yang ditetapkan di atas.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4 flex justify-end">
                     <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Pengaturan Waktu
                     </Button>
@@ -382,28 +408,28 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
               <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-[#99775C]" /> Geofencing Kantor
               </CardTitle>
-              <CardDescription>Koordinat ini digunakan sebagai pusat validasi absensi.</CardDescription>
+              <CardDescription>Pusat koordinat dan radius validasi lokasi kehadiran.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label>Latitude</Label>
-                    <Input value={settingsData.latitude} onChange={(e) => setSettingsData({...settingsData, latitude: e.target.value})} className="h-11 font-mono" placeholder="-7.xxxxx" />
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Latitude</Label>
+                    <Input value={settingsData.latitude} onChange={(e) => setSettingsData({...settingsData, latitude: e.target.value})} className="h-11 font-mono focus-visible:ring-[#99775C]" placeholder="-7.xxxxx" />
                 </div>
                 <div className="space-y-2">
-                    <Label>Longitude</Label>
-                    <Input value={settingsData.longitude} onChange={(e) => setSettingsData({...settingsData, longitude: e.target.value})} className="h-11 font-mono" placeholder="110.xxxxx" />
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Longitude</Label>
+                    <Input value={settingsData.longitude} onChange={(e) => setSettingsData({...settingsData, longitude: e.target.value})} className="h-11 font-mono focus-visible:ring-[#99775C]" placeholder="110.xxxxx" />
                 </div>
                 <div className="space-y-2">
-                    <Label>Radius (Meter)</Label>
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Radius Toleransi (Meter)</Label>
                     <div className="relative">
-                        <Input type="number" value={settingsData.radius} onChange={(e) => setSettingsData({...settingsData, radius: e.target.value})} className="h-11 pr-10" />
+                        <Input type="number" value={settingsData.radius} onChange={(e) => setSettingsData({...settingsData, radius: e.target.value})} className="h-11 pr-10 focus-visible:ring-[#99775C]" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">m</span>
                     </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4 flex justify-end">
                 <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Lokasi
                 </Button>
@@ -415,34 +441,34 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
         <TabsContent value="security" className="space-y-6">
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
-                <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Ganti Password</CardTitle>
-                <CardDescription>Ubah password akun admin di sini.</CardDescription>
+                <CardTitle className="text-slate-900 dark:text-[#EAE7DD]">Ganti Kata Sandi</CardTitle>
+                <CardDescription>Pembaruan kata sandi secara berkala untuk menjaga keamanan akun.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 max-w-lg pt-6">
                 <div className="grid gap-2">
-                    <Label>Password Baru</Label>
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Kata Sandi Baru</Label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
-                        <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-9 pr-10 h-11" placeholder="******" />
-                        <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                            {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <Input type={showNewPass ? "text" : "password"} value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="pl-10 pr-10 h-11 focus-visible:ring-[#99775C]" placeholder="******" />
+                        <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C]">
+                            {showNewPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                     </div>
                 </div>
                 <div className="grid gap-2">
-                    <Label>Konfirmasi Password</Label>
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">Konfirmasi Kata Sandi</Label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
-                        <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-9 pr-10 h-11" placeholder="******" />
-                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                            {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <Input type={showConfirmPass ? "text" : "password"} value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="pl-10 pr-10 h-11 focus-visible:ring-[#99775C]" placeholder="******" />
+                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C]">
+                            {showConfirmPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                     </div>
                 </div>
                 </CardContent>
-                <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4">
+                <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4 flex justify-start">
                     <Button onClick={handleSaveSecurity} disabled={loading} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white shadow-md active:scale-95 transition-all">
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Password"}
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Perbarui Kata Sandi"}
                     </Button>
                 </CardFooter>
             </Card>
