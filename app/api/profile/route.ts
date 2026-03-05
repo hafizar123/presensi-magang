@@ -10,7 +10,6 @@ import bcrypt from "bcrypt";
 // Helper: Hapus file fisik
 async function deleteFile(filePath: string) {
   try {
-    // Pastikan cuma hapus file di dalam folder uploads biar aman
     if (filePath && filePath.startsWith("/uploads/")) {
       const absolutePath = path.join(process.cwd(), "public", filePath);
       if (fs.existsSync(absolutePath)) {
@@ -36,13 +35,12 @@ export async function GET() {
       name: true,
       email: true,
       image: true,
-      nip: true,
-      jabatan: true,
+      nomorInduk: true, // UPDATE: nip -> nomorInduk
+      divisi: true,     // UPDATE: jabatan -> divisi
       internProfile: true, 
     },
   });
 
-  // Ambil setting jam kerja (biar Dashboard gak error)
   const configPath = path.join(process.cwd(), "settings.json");
   let globalSettings = { startHour: "07:30", endHour: "16:00" };
   try {
@@ -70,10 +68,10 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    // Tambahin oldPassword buat dicek
-    const { name, nip, jabatan, image, oldPassword, newPassword } = body;
+    
+    // UPDATE: nip -> nomorInduk, jabatan -> divisi
+    const { name, nomorInduk, divisi, image, oldPassword, newPassword } = body;
 
-    // 1. Ambil data user LENGKAP (buat cek password & image)
     const currentUser = await prisma.user.findUnique({
         where: { email: session.user.email },
         select: { image: true, password: true }
@@ -81,25 +79,20 @@ export async function PUT(request: Request) {
 
     const dataToUpdate: any = {};
 
-    // 2. LOGIC UPDATE PASSWORD DENGAN VERIFIKASI
     if (newPassword && newPassword.trim() !== "") {
-        // Cek apakah password lama dikirim?
         if (!oldPassword) {
             return NextResponse.json({ message: "Password lama harus diisi." }, { status: 400 });
         }
 
-        // Bandingkan password lama dengan hash di DB
         const isMatch = await bcrypt.compare(oldPassword, currentUser?.password || "");
         if (!isMatch) {
             return NextResponse.json({ message: "Password lama yang Anda masukkan salah." }, { status: 400 });
         }
 
-        // Kalau cocok, baru hash password baru
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         dataToUpdate.password = hashedPassword;
     }
 
-    // 3. LOGIC HAPUS FOTO LAMA (Logic awal lu tetep aman)
     if (image !== undefined) {
         if (image === "" || image === null) {
             if (currentUser?.image) {
@@ -116,8 +109,10 @@ export async function PUT(request: Request) {
     }
 
     if (name) dataToUpdate.name = name;
-    if (nip !== undefined) dataToUpdate.nip = nip;
-    if (jabatan !== undefined) dataToUpdate.jabatan = jabatan;
+    
+    // UPDATE: nip -> nomorInduk, jabatan -> divisi
+    if (nomorInduk !== undefined) dataToUpdate.nomorInduk = nomorInduk;
+    if (divisi !== undefined) dataToUpdate.divisi = divisi;
 
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },

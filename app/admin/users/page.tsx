@@ -39,7 +39,6 @@ export default function AdminUsersClient() {
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // STATE FILTERING BARU
   const [search, setSearch] = useState("");
   const [filterDivisi, setFilterDivisi] = useState("ALL");
   
@@ -55,8 +54,10 @@ export default function AdminUsersClient() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // UPDATE: nip -> nomorInduk, jabatan -> divisi
   const [formData, setFormData] = useState({
-    name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nip: "", jabatan: ""
+    name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nomorInduk: "", divisi: ""
   });
 
   const fetchUsers = async () => {
@@ -65,7 +66,7 @@ export default function AdminUsersClient() {
       const data = await res.json();
       setUsers(data);
     } catch (error) {
-      toast.error("Gagal mengambil data user");
+      toast.error("Gagal memuat data pengguna.");
     } finally {
       setIsLoading(false);
     }
@@ -75,12 +76,18 @@ export default function AdminUsersClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.password && formData.password.length < 6) {
+        toast.error("Validasi Gagal", { description: "Kata sandi minimal 6 karakter." }); 
+        return;
+    }
+
     if (formData.password && formData.password !== formData.confirmPassword) {
-        toast.error("Password tidak cocok!"); return;
+        toast.error("Validasi Gagal", { description: "Konfirmasi kata sandi tidak cocok." }); return;
     }
     
-    if (formData.jabatan && !DIVISI_OPTIONS.includes(formData.jabatan)) {
-        toast.error("Pilih divisi dari list yang udah ada bro!"); return;
+    if (formData.divisi && !DIVISI_OPTIONS.includes(formData.divisi)) {
+        toast.error("Validasi Gagal", { description: "Silakan pilih divisi yang valid dari daftar." }); return;
     }
 
     setIsSaving(true);
@@ -92,22 +99,22 @@ export default function AdminUsersClient() {
         });
         const result = await res.json();
         if (!res.ok) throw new Error(result.message);
-        toast.success(editingId ? "User diperbarui" : "User ditambahkan");
+        toast.success(editingId ? "Data pengguna berhasil diperbarui" : "Pengguna berhasil ditambahkan");
         setIsDialogOpen(false); fetchUsers(); resetForm();
-    } catch (error: any) { toast.error(error.message); } finally { setIsSaving(false); }
+    } catch (error: any) { toast.error("Terjadi Kesalahan", { description: error.message }); } finally { setIsSaving(false); }
   };
 
   const handleDelete = async () => {
     if (!deletingId) return;
     try {
         await fetch(`/api/admin/users?id=${deletingId}`, { method: "DELETE" });
-        toast.success("User dihapus");
+        toast.success("Berhasil", { description: "Pengguna berhasil dihapus secara permanen." });
         setUsers(users.filter(u => u.id !== deletingId));
-    } catch (error) { toast.error("Gagal menghapus"); } finally { setIsAlertOpen(false); }
+    } catch (error) { toast.error("Terjadi Kesalahan", { description: "Gagal menghapus pengguna." }); } finally { setIsAlertOpen(false); }
   };
 
   const resetForm = () => {
-      setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nip: "", jabatan: "" });
+      setFormData({ name: "", email: "", password: "", confirmPassword: "", role: "INTERN", nomorInduk: "", divisi: "" });
       setEditingId(null); setShowPassword(false); setShowConfirmPassword(false);
   };
 
@@ -115,16 +122,15 @@ export default function AdminUsersClient() {
       setEditingId(user.id);
       setFormData({ 
           name: user.name, email: user.email, password: "", confirmPassword: "",
-          role: user.role, nip: user.nip || "", jabatan: user.jabatan || "" 
+          role: user.role, nomorInduk: user.nomorInduk || "", divisi: user.divisi || "" 
       });
       setIsDialogOpen(true);
   };
 
-  // 🔥 LOGIC FILTER DIVISI & SEARCH GABUNGAN 🔥
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) || 
                           user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesDivisi = filterDivisi === "ALL" ? true : user.jabatan === filterDivisi;
+    const matchesDivisi = filterDivisi === "ALL" ? true : user.divisi === filterDivisi;
     return matchesSearch && matchesDivisi;
   });
 
@@ -133,11 +139,10 @@ export default function AdminUsersClient() {
 
   const goToPage = (page: number) => { if (page >= 1 && page <= totalPages) setCurrentPage(page); };
 
-  // Reset page kalo lu ngetik atau milih divisi
   useEffect(() => { setCurrentPage(1); }, [search, filterDivisi]);
 
   const filteredDivisiOptions = DIVISI_OPTIONS.filter(d => 
-    d.toLowerCase().includes(formData.jabatan.toLowerCase())
+    d.toLowerCase().includes(formData.divisi.toLowerCase())
   );
 
   const inputStyle = "h-12 border-2 border-slate-300 dark:border-slate-700 bg-transparent rounded-xl focus-visible:ring-0 focus-visible:border-[#99775C] transition-all font-medium placeholder:text-slate-400";
@@ -163,10 +168,7 @@ export default function AdminUsersClient() {
                     <Shield className="h-5 w-5 text-[#99775C]" /> Daftar Pengguna Sistem
                 </CardTitle>
                 
-                {/* 🔥 ACTION BAR (Filter Divisi & Search) 🔥 */}
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    
-                    {/* DROPDOWN FILTER DIVISI */}
                     <div className="w-full sm:w-[180px] shrink-0">
                         <Select value={filterDivisi} onValueChange={setFilterDivisi}>
                             <SelectTrigger className="h-10 w-full bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] rounded-xl text-sm font-medium focus:ring-[#99775C]">
@@ -184,7 +186,6 @@ export default function AdminUsersClient() {
                         </Select>
                     </div>
 
-                    {/* SEARCH */}
                     <div className="relative w-full sm:w-64 group">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                         <Input placeholder="Cari nama atau email..." className="pl-10 bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f2e26] h-10 text-sm rounded-xl focus-visible:ring-[#99775C] transition-all" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -210,7 +211,7 @@ export default function AdminUsersClient() {
                     {isLoading ? (
                         <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-500"><Loader2 className="h-6 w-6 animate-spin text-[#99775C] mx-auto mb-2" /> Memuat data...</TableCell></TableRow>
                     ) : filteredUsers.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-500">Tidak ada user ditemukan.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-500">Tidak ada pengguna ditemukan.</TableCell></TableRow>
                     ) : (
                         paginatedUsers.map((user, index) => (
                             <TableRow key={user.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] transition-colors group">
@@ -227,7 +228,7 @@ export default function AdminUsersClient() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">{user.email}</TableCell>
-                                <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">{user.nip || "-"}</TableCell>
+                                <TableCell className="text-sm font-medium text-slate-600 dark:text-slate-400">{user.nomorInduk || "-"}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={`font-bold px-2.5 py-0.5 rounded-lg border-2 ${user.role === 'ADMIN' ? 'border-purple-200 text-purple-600 bg-purple-50' : 'border-[#99775C] text-[#99775C] bg-[#EAE7DD]/30'}`}>
                                         {user.role}
@@ -237,7 +238,7 @@ export default function AdminUsersClient() {
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                                             <Briefcase className="h-3.5 w-3.5 text-slate-500" />
-                                            {user.jabatan || "-"}
+                                            {user.divisi || "-"}
                                         </div>
                                     </div>
                                 </TableCell>
@@ -274,7 +275,7 @@ export default function AdminUsersClient() {
                     <div className="p-2 bg-[#99775C] rounded-lg text-white">
                         {editingId ? <Edit className="h-6 w-6" /> : <User className="h-6 w-6" />}
                     </div>
-                    {editingId ? "Edit Data User" : "Tambah User Baru"}
+                    {editingId ? "Ubah Data Pengguna" : "Tambah Pengguna Baru"}
                 </DialogTitle>
                 <DialogDescription>Lengkapi informasi pengguna di bawah ini dengan benar.</DialogDescription>
             </DialogHeader>
@@ -301,16 +302,32 @@ export default function AdminUsersClient() {
                         <div className="flex items-center gap-2 mb-2"><Shield className="h-5 w-5 text-[#99775C]" /><h3 className="font-bold text-slate-700 dark:text-slate-200">Keamanan Akun</h3></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1">
-                                <Label className={labelStyle}>Password {editingId && <span className="text-slate-400 font-normal">(Opsional)</span>}</Label>
+                                <Label className={labelStyle}>Kata Sandi {editingId && <span className="text-slate-400 font-normal">(Opsional)</span>}</Label>
                                 <div className="relative">
-                                    <Input type={showPassword ? "text" : "password"} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} placeholder="******" required={!editingId} className={`${inputStyle} pr-12 bg-white dark:bg-black/20`} />
+                                    <Input 
+                                        type={showPassword ? "text" : "password"} 
+                                        value={formData.password} 
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                                        placeholder="Min. 6 Karakter" 
+                                        minLength={6} 
+                                        required={!editingId} 
+                                        className={`${inputStyle} pr-12 bg-white dark:bg-black/20`} 
+                                    />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] transition-colors">{showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <Label className={labelStyle}>Konfirmasi Password</Label>
+                                <Label className={labelStyle}>Konfirmasi Kata Sandi</Label>
                                 <div className="relative">
-                                    <Input type={showConfirmPassword ? "text" : "password"} value={formData.confirmPassword} onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} placeholder="******" required={!editingId || !!formData.password} className={`${inputStyle} pr-12 bg-white dark:bg-black/20 ${formData.confirmPassword && formData.password !== formData.confirmPassword ? "border-red-500 focus-visible:border-red-500" : ""}`} />
+                                    <Input 
+                                        type={showConfirmPassword ? "text" : "password"} 
+                                        value={formData.confirmPassword} 
+                                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})} 
+                                        placeholder="******" 
+                                        minLength={6} 
+                                        required={!editingId || !!formData.password} 
+                                        className={`${inputStyle} pr-12 bg-white dark:bg-black/20 ${formData.confirmPassword && formData.password !== formData.confirmPassword ? "border-red-500 focus-visible:border-red-500" : ""}`} 
+                                    />
                                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#99775C] transition-colors">{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
                                 </div>
                             </div>
@@ -319,7 +336,7 @@ export default function AdminUsersClient() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1">
-                            <Label className={labelStyle}>Role Akses</Label>
+                            <Label className={labelStyle}>Hak Akses</Label>
                             <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
                                 <SelectTrigger className={`${inputStyle} bg-white dark:bg-[#1c1917]`}><SelectValue /></SelectTrigger>
                                 <SelectContent><SelectItem value="INTERN">Peserta Magang</SelectItem><SelectItem value="ADMIN">Admin</SelectItem></SelectContent>
@@ -327,7 +344,10 @@ export default function AdminUsersClient() {
                         </div>
                         <div className="space-y-1">
                             <Label className={labelStyle}>NIP / NIM</Label>
-                            <div className="relative"><Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" /><Input value={formData.nip} onChange={(e) => setFormData({...formData, nip: e.target.value})} placeholder="" className={`${inputStyle} pl-12`} /></div>
+                            <div className="relative">
+                                <Hash className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                <Input value={formData.nomorInduk} onChange={(e) => setFormData({...formData, nomorInduk: e.target.value})} placeholder="Nomor Identitas" className={`${inputStyle} pl-12`} />
+                            </div>
                         </div>
 
                         <div className="space-y-1 relative">
@@ -335,9 +355,9 @@ export default function AdminUsersClient() {
                             <div className="relative">
                                 <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 z-10" />
                                 <Input 
-                                    value={formData.jabatan} 
+                                    value={formData.divisi} 
                                     onChange={(e) => { 
-                                        setFormData({...formData, jabatan: e.target.value}); 
+                                        setFormData({...formData, divisi: e.target.value}); 
                                         setOpenDivisi(true); 
                                     }} 
                                     onFocus={() => setOpenDivisi(true)}
@@ -345,7 +365,7 @@ export default function AdminUsersClient() {
                                         setOpenDivisi(false);
                                         setFormData(prev => ({
                                             ...prev, 
-                                            jabatan: DIVISI_OPTIONS.includes(prev.jabatan) ? prev.jabatan : ""
+                                            divisi: DIVISI_OPTIONS.includes(prev.divisi) ? prev.divisi : ""
                                         }));
                                     }, 150)}
                                     placeholder="Pilih divisi..." 
@@ -364,12 +384,12 @@ export default function AdminUsersClient() {
                                                     className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-[#292524] dark:hover:text-slate-50 transition-colors font-medium text-slate-700 dark:text-slate-300"
                                                     onMouseDown={(e) => {
                                                         e.preventDefault(); 
-                                                        setFormData({...formData, jabatan: div});
+                                                        setFormData({...formData, divisi: div});
                                                         setOpenDivisi(false);
                                                     }}
                                                 >
                                                     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                                                        {formData.jabatan === div && <Check className="h-4 w-4" />}
+                                                        {formData.divisi === div && <Check className="h-4 w-4" />}
                                                     </span>
                                                     {div}
                                                 </div>
@@ -398,7 +418,7 @@ export default function AdminUsersClient() {
             <AlertDialogHeader>
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 className="h-8 w-8 text-red-600" /></div>
                 <AlertDialogTitle className="text-center text-xl font-bold">Hapus Pengguna?</AlertDialogTitle>
-                <AlertDialogDescription className="text-center">Yakin nih mau hapus user ini? Data yang udah dihapus <b>gak bisa balik lagi</b> lho.</AlertDialogDescription>
+                <AlertDialogDescription className="text-center">Yakin ingin menghapus pengguna ini? Data akan dihapus secara permanen dari sistem.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="sm:justify-center gap-2 mt-4">
                 <AlertDialogCancel className="h-11 px-6 rounded-xl font-bold">Batal</AlertDialogCancel>

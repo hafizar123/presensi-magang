@@ -18,8 +18,8 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
-  nip           String?   // NIP Pegawai
-  jabatan       String?   // Jabatan Struktural
+  nomorInduk    String?   
+  divisi        String?   
 
   internProfile InternProfile?
   attendance    Attendance[]
@@ -31,10 +31,11 @@ model InternProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id])
+  instansi    String?
+  jurusan     String?
   
   startDate   DateTime 
   endDate     DateTime 
-  // startHour & endHour HARUS SUDAH GAK ADA DI SINI
 }
 
 model Attendance {
@@ -84,20 +85,17 @@ model FinalEvaluation {
   id                  String   @id @default(cuid())
   userId              String   @unique
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // -- DIISI OLEH USER --
   pekerjaan           String   @db.Text 
   deskripsi           String   @db.Text 
+  nomorSurat          String?
   
-  // -- DIISI OLEH ADMIN --
+  nilaiSikap          Int?
   nilaiDisiplin       Int?
   nilaiTanggungJawab  Int?
-  nilaiInisiatif      Int?
   nilaiKerjasama      Int?
-  nilaiKualitas       Int?
+  nilaiInisiatif      Int?
   rataRata            Float?
-  
-  status              String   @default("PENDING") // PENDING (Nunggu dinilai), GRADED (Selesai dinilai)
+  status              String   @default("PENDING") 
   
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

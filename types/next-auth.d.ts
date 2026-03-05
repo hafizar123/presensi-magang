@@ -1,17 +1,21 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       role: string;
-      image?: string | null; // Tambahin ini
+      image?: string | null; 
+      divisi?: string | null;
+      nomorInduk?: string | null;
     } & DefaultSession["user"];
   }
 
-  interface User {
+  interface User extends DefaultUser {
     role: string;
-    image?: string | null; // Tambahin ini
+    image?: string | null; 
+    divisi?: string | null;
+    nomorInduk?: string | null;
   }
 }
 
@@ -19,6 +23,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: string;
-    picture?: string | null; // Tambahin ini
+    picture?: string | null; 
+    divisi?: string | null;
+    nomorInduk?: string | null;
   }
 }

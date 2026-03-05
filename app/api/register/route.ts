@@ -7,26 +7,29 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
-    // 1. TAMBAHIN nip DI SINI BRAY 👇
     const { name, email, password, nip } = body;
 
-    // 1. Cek kelengkapan data
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !nip) {
       return NextResponse.json(
-        { message: "Isi semua kolom woy!" },
+        { message: "Data belum lengkap!" },
         { status: 400 }
       );
     }
 
-    // 2. Cek apakah email udah dipake?
+    if (password.length < 6) {
+      return NextResponse.json(
+        { message: "Password minimal 6 karakter!" },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "Email udah kepake bro, cari yang lain" },
+        { message: "Email sudah terdaftar!" },
         { status: 400 }
       );
     }
@@ -39,18 +42,18 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: "INTERN", 
-        nip, // 2. MASUKIN nip KE DALAM PRISMA CREATE SINI 👇
+        nip,
       },
     });
 
     return NextResponse.json(
-      { message: "User berhasil dibuat!", user },
+      { message: "Akun berhasil dibuat!", user },
       { status: 201 }
     );
 
   } catch (error) {
     return NextResponse.json(
-      { message: "Ada error di server bro", error },
+      { message: "Internal server error!", error },
       { status: 500 }
     );
   }

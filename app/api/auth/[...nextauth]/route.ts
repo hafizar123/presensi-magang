@@ -54,17 +54,22 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }: any) {
-      // Update token kalo user login
+      // 1. Update token pas user pertama kali login
       if (user) {
         token.role = user.role;
         token.id = user.id;
         token.picture = user.image; // Mapping image ke picture
+        
+        // --- TAMBAHAN BARU ---
+        token.divisi = user.divisi;         
+        token.nomorInduk = user.nomorInduk; 
       }
 
-      // FITUR PENTING: Update token saat client manggil update()
+      // 2. FITUR PENTING: Update token saat client manggil update() (Misal ganti foto profil)
       if (trigger === "update" && session) {
         token.name = session.user.name;
         token.picture = session.user.image;
+        // Kalau divisi bisa diupdate dari client, masukin sini juga (tapi kan ini dilock admin, jadi aman)
       }
       
       return token;
@@ -75,6 +80,10 @@ export const authOptions: AuthOptions = {
         session.user.id = token.id;
         session.user.image = token.picture; // Pastikan image masuk session
         session.user.name = token.name;
+        
+        // --- TAMBAHAN BARU ---
+        session.user.divisi = token.divisi;         
+        session.user.nomorInduk = token.nomorInduk; 
       }
       return session;
     },

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { 
   Loader2, Star, UserCheck, Search, 
-  ChevronRight, ClipboardList, Award, TrendingUp,
-  Sparkles
+  ChevronRight, ClipboardList, Award, TrendingUp, Printer
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,34 +22,40 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// DEFINISI TIPE BIAR ENGGAK ERROR TS (THE "ANTI-NEVER" SHIELD)
 interface Evaluation {
   id: string;
   pekerjaan: string;
   status: string;
+  nomorSurat?: string;
   rataRata?: number;
+  nilaiSikap?: number;
   nilaiDisiplin?: number;
   nilaiTanggungJawab?: number;
-  nilaiInisiatif?: number;
   nilaiKerjasama?: number;
-  nilaiKualitas?: number;
+  nilaiInisiatif?: number;
   user: {
+    id: string;
     name: string;
     email: string;
     internProfile?: {
-      university?: string;
+      instansi?: string;
+      jurusan?: string;
     }
   }
 }
 
 export default function AdminPenilaianPage() {
-  // PAKAI <Evaluation[]> BIAR TS GAK NGAMUK
+  const { data: session } = useSession();
+  
+  const isKepegawaian = session?.user?.divisi === "Sub Bagian Kepegawaian"; 
+
   const [evals, setEvals] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEval, setSelectedEval] = useState<Evaluation | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [nilai, setNilai] = useState({ n1: 0, n2: 0, n3: 0, n4: 0, n5: 0 });
+  const [nomorSurat, setNomorSurat] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchEvals = () => {
@@ -59,7 +65,7 @@ export default function AdminPenilaianPage() {
       .then(data => {
         setEvals(Array.isArray(data) ? data : []);
       })
-      .catch(() => toast.error("Gagal ambil data bre"))
+      .catch(() => toast.error("Terjadi Kesalahan", { description: "Gagal mengambil data penilaian." }))
       .finally(() => setLoading(false));
   };
 
@@ -67,26 +73,37 @@ export default function AdminPenilaianPage() {
 
   const handleGrade = async () => {
     if (Object.values(nilai).some(v => v < 0 || v > 100)) {
-      return toast.error("Nilai harus 0-100 ya bre!");
+      return toast.error("Validasi Gagal", { description: "Rentang nilai harus berada di antara 0 hingga 100." });
     }
     
     setSubmitting(true);
     try {
+      const payload = { 
+          id: selectedEval?.id, 
+          ...nilai,
+          nomorSurat: isKepegawaian ? nomorSurat : undefined
+      };
+
       const res = await fetch("/api/admin/final-evaluation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedEval?.id, ...nilai })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
-        toast.success("Penilaian Berhasil!", { description: "User sudah bisa download surat." });
+        toast.success("Tersimpan!", { description: "Data evaluasi peserta berhasil diperbarui." });
         fetchEvals();
         setIsDialogOpen(false);
       }
     } catch (err) {
-      toast.error("Gagal simpan nilai");
+      toast.error("Terjadi Kesalahan", { description: "Gagal menyimpan data penilaian." });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handlePrintPDF = () => {
+      if (!selectedEval) return;
+      window.open(`/api/admin/cetak-suket?userId=${selectedEval.user.id}`, '_blank');
   };
 
   const filteredEvals = evals.filter((ev) => 
@@ -95,14 +112,13 @@ export default function AdminPenilaianPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
             <Award className="h-8 w-8 text-[#99775C]" />
             Penilaian Akhir
           </h1>
-          <p className="text-slate-500 dark:text-gray-400 mt-1 uppercase text-[10px] font-bold tracking-widest italic">Management / Evaluation</p>
+          <p className="text-slate-500 dark:text-gray-400 mt-1 uppercase text-[10px] font-bold tracking-widest italic">Manajemen Evaluasi Magang</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -121,12 +137,11 @@ export default function AdminPenilaianPage() {
         </div>
       </div>
 
-      {/* STATS MINI - KALCER VIBE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
             { label: "Total Masuk", val: evals.length, bg: "bg-blue-100", txt: "text-blue-600" },
             { label: "Belum Dinilai", val: evals.filter((e) => e.status === "PENDING").length, bg: "bg-orange-100", txt: "text-orange-600" },
-            { label: "Sudah Dinilai", val: evals.filter((e) => e.status === "GRADED").length, bg: "bg-emerald-100", txt: "text-emerald-600" },
+            { label: "Telah Dinilai", val: evals.filter((e) => e.status === "GRADED").length, bg: "bg-emerald-100", txt: "text-emerald-600" },
         ].map((s, i) => (
             <div key={i} className="bg-white dark:bg-[#1c1917] p-6 rounded-[2rem] border border-slate-100 dark:border-[#292524] flex items-center gap-4 transition-all hover:shadow-lg">
                 <div className={`h-12 w-12 ${s.bg} ${s.txt} rounded-2xl flex items-center justify-center font-black`}>{s.val}</div>
@@ -138,7 +153,6 @@ export default function AdminPenilaianPage() {
         ))}
       </div>
 
-      {/* TABLE SECTION */}
       <div className="bg-white dark:bg-[#1c1917] rounded-[2.5rem] shadow-xl shadow-slate-200/40 dark:shadow-none border border-slate-100 dark:border-[#292524] overflow-hidden">
         {loading ? (
             <div className="p-20 text-center text-[#99775C]"><Loader2 className="animate-spin mx-auto h-10 w-10" /></div>
@@ -147,15 +161,15 @@ export default function AdminPenilaianPage() {
                 <TableHeader className="bg-slate-50/50 dark:bg-black/20">
                     <TableRow className="border-b border-slate-100">
                         <TableHead className="py-6 px-8 font-black text-slate-400 uppercase text-[11px]">Nama Peserta</TableHead>
-                        <TableHead className="font-black text-slate-400 uppercase text-[11px]">Instansi</TableHead>
+                        <TableHead className="font-black text-slate-400 uppercase text-[11px]">Instansi / Kampus</TableHead>
                         <TableHead className="font-black text-slate-400 uppercase text-[11px]">Status</TableHead>
                         <TableHead className="font-black text-slate-400 uppercase text-[11px]">Rata-rata</TableHead>
-                        <TableHead className="text-right px-8 font-black text-slate-400 uppercase text-[11px]">Aksi</TableHead>
+                        <TableHead className="text-right px-8 font-black text-slate-400 uppercase text-[11px]">Tindakan</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredEvals.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="py-20 text-center text-slate-400 italic">Zonk bre, ga ada data...</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="py-20 text-center text-slate-400 italic">Tidak ada data evaluasi peserta ditemukan.</TableCell></TableRow>
                     ) : (
                         filteredEvals.map((ev) => (
                             <TableRow key={ev.id} className="group border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -172,11 +186,11 @@ export default function AdminPenilaianPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-slate-600 dark:text-gray-400 font-bold text-sm">
-                                    {ev.user?.internProfile?.university || "Umum"}
+                                    {ev.user?.internProfile?.instansi || "Umum"}
                                 </TableCell>
                                 <TableCell>
                                     <Badge className={`rounded-full px-3 py-1 border-none font-black text-[9px] uppercase tracking-wider ${ev.status === "GRADED" ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700 animate-pulse"}`}>
-                                        {ev.status === "GRADED" ? "Diterbitkan" : "Menunggu"}
+                                        {ev.status === "GRADED" ? "Dinilai" : "Menunggu"}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
@@ -191,13 +205,14 @@ export default function AdminPenilaianPage() {
                                       setIsDialogOpen(open);
                                       if (open) {
                                           setSelectedEval(ev);
+                                          setNomorSurat(ev.nomorSurat || "");
                                           if (ev.status === "GRADED") {
                                               setNilai({ 
                                                 n1: ev.nilaiDisiplin || 0, 
                                                 n2: ev.nilaiTanggungJawab || 0, 
-                                                n3: ev.nilaiInisiatif || 0, 
-                                                n4: ev.nilaiKerjasama || 0, 
-                                                n5: ev.nilaiKualitas || 0 
+                                                n3: ev.nilaiKerjasama || 0, 
+                                                n4: ev.nilaiInisiatif || 0, 
+                                                n5: ev.nilaiSikap || 0 
                                               });
                                           } else {
                                               setNilai({ n1: 0, n2: 0, n3: 0, n4: 0, n5: 0 });
@@ -210,36 +225,51 @@ export default function AdminPenilaianPage() {
                                                 variant={ev.status === "GRADED" ? "outline" : "default"}
                                                 className={`rounded-xl h-10 px-5 font-black group transition-all ${ev.status !== "GRADED" ? "bg-[#99775C] hover:bg-[#7a5e48]" : ""}`}
                                             >
-                                                {ev.status === "GRADED" ? "Review" : "Beri Nilai"}
+                                                {ev.status === "GRADED" ? "Tinjau Data" : "Beri Penilaian"}
                                                 <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                                             </Button>
                                         </DialogTrigger>
                                         
                                         <DialogContent className="max-w-2xl rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white dark:bg-[#1c1917]">
                                             <div className="bg-gradient-to-r from-[#99775C] to-[#8a6b52] p-8 text-white">
-                                                <DialogTitle className="text-2xl font-black tracking-tight">Evaluasi Peserta</DialogTitle>
+                                                <DialogTitle className="text-2xl font-black tracking-tight">Evaluasi Peserta Magang</DialogTitle>
                                                 <DialogDescription className="text-white/80 mt-1 font-medium italic">
-                                                    Penilaian Akhir: {ev.user?.name}
+                                                    Penilaian Kinerja Atas Nama: {ev.user?.name}
                                                 </DialogDescription>
                                             </div>
                                             
                                             <div className="p-8 space-y-6">
+                                                
+                                                <div className={`p-4 rounded-2xl border-2 ${isKepegawaian ? "border-blue-200 bg-blue-50" : "border-slate-100 bg-slate-50 opacity-80"}`}>
+                                                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2 block">
+                                                        Nomor Surat Keterangan
+                                                    </label>
+                                                    <Input 
+                                                        value={nomorSurat}
+                                                        onChange={(e) => setNomorSurat(e.target.value)}
+                                                        disabled={!isKepegawaian}
+                                                        placeholder={isKepegawaian ? "Contoh: 800/1234/PEG/2026" : "Hak akses khusus Subbag Kepegawaian"}
+                                                        className="font-bold bg-white"
+                                                    />
+                                                    {!isKepegawaian && <p className="text-[10px] text-slate-400 mt-1.5 italic">*Pengisian nomor surat hanya dapat dilakukan oleh admin Sub Bagian Kepegawaian.</p>}
+                                                </div>
+
                                                 <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-dashed border-slate-200 space-y-2">
                                                     <h4 className="text-[10px] font-black uppercase text-[#99775C] flex items-center gap-2 tracking-widest">
-                                                        <ClipboardList className="h-4 w-4" /> Laporan Pekerjaan
+                                                        <ClipboardList className="h-4 w-4" /> Laporan Luaran Pekerjaan
                                                     </h4>
                                                     <p className="text-sm text-slate-700 dark:text-gray-300 leading-relaxed italic whitespace-pre-wrap">
-                                                        "{ev.pekerjaan || "Peserta tidak mengisi laporan pekerjaan."}"
+                                                        "{ev.pekerjaan || "Peserta belum atau tidak mengisi rincian laporan pekerjaan."}"
                                                     </p>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                     {[
+                                                        { l: "Sikap dan Etika", k: "n5" }, 
                                                         { l: "Kedisiplinan", k: "n1" },
                                                         { l: "Tanggung Jawab", k: "n2" },
-                                                        { l: "Inisiatif", k: "n3" },
-                                                        { l: "Kerjasama Tim", k: "n4" },
-                                                        { l: "Kualitas Kerja", k: "n5", full: true },
+                                                        { l: "Kerjasama & Komunikasi", k: "n3" },
+                                                        { l: "Inisiatif & Inovasi", k: "n4", full: true },
                                                     ].map((f) => (
                                                         <div key={f.k} className={`space-y-2 ${f.full ? "md:col-span-2" : ""}`}>
                                                             <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">{f.l}</label>
@@ -255,14 +285,28 @@ export default function AdminPenilaianPage() {
                                                     ))}
                                                 </div>
 
-                                                <Button 
-                                                    className="w-full h-14 rounded-2xl bg-[#99775C] hover:bg-[#7a5e48] text-white font-black text-lg shadow-xl shadow-[#99775C]/20 active:scale-[0.98] transition-all"
-                                                    onClick={handleGrade}
-                                                    disabled={submitting}
-                                                >
-                                                    {submitting ? <Loader2 className="animate-spin mr-2" /> : <UserCheck className="mr-2 h-6 w-6" />}
-                                                    SIMPAN & TERBITKAN
-                                                </Button>
+                                                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                                    <Button 
+                                                        className="flex-1 h-14 rounded-2xl bg-[#99775C] hover:bg-[#7a5e48] text-white font-black text-sm shadow-xl shadow-[#99775C]/20 active:scale-[0.98] transition-all"
+                                                        onClick={handleGrade}
+                                                        disabled={submitting}
+                                                    >
+                                                        {submitting ? <Loader2 className="animate-spin mr-2" /> : <UserCheck className="mr-2 h-5 w-5" />}
+                                                        SIMPAN DATA
+                                                    </Button>
+
+                                                    {ev.status === "GRADED" && isKepegawaian && (
+                                                        <Button 
+                                                            onClick={handlePrintPDF}
+                                                            variant="outline"
+                                                            className="flex-1 h-14 rounded-2xl border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-black text-sm active:scale-[0.98] transition-all"
+                                                        >
+                                                            <Printer className="mr-2 h-5 w-5" />
+                                                            CETAK SUKET PDF
+                                                        </Button>
+                                                    )}
+                                                </div>
+
                                             </div>
                                         </DialogContent>
                                     </Dialog>

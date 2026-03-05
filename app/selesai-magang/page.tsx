@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react"; // <-- Tambahan buat narik data user
+import { useSession } from "next-auth/react";
 import { 
-  Loader2, Send, FileText, Download, 
-  Menu, LayoutDashboard, History, User, LogOut,
-  Trophy, Star, ClipboardCheck, Sparkles,
-  GraduationCap
+  Loader2, Send, FileText, Menu, 
+  LayoutDashboard, History, User, LogOut,
+  Trophy, ClipboardCheck, Sparkles,
+  GraduationCap, CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,15 +22,12 @@ import LogoutModal from "@/components/LogoutModal";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export default function SelesaiMagangPage() {
-  // --- AMBIL DATA USER DARI SESSION ---
   const { data: session } = useSession();
   const user = session?.user || { name: "Memuat...", image: "" };
 
-  // --- STATE LAYOUT ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [startAnimation, setStartAnimation] = useState(false);
 
-  // --- STATE DATA ---
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState({ pekerjaan: "", deskripsi: "" });
@@ -52,7 +49,7 @@ export default function SelesaiMagangPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!data.pekerjaan || !data.deskripsi) {
-        return toast.error("Wajib diisi semua bre!");
+        return toast.error("Validasi Gagal", { description: "Seluruh kolom wajib diisi." });
     }
     setSubmitting(true);
     try {
@@ -62,11 +59,11 @@ export default function SelesaiMagangPage() {
         body: JSON.stringify(data),
       });
       if (res.ok) {
-        toast.success("Laporan akhir terkirim!", { description: "Tunggu admin kasih nilai ya." });
+        toast.success("Laporan Terkirim", { description: "Menunggu penilaian dari Admin Divisi." });
         setStatus("PENDING");
       }
     } catch (error) {
-      toast.error("Gagal kirim laporan");
+      toast.error("Terjadi Kesalahan", { description: "Gagal mengirim laporan akhir." });
     } finally {
       setSubmitting(false);
     }
@@ -129,8 +126,6 @@ export default function SelesaiMagangPage() {
              </Sheet>
              <h1 className="font-bold text-xl text-white">Laporan Akhir</h1>
           </div>
-
-          {/* BAGIAN PROFIL NAVBAR YANG UDAH DIKASIH ANIMASI SAMA KAYA LAINNYA */}
           <div className="flex items-center gap-3 text-white">
             <ModeToggle />
             <div className="h-6 w-px bg-white/20 hidden md:block mx-1"></div>
@@ -160,7 +155,7 @@ export default function SelesaiMagangPage() {
         {loading ? (
             <div className="flex flex-col items-center justify-center h-[60vh] text-[#99775C]">
                 <Loader2 className="h-10 w-10 animate-spin mb-4" />
-                <p className="font-medium animate-pulse">Menyiapkan berkas final...</p>
+                <p className="font-medium animate-pulse">Memuat formulir pelaporan...</p>
             </div>
         ) : (
             <div className={`space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-1000 ${startAnimation ? "opacity-100" : "opacity-0"}`}>
@@ -172,11 +167,11 @@ export default function SelesaiMagangPage() {
                     </div>
                     <div className="relative z-10 space-y-4 max-w-2xl">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold uppercase tracking-wider">
-                            <Sparkles className="h-3 w-3 text-yellow-300" /> Final Step
+                            <Sparkles className="h-3 w-3 text-yellow-300" /> Tahap Akhir Magang
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight">Sudah Selesai Masa Magangmu?</h2>
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight">Penyelesaian Masa Magang</h2>
                         <p className="text-[#EAE7DD]/90 text-sm md:text-base leading-relaxed">
-                            Keren banget perjuanganmu bre! Sekarang tinggal isi laporan akhir buat dapet nilai dari admin dan cetak sertifikat resmi Disdikpora DIY.
+                            Selamat telah menyelesaikan masa magang Anda. Silakan lengkapi laporan akhir di bawah ini untuk proses penilaian dan penerbitan Surat Keterangan Magang resmi dari Disdikpora DIY.
                         </p>
                     </div>
                 </div>
@@ -191,16 +186,16 @@ export default function SelesaiMagangPage() {
                                     <div className="p-2 bg-[#99775C]/10 rounded-xl text-[#99775C]">
                                         <ClipboardCheck className="h-6 w-6" />
                                     </div>
-                                    Output Laporan Magang
+                                    Keluaran Pekerjaan / Laporan Magang
                                 </CardTitle>
-                                <CardDescription>Tuliskan apa saja yang kamu hasilkan/kerjakan selama di dinas.</CardDescription>
+                                <CardDescription>Uraikan pekerjaan atau luaran yang dihasilkan selama pelaksanaan magang.</CardDescription>
                             </CardHeader>
                             <CardContent className="pt-8">
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     <div className="space-y-3">
                                         <Label className="text-sm font-bold text-slate-700 dark:text-[#EAE7DD]">Daftar Pekerjaan Utama</Label>
                                         <Textarea 
-                                            placeholder="Gunakan poin-poin agar lebih rapi..."
+                                            placeholder="Deskripsikan luaran pekerjaan Anda (disarankan menggunakan poin-poin)..."
                                             value={data.pekerjaan}
                                             onChange={(e) => setData({...data, pekerjaan: e.target.value})}
                                             disabled={status === "GRADED"}
@@ -208,9 +203,9 @@ export default function SelesaiMagangPage() {
                                         />
                                     </div>
                                     <div className="space-y-3">
-                                        <Label className="text-sm font-bold text-slate-700 dark:text-[#EAE7DD]">Kesan, Pesan & Deskripsi</Label>
+                                        <Label className="text-sm font-bold text-slate-700 dark:text-[#EAE7DD]">Kesan dan Pesan</Label>
                                         <Textarea 
-                                            placeholder="Gimana rasanya magang di sini bre?"
+                                            placeholder="Tuliskan kesan, pesan, dan pengalaman Anda selama magang di Instansi..."
                                             value={data.deskripsi}
                                             onChange={(e) => setData({...data, deskripsi: e.target.value})}
                                             disabled={status === "GRADED"}
@@ -224,7 +219,7 @@ export default function SelesaiMagangPage() {
                                             className="w-full h-14 bg-[#99775C] hover:bg-[#7a5e48] text-white rounded-2xl font-bold shadow-lg shadow-[#99775C]/20 active:scale-95 transition-all"
                                         >
                                             {submitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-5 w-5" />}
-                                            {status === "PENDING" ? "Perbarui Laporan" : "Kirim Laporan Sekarang"}
+                                            {status === "PENDING" ? "Perbarui Laporan" : "Kirim Laporan"}
                                         </Button>
                                     )}
                                 </form>
@@ -235,34 +230,33 @@ export default function SelesaiMagangPage() {
                     {/* STATUS SIDEBAR */}
                     <div className="space-y-6">
                         <Card className="border-none shadow-md bg-white dark:bg-[#1c1917] rounded-3xl overflow-hidden text-center p-8">
-                            <CardTitle className="text-lg mb-6 text-slate-700 dark:text-[#EAE7DD]">Status Berkas</CardTitle>
+                            <CardTitle className="text-lg mb-6 text-slate-700 dark:text-[#EAE7DD]">Status Pemberkasan</CardTitle>
                             <CardContent className="space-y-6">
                                 {status === "GRADED" ? (
                                     <div className="animate-in zoom-in-95 duration-500">
                                         <div className="h-24 w-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white dark:border-[#1c1917] shadow-lg">
-                                            <Trophy className="h-10 w-10 text-green-600" />
+                                            <CheckCircle2 className="h-10 w-10 text-green-600" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Nilai Keluar!</h3>
-                                        <p className="text-sm text-slate-500 mt-2">Selamat bre, kamu sudah resmi menyelesaikan masa magang.</p>
-                                        <Button className="mt-8 w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md">
-                                            <Download className="mr-2 h-4 w-4" /> Unduh Surat Keterangan
-                                        </Button>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Penilaian Selesai</h3>
+                                        <p className="text-sm text-slate-500 mt-2 px-2 leading-relaxed">
+                                            Laporan Anda telah dinilai oleh Admin Divisi. Surat Keterangan Magang resmi sedang diproses oleh <b>Sub Bagian Kepegawaian</b>. Silakan hubungi admin terkait untuk proses pengambilan berkas.
+                                        </p>
                                     </div>
                                 ) : status === "PENDING" ? (
                                     <div className="py-4">
                                         <div className="h-24 w-24 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white dark:border-[#1c1917] shadow-lg animate-pulse">
                                             <Loader2 className="h-10 w-10 text-yellow-600 animate-spin" />
                                         </div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-[#EAE7DD]">Laporan Diverifikasi</h3>
-                                        <p className="text-xs text-slate-500 mt-2 italic leading-relaxed px-4">Admin sedang meninjau pekerjaanmu dan memberikan penilaian aspek kedisiplinan.</p>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-[#EAE7DD]">Proses Verifikasi</h3>
+                                        <p className="text-xs text-slate-500 mt-2 leading-relaxed px-4">Admin terkait sedang meninjau pelaporan pekerjaan Anda untuk diberikan penilaian akhir.</p>
                                     </div>
                                 ) : (
                                     <div className="py-4">
                                         <div className="h-24 w-24 bg-slate-100 dark:bg-[#292524] rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white dark:border-[#1c1917] shadow-sm">
-                                            <Star className="h-10 w-10 text-slate-400" />
+                                            <FileText className="h-10 w-10 text-slate-400" />
                                         </div>
-                                        <h3 className="text-lg font-bold text-slate-400 italic">Belum Ada Data</h3>
-                                        <p className="text-xs text-slate-400 mt-2">Kirim laporan dulu biar admin bisa nilai bre.</p>
+                                        <h3 className="text-lg font-bold text-slate-400">Belum Mengajukan</h3>
+                                        <p className="text-xs text-slate-400 mt-2 px-2">Kirim laporan terlebih dahulu agar Admin Divisi dapat melakukan penilaian.</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -270,10 +264,10 @@ export default function SelesaiMagangPage() {
 
                         <div className="p-6 bg-[#99775C]/5 border border-[#99775C]/10 rounded-3xl">
                              <h4 className="text-sm font-bold text-[#99775C] flex items-center gap-2 mb-3 uppercase tracking-widest">
-                                <Sparkles className="h-4 w-4" /> Tips Final
+                                <Sparkles className="h-4 w-4" /> Informasi Penilaian
                              </h4>
                              <p className="text-[11px] text-slate-600 dark:text-gray-400 leading-loose">
-                                Pastikan daftar pekerjaan ditulis dengan detail. Admin akan menilai dari 5 aspek: Kedisiplinan, Tanggung Jawab, Inisiatif, Kerjasama, dan Kualitas Kerja.
+                                Pengisian data luaran pekerjaan dengan detail akan membantu proses penilaian. Admin akan menilai dari 5 aspek: Sikap & Etika, Kedisiplinan, Tanggung Jawab, Kerjasama Tim, serta Inisiatif & Inovasi.
                              </p>
                         </div>
                     </div>

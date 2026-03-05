@@ -39,13 +39,13 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   const [errorMessage, setErrorMessage] = useState("");
 
   // 1. Data Profil
-  const [profileData, setProfileData] = useState({
-    name: user.name || "",
-    email: user.email || "",
-    nip: user.nip || "",       
-    jabatan: user.jabatan || "" 
+  const [profileData, setProfileData] = useState({ 
+    name: user.name || "", 
+    email: user.email || "", 
+    image: user.image || "",
+    nip: user.nomorInduk || "", // <-- UBAH INI
+    jabatan: user.divisi || ""  // <-- UBAH INI
   });
-
   // 2. Data Pengaturan
   const [settingsData, setSettingsData] = useState({
     latitude: "",
@@ -103,9 +103,9 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: profileData.name,
-                nip: profileData.nip,
-                jabatan: profileData.jabatan
-            })
+                nomorInduk: profileData.nip, 
+                divisi: profileData.jabatan, 
+            }),
         });
 
         if (res.ok) {

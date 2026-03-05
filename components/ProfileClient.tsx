@@ -62,8 +62,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     name: user.name || "", 
     email: user.email || "", 
     image: user.image || "",
-    nip: user.nip || "",
-    jabatan: user.jabatan || ""
+    nip: user.nomorInduk || "",
+    jabatan: user.divisi || ""
   });
 
   const [opsSettings, setOpsSettings] = useState<any>(null);
@@ -202,7 +202,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: profileData.name,
-                nip: profileData.nip,
+                nomorInduk: profileData.nip, 
                 image: finalImagePath,
             }),
         });
