@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { 
-  Loader2, Send, FileText, Menu, 
-  LayoutDashboard, History, User, LogOut,
-  Trophy, ClipboardCheck, Sparkles,
+  Loader2, Send, FileText, Download, 
+  Menu, LayoutDashboard, History, User, LogOut,
+  Trophy, Star, ClipboardCheck, Sparkles,
   GraduationCap, CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
@@ -43,13 +43,14 @@ export default function SelesaiMagangPage() {
           setStatus(d.status);
         }
       })
+      .catch((err) => console.error("Error fetching evaluation:", err))
       .finally(() => setLoading(false));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data.pekerjaan || !data.deskripsi) {
-        return toast.error("Validasi Gagal", { description: "Seluruh kolom wajib diisi." });
+    if (!data.pekerjaan.trim() || !data.deskripsi.trim()) {
+        return toast.error("Validasi Gagal", { description: "Seluruh kolom laporan wajib diisi." });
     }
     setSubmitting(true);
     try {
@@ -58,10 +59,13 @@ export default function SelesaiMagangPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (res.ok) {
-        toast.success("Laporan Terkirim", { description: "Menunggu penilaian dari Admin Divisi." });
-        setStatus("PENDING");
+
+      if (!res.ok) {
+        throw new Error("Gagal mengirim laporan.");
       }
+
+      toast.success("Laporan Terkirim", { description: "Menunggu penilaian dari Admin Divisi." });
+      setStatus("PENDING");
     } catch (error) {
       toast.error("Terjadi Kesalahan", { description: "Gagal mengirim laporan akhir." });
     } finally {

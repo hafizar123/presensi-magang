@@ -13,7 +13,14 @@ export async function GET() {
     const evaluations = await prisma.finalEvaluation.findMany({
       include: {
         user: {
-          select: { name: true, email: true, internProfile: true }
+          select: { 
+            id: true,
+            name: true, 
+            email: true, 
+            nomorInduk: true, 
+            divisi: true,
+            internProfile: true 
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -33,29 +40,66 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    
-    // SESUAIKAN: n1(disiplin), n2(tanggungjawab), n3(kerjasama), n4(inisiatif), n5(sikap)
-    const { id, n1, n2, n3, n4, n5, nomorSurat } = body; 
+    const { 
+      id, n1, n2, n3, n4, n5, nomorSurat, 
+      userData, userId 
+    } = body; 
 
-    // Hitung Rata-Rata (Pastikan nilainya tidak undefined)
+    if (!userId) {
+        return NextResponse.json({ message: "User ID tidak ditemukan" }, { status: 400 });
+    }
+
+    // 1. Hitung Rata-Rata
     const rataRata = ((n1 || 0) + (n2 || 0) + (n3 || 0) + (n4 || 0) + (n5 || 0)) / 5;
 
+    // 2. LOGIC FIX: Update User & Upsert InternProfile
+    // Pake upsert supaya kalau record profilnya belum ada, dia otomatis create
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: userData.name,
+        nomorInduk: userData.nomorInduk,
+        divisi: userData.divisi,
+        internProfile: {
+          upsert: {
+            create: {
+              instansi: userData.instansi,
+              jurusan: userData.jurusan,
+              startDate: new Date(), // Wajib ada di schema lu
+              endDate: new Date(),   // Wajib ada di schema lu
+            },
+            update: {
+              instansi: userData.instansi,
+              jurusan: userData.jurusan
+            }
+          }
+        }
+      }
+    });
+
+    // 3. Update Penilaian di tabel FinalEvaluation
+    // Sesuaikan n1-n5 dengan field schema lu (nilaiSikap, nilaiDisiplin, dll)
     await prisma.finalEvaluation.update({
       where: { id },
       data: {
-        nilaiSikap: n1,
-        nilaiDisiplin: n2,
-        nilaiTanggungJawab: n3,
-        nilaiKerjasama: n4, 
-        nilaiInisiatif: n5,
+        nilaiSikap: n5, 
+        nilaiDisiplin: n1,
+        nilaiTanggungJawab: n2,
+        nilaiKerjasama: n3, 
+        nilaiInisiatif: n4, 
         rataRata,
-        nomorSurat: nomorSurat !== undefined ? nomorSurat : undefined,
+        nomorSurat: nomorSurat || undefined,
         status: "GRADED"
       }
     });
 
-    return NextResponse.json({ message: "Data penilaian berhasil disimpan." });
+    return NextResponse.json({ 
+      success: true,
+      message: "Data penilaian dan verifikasi profil berhasil disimpan." 
+    });
+
   } catch (error) {
-    return NextResponse.json({ message: "Terjadi kesalahan server saat menyimpan penilaian." }, { status: 500 });
+    console.error("Error saving evaluation:", error);
+    return NextResponse.json({ message: "Gagal menyimpan data penilaian." }, { status: 500 });
   }
 }

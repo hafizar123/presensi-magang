@@ -7,11 +7,12 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, password, nip } = body;
+    // Tarik instansi sama jurusan dari request bray
+    const { name, email, password, nip, instansi, jurusan } = body;
 
-    if (!name || !email || !password || !nip) {
+    if (!name || !email || !password || !nip || !instansi || !jurusan) {
       return NextResponse.json(
-        { message: "Data belum lengkap!" },
+        { message: "Data belum lengkap ngab!" },
         { status: 400 }
       );
     }
@@ -36,13 +37,23 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Bikin User sekalian nge-create InternProfile-nya biar otomatis ke-link
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role: "INTERN", 
-        nip,
+        nomorInduk: nip, // Di schema lu namanya nomorInduk ngab
+        internProfile: {
+            create: {
+                instansi,
+                jurusan,
+                // Kasih dummy date dulu karena di register page belum ada input tanggal
+                startDate: new Date(),
+                endDate: new Date(),
+            }
+        }
       },
     });
 

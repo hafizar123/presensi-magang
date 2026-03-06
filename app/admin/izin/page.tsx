@@ -63,6 +63,7 @@ type LeaveRequest = {
 };
 
 export default function IzinPage() {
+  // Pastiin inisialnya array kosong bray
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -84,9 +85,17 @@ export default function IzinPage() {
     try {
       const res = await fetch("/api/admin/izin");
       const data = await res.json();
-      setRequests(data);
+      
+      // FIX NYA DI SINI BRAY: Make sure literally array
+      if (Array.isArray(data)) {
+        setRequests(data);
+      } else {
+        console.error("Waduh, API kaga nge-return array nih ngab:", data);
+        setRequests([]); // Fallback ke empty array biar page ga nge-blank
+      }
     } catch (error) {
-      console.error("Gagal ambil data izin");
+      console.error("Gagal ambil data izin bray:", error);
+      setRequests([]); // Kalo network error, tetep aman state-nya jadi array kosong
     } finally {
       setLoading(false);
     }
@@ -135,6 +144,7 @@ export default function IzinPage() {
   // 🔥 LOGIC FILTER GABUNGAN (STATUS, DIVISI, NAMA) 🔥
   const filteredRequests = requests.filter(req => {
     const matchStatus = filterStatus === "ALL" ? true : req.status === filterStatus;
+    // Notes: Pastiin property divisi di user itu namanya "jabatan" ngikutin schema lu bray
     const matchDivisi = filterDivisi === "ALL" ? true : req.user.jabatan === filterDivisi;
     const matchName = req.user.name.toLowerCase().includes(searchName.toLowerCase());
     return matchStatus && matchDivisi && matchName;
@@ -243,7 +253,7 @@ export default function IzinPage() {
                 </Select>
             </div>
 
-            {/* 3. PENCARIAN (Bonus sekalian dibikin biar mantep) */}
+            {/* 3. PENCARIAN */}
             <div className="relative w-full sm:w-[220px] shrink-0 group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
                 <Input 

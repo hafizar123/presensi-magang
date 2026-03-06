@@ -58,42 +58,49 @@ export async function GET(req: Request) {
 
     const textColor = rgb(0, 0, 0); // Warna Hitam
 
-    // =========================================================================
-    // ⚠️ KORDINAT X, Y BISA LU SESUAIKAN LAGI KALO MASIH MELeset
-    // Titik 0,0 ada di Pojok Kiri Bawah kertas.
-    // =========================================================================
-
-    // NULIS NOMOR SURAT 
+    // 1. NOMOR SURAT
     firstPage.drawText(evalData.nomorSurat || "", {
-        x: 120, y: 695, size: 11, font: fontBold, color: textColor
+        x: 286, 
+        y: 765.5, 
+        size: 12, 
+        font: fontRegular, 
+        color: textColor,
     });
 
-    // NULIS DATA DIRI (X disamain biar lurus setelah tanda titik dua ":")
-    const startXData = 220; 
-    firstPage.drawText(`: ${user.name}`, { x: startXData, y: 585, size: 11, font: fontRegular }); 
-    firstPage.drawText(`: ${user.nomorInduk || "-"}`, { x: startXData, y: 565, size: 11, font: fontRegular }); 
-    firstPage.drawText(`: ${profile?.instansi || "-"}`, { x: startXData, y: 545, size: 11, font: fontRegular }); 
-    firstPage.drawText(`: ${profile?.jurusan || "-"}`, { x: startXData, y: 525, size: 11, font: fontRegular }); 
-    firstPage.drawText(`: ${user.divisi || "-"}`, { x: startXData, y: 505, size: 11, font: fontRegular }); 
+    // 2. DATA DIRI PESERTA 
+    // X: 228
+    const startXData = 265.5; 
+    const lineSpacing = 16; 
+    const dataYStart = 641;   
+    
+    firstPage.drawText(user.name, { x: startXData, y: dataYStart, size: 12, font: fontRegular }); 
+    firstPage.drawText(user.nomorInduk || "-", { x: startXData, y: dataYStart - lineSpacing, size: 12, font: fontRegular }); 
+    firstPage.drawText(profile?.instansi || "-", { x: startXData, y: dataYStart - (lineSpacing * 2), size: 12, font: fontRegular }); 
+    firstPage.drawText(profile?.jurusan || "-", { x: startXData, y: dataYStart - (lineSpacing * 3), size: 12, font: fontRegular }); 
+    firstPage.drawText(user.divisi || "-", { x: startXData, y: dataYStart - (lineSpacing * 4), size: 12, font: fontRegular }); 
 
-    // NULIS ASPEK PENILAIAN DI TABEL 
-    const startXNilai = 450; 
-    firstPage.drawText(String(evalData.nilaiSikap || 0), { x: startXNilai, y: 395, size: 11, font: fontRegular }); 
-    firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: startXNilai, y: 375, size: 11, font: fontRegular }); 
-    firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: startXNilai, y: 355, size: 11, font: fontRegular }); 
-    firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: startXNilai, y: 335, size: 11, font: fontRegular }); 
-    firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: startXNilai, y: 315, size: 11, font: fontRegular }); 
+    // 3. ASPEK PENILAIAN DI TABEL 
+    // Sesuaikan X agar center di kolom nilai (biasanya antara 360-380)
+    const startXNilai = 372; 
+    const tableStartY = 428; 
+    const tableSpacing = 18.5; 
 
-    // NULIS RATA-RATA
-    firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: startXNilai, y: 285, size: 11, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiSikap || 0), { x: startXNilai, y: tableStartY, size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: startXNilai, y: tableStartY - tableSpacing, size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 2), size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 3), size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 4), size: 12, font: fontBold }); 
 
-    // NULIS KELUARAN KARYA / PEKERJAAN
+    // 4. RATA-RATA (Baris bawah tabel)
+    firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 366, y: 333, size: 11, font: fontBold }); 
+
+    // 5. OUTPUT MAGANG
     firstPage.drawText(evalData.pekerjaan || "-", { 
         x: 80, 
-        y: 220, 
-        size: 10, 
+        y: 285, 
+        size: 9, 
         font: fontRegular, 
-        maxWidth: 440, 
+        maxWidth: 460, 
         lineHeight: 14 
     });
 

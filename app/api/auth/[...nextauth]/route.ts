@@ -41,13 +41,15 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        // FIX: Return image juga biar kebaca session
+        // REVISI: Pastikan divisi dan nomorInduk di-return di sini biar bisa ditangkap JWT
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          image: user.image, 
+          image: user.image,
+          divisi: user.divisi,      // <-- WAJIB ADA MEK
+          nomorInduk: user.nomorInduk // <-- WAJIB ADA MEK
         };
       },
     }),
@@ -58,18 +60,19 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.role = user.role;
         token.id = user.id;
-        token.picture = user.image; // Mapping image ke picture
+        token.picture = user.image; 
         
-        // --- TAMBAHAN BARU ---
+        // --- SEKARANG INI PASTI ADA ISINYA ---
         token.divisi = user.divisi;         
         token.nomorInduk = user.nomorInduk; 
       }
 
-      // 2. FITUR PENTING: Update token saat client manggil update() (Misal ganti foto profil)
+      // 2. FITUR PENTING: Update token saat client manggil update()
       if (trigger === "update" && session) {
         token.name = session.user.name;
         token.picture = session.user.image;
-        // Kalau divisi bisa diupdate dari client, masukin sini juga (tapi kan ini dilock admin, jadi aman)
+        if (session.user.divisi) token.divisi = session.user.divisi;
+        if (session.user.nomorInduk) token.nomorInduk = session.user.nomorInduk;
       }
       
       return token;
@@ -78,10 +81,10 @@ export const authOptions: AuthOptions = {
       if (session?.user) {
         session.user.role = token.role;
         session.user.id = token.id;
-        session.user.image = token.picture; // Pastikan image masuk session
+        session.user.image = token.picture; 
         session.user.name = token.name;
         
-        // --- TAMBAHAN BARU ---
+        // --- OPER KE SESSION CLIENT ---
         session.user.divisi = token.divisi;         
         session.user.nomorInduk = token.nomorInduk; 
       }

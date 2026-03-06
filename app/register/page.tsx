@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, Mail, Lock, Eye, EyeOff, User, CheckCircle2, IdCard } from "lucide-react";
+import { 
+    Loader2, Mail, Lock, Eye, EyeOff, User, 
+    CheckCircle2, IdCard, Building2, BookOpen 
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +21,8 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [nip, setNip] = useState("");
   const [email, setEmail] = useState("");
+  const [instansi, setInstansi] = useState(""); // STATE BARU BRAY
+  const [jurusan, setJurusan] = useState("");   // STATE BARU BRAY
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
@@ -43,7 +48,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, nip, email, password }),
+        body: JSON.stringify({ name, nip, email, password, instansi, jurusan }), // SELIPIN DISINI
       });
 
       const data = await res.json();
@@ -52,7 +57,7 @@ export default function RegisterPage() {
         throw new Error(data.message || "Gagal mendaftar");
       }
 
-      toast.success("Registrasi Berhasil", { description: "Akun Anda telah dibuat. Silakan masuk." });
+      toast.success("Registrasi Berhasil", { description: "Akun lu udah jadi bray. Silakan masuk." });
       router.push("/login");
     } catch (error: any) {
       toast.error("Gagal Mendaftar", { description: error.message });
@@ -62,7 +67,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#1c1917]">
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#1c1917] py-10">
     
         <div className="absolute inset-0 z-0">
             <Image 
@@ -75,7 +80,7 @@ export default function RegisterPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-transparent to-[#0c0a09]/50" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[480px] px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="relative z-10 w-full max-w-[520px] px-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
             <div className="absolute inset-0 bg-[#99775C] blur-[60px] opacity-20 rounded-full pointer-events-none transform translate-y-4"></div>
 
@@ -95,33 +100,67 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleRegister} className="space-y-4">
                     
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Nama Lengkap</Label>
-                        <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
-                            <Input 
-                                type="text" 
-                                required 
-                                placeholder="Masukkan Nama Lengkap" 
-                                className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Nama Lengkap</Label>
+                            <div className="relative group">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                                <Input 
+                                    type="text" 
+                                    required 
+                                    placeholder="Nama Lengkap" 
+                                    className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">NIM / NISN</Label>
+                            <div className="relative group">
+                                <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                                <Input 
+                                    type="text" 
+                                    required 
+                                    placeholder="NIM / NISN" 
+                                    className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                    value={nip}
+                                    onChange={(e) => setNip(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">NIM / NISN</Label>
-                        <div className="relative group">
-                            <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
-                            <Input 
-                                type="text" 
-                                required 
-                                placeholder="Masukkan NIM / NISN" 
-                                className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
-                                value={nip}
-                                onChange={(e) => setNip(e.target.value)}
-                            />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Asal Instansi</Label>
+                            <div className="relative group">
+                                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                                <Input 
+                                    type="text" 
+                                    required 
+                                    placeholder="Sekolah/Kampus" 
+                                    className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                    value={instansi}
+                                    onChange={(e) => setInstansi(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider ml-1">Jurusan</Label>
+                            <div className="relative group">
+                                <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#99775C] transition-colors" />
+                                <Input 
+                                    type="text" 
+                                    required 
+                                    placeholder="Program Studi" 
+                                    className="h-11 pl-10 bg-slate-50 dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-xl focus-visible:ring-[#99775C] transition-all font-medium"
+                                    value={jurusan}
+                                    onChange={(e) => setJurusan(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
 

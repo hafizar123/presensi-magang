@@ -3,48 +3,43 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const evaluation = await prisma.finalEvaluation.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  return NextResponse.json(evaluation);
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const { pekerjaan, deskripsi } = body;
+    const { pekerjaan, deskripsi } = await req.json();
 
-    if (!pekerjaan || !deskripsi) {
-      return NextResponse.json({ message: "Semua field wajib diisi" }, { status: 400 });
-    }
-
-    // Simpan atau Update laporan akhir
-    const evaluation = await prisma.finalEvaluation.upsert({
+    // PERBAIKAN: Gunakan userId yang benar di bagian create dan update
+    const result = await prisma.finalEvaluation.upsert({
       where: { userId: session.user.id },
-      update: { pekerjaan, deskripsi, status: "PENDING" },
+      update: {
+        pekerjaan,
+        deskripsi,
+        status: "PENDING", // Reset status jadi pending kalau user update laporan
+      },
       create: {
-        userId: session.user.id,
+        userId: session.user.id, // WAJIB ADA MEK!
         pekerjaan,
         deskripsi,
         status: "PENDING",
       },
     });
 
-    return NextResponse.json({ message: "Laporan akhir berhasil dikirim", data: evaluation });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Error Final Evaluation:", error);
-    return NextResponse.json({ message: "Gagal memproses laporan" }, { status: 500 });
-  }
-}
-
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const data = await prisma.finalEvaluation.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ message: "Gagal mengambil data" }, { status: 500 });
+    console.error("Error saving evaluation:", error);
+    return NextResponse.json({ message: "Gagal menyimpan laporan." }, { status: 500 });
   }
 }
