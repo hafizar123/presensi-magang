@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Gunakan lib prisma agar koneksi efisien
+import prisma from "@/lib/prisma";
+
+// 🔥 FIX: Wajib tambahin ini biar data izin ga di-cache sama Next.js!
+export const dynamic = 'force-dynamic';
 
 // 1. GET: Ambil List Request (Serta data User & Divisinya)
 export async function GET() {
@@ -10,7 +13,7 @@ export async function GET() {
           select: {
             name: true,
             email: true,
-            jabatan: true, // AMBIL DATA DIVISI DI SINI
+            divisi: true, // 🔥 PASTIKAN UDAH DIVISI
           }
         } 
       },
@@ -23,7 +26,7 @@ export async function GET() {
   }
 }
 
-// 2. PUT: Proses Approve/Reject (Tetap sama seperti logika sebelumnya)
+// 2. PUT: Proses Approve/Reject
 export async function PUT(request: Request) {
   try {
     const body = await request.json();

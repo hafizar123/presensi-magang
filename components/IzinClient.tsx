@@ -42,7 +42,6 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
     setStartAnimation(true);
   }, []);
 
-  // --- HELPER FIX URL ---
   const getFileUrl = (path: string) => {
     if (!path) return "#";
     if (path.startsWith("http")) return path;
@@ -122,7 +121,6 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
       if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // --- INI YANG DIUBAH JADI VARIABEL JSX ---
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
@@ -169,10 +167,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
-      <nav 
-        className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm
-        ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`} 
-      >
+      <nav className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}>
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white">
                 <Menu className="h-6 w-6" />
@@ -186,7 +181,6 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[300px] border-none bg-transparent shadow-none">
                     <SheetTitle className="hidden">Menu Navigasi</SheetTitle>
-                    {/* MANGGILNYA DI SINI */}
                     {sidebarContent}
                 </SheetContent>
              </Sheet>
@@ -200,7 +194,8 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
             <Link href="/profile" className="flex items-center gap-3 pl-1 group">
                 <div className="hidden md:flex flex-col items-end">
                     <span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span>
-                    <span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span>
+                    {/* 🔥 FIX: Otomatis nampilin divisi usernya, ga cuma "Peserta Magang" doang */}
+                    <span className="text-[10px] text-[#EAE7DD]/80 font-medium">{user.divisi || "Peserta Magang"}</span>
                 </div>
                 <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
                     <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
@@ -212,18 +207,11 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
           </div>
       </nav>
 
-      <aside 
-        className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block 
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        {/* MANGGILNYA DI SINI JUGA */}
+      <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {sidebarContent}
       </aside>
 
-      <main 
-        className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8
-        ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}
-      >
+      <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         <div className="flex flex-col gap-8 w-full mx-auto">
             <div className={`w-full transition-all duration-1000 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
                 <div className="mb-4">

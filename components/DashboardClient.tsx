@@ -31,27 +31,20 @@ export default function DashboardClient({
   user, announcements, todayLog, stats, greeting 
 }: DashboardClientProps) {
   
-  // STATE LAYOUT & ANIMASI
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [startAnimation, setStartAnimation] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     setStartAnimation(true);
-    // Update jam tiap detik buat validasi tombol pulang otomatis (realtime)
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // --- LOGIC JAM PULANG DINAMIS ---
   const getScheduledEndHour = () => {
     const today = currentTime.getDay(); 
     const isFriday = today === 5;
-    
-    if (isFriday) {
-      return user.globalSettings?.endHourFri || "14:30";
-    }
-    return user.globalSettings?.endHour || "16:00";
+    return isFriday ? (user.globalSettings?.endHourFri || "14:30") : (user.globalSettings?.endHour || "16:00");
   };
 
   const scheduledEndHour = getScheduledEndHour();
@@ -60,25 +53,20 @@ export default function DashboardClient({
     const [hours, minutes] = scheduledEndHour.split(":").map(Number);
     const targetTime = new Date(currentTime);
     targetTime.setHours(hours, minutes, 0, 0);
-
     return currentTime >= targetTime;
   };
 
   const isWorkTimeOver = checkIsWorkTimeOver();
 
-  // --- LOGIC STATUS PERIODE ---
   let periodStatus = user.internProfile ? "ACTIVE" : "UNVERIFIED"; 
   let periodMessage = "";
 
   if (periodStatus === "UNVERIFIED") {
       periodMessage = "Akun Belum Diatur Admin";
   } else if (user.internProfile) {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const start = new Date(user.internProfile.startDate);
-      start.setHours(0,0,0,0);
-      const end = new Date(user.internProfile.endDate);
-      end.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const start = new Date(user.internProfile.startDate); start.setHours(0,0,0,0);
+      const end = new Date(user.internProfile.endDate); end.setHours(0,0,0,0);
 
       if (today < start) {
           periodStatus = "BEFORE";
@@ -89,7 +77,6 @@ export default function DashboardClient({
       }
   }
 
-  // --- LOGIC TAMPILAN STATUS ---
   let statusText = "Belum Presensi";
   let statusColor = "bg-white/10 text-white border-white/20 backdrop-blur-md";
   let StatusIcon = Clock;
@@ -118,7 +105,6 @@ export default function DashboardClient({
       }
   }
 
-  // --- INI YANG DIUBAH JADI VARIABEL JSX ---
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#EAE7DD] dark:bg-[#0c0a09] border-r border-[#d6d3c9] dark:border-[#1c1917] transition-colors duration-300">
         <div className="h-16 flex items-center gap-3 px-6 bg-[#99775C] dark:bg-[#271c19] text-white border-b border-[#8a6b52] dark:border-[#3f2e26] transition-colors duration-300">
@@ -158,7 +144,6 @@ export default function DashboardClient({
   return (
     <div className="min-h-screen bg-[#F2F5F8] dark:bg-[#0c0a09] font-sans transition-colors duration-300">
       
-      {/* NAVBAR */}
       <nav className={`fixed top-0 right-0 z-30 h-16 bg-[#99775C] dark:bg-[#271c19] border-b border-[#8a6b52] dark:border-[#3f2e26] flex items-center justify-between px-6 transition-all duration-300 ease-in-out shadow-sm ${isSidebarOpen ? "left-0 md:left-[280px]" : "left-0"}`}>
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden md:flex hover:bg-white/10 text-white"><Menu className="h-6 w-6" /></Button>
@@ -186,12 +171,10 @@ export default function DashboardClient({
           </div>
       </nav>
 
-      {/* SIDEBAR DESKTOP */}
       <aside className={`fixed left-0 top-0 bottom-0 z-40 w-[280px] bg-[#EAE7DD] dark:bg-[#0c0a09] shadow-xl transition-transform duration-300 ease-in-out hidden md:block ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {sidebarContent}
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className={`pt-24 px-4 md:px-8 pb-12 transition-all duration-300 ease-in-out space-y-8 ${isSidebarOpen ? "md:ml-[280px]" : "md:ml-0"}`}>
         
         {/* HERO SECTION */}
@@ -237,20 +220,25 @@ export default function DashboardClient({
 
         {/* PAPAN INFORMASI */}
         <div>
-            <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] flex items-center gap-2 mb-4 px-2"><Bell className="h-5 w-5 text-yellow-500" />Papan Informasi</h3>
+            {/* 🔥 ANIMASI LONCENG GOYANG 🔥 */}
+            <h3 className="font-bold text-slate-700 dark:text-[#EAE7DD] flex items-center gap-2 mb-4 px-2 group">
+                <Bell className="h-5 w-5 text-yellow-500 animate-[wiggle_1s_ease-in-out_infinite] group-hover:animate-none" />
+                Papan Informasi
+            </h3>
+            
             <div className="bg-white dark:bg-[#1c1917] rounded-3xl p-1 shadow-sm border border-slate-100 dark:border-[#292524] overflow-hidden">
                 {announcements.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 text-sm">Belum ada informasi terbaru.</div>
+                    <div className="p-8 text-center text-slate-400 text-sm italic">Belum ada informasi terbaru untuk saat ini.</div>
                 ) : (
                     announcements.map((info, index) => (
-                        <div key={info.id} className="group flex items-start gap-4 p-6 hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] rounded-2xl cursor-pointer border-b border-dashed border-slate-100 dark:border-[#292524] last:border-0 relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:shadow-md hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${index * 100}ms` }}>
-                            <div className="shrink-0 w-14 h-14 bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] rounded-2xl flex flex-col items-center justify-center font-bold shadow-sm group-hover:scale-110 transition-transform duration-300">
+                        <div key={info.id} className="group flex items-start gap-4 p-6 hover:bg-[#99775C]/5 dark:hover:bg-[#99775C]/10 rounded-2xl cursor-pointer border-b border-dashed border-slate-100 dark:border-[#292524] last:border-0 relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:shadow-sm hover:translate-x-1 animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className="shrink-0 w-14 h-14 bg-[#99775C]/10 text-[#99775C] dark:bg-[#99775C]/20 dark:text-[#EAE7DD] rounded-2xl flex flex-col items-center justify-center font-bold shadow-sm group-hover:bg-[#99775C] group-hover:text-white transition-all duration-300">
                                 <span className="text-[10px] uppercase tracking-wider">{new Date(info.createdAt).toLocaleString('id-ID', { month: 'short' })}</span>
                                 <span className="text-2xl leading-none">{new Date(info.createdAt).getDate()}</span>
                             </div>
                             <div className="space-y-1.5 flex-1">
                                 <h4 className="font-bold text-lg text-slate-800 dark:text-[#EAE7DD] group-hover:text-[#99775C] dark:group-hover:text-white transition-colors">{info.title}</h4>
-                                <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed">{info.content}</p>
+                                <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed line-clamp-2 group-hover:line-clamp-none transition-all">{info.content}</p>
                             </div>
                         </div>
                     ))
@@ -269,6 +257,14 @@ export default function DashboardClient({
             </div>
         </div>
       </main>
+
+      {/* 🔥 KEYFRAMES CUSTOM 🔥 */}
+      <style jsx global>{`
+        @keyframes wiggle {
+          0%, 100% { transform: rotate(-10deg); }
+          50% { transform: rotate(10deg); }
+        }
+      `}</style>
     </div>
   );
 }

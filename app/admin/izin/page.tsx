@@ -13,7 +13,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -53,7 +52,7 @@ type LeaveRequest = {
   user: { 
     name: string; 
     email: string;
-    jabatan: string | null; 
+    divisi: string | null; 
   };
   date: string;
   reason: string;
@@ -63,11 +62,9 @@ type LeaveRequest = {
 };
 
 export default function IzinPage() {
-  // Pastiin inisialnya array kosong bray
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // STATE FILTERING BARU BRAY
   const [filterStatus, setFilterStatus] = useState("PENDING");
   const [filterDivisi, setFilterDivisi] = useState("ALL");
   const [searchName, setSearchName] = useState("");
@@ -86,16 +83,15 @@ export default function IzinPage() {
       const res = await fetch("/api/admin/izin");
       const data = await res.json();
       
-      // FIX NYA DI SINI BRAY: Make sure literally array
       if (Array.isArray(data)) {
         setRequests(data);
       } else {
         console.error("Waduh, API kaga nge-return array nih ngab:", data);
-        setRequests([]); // Fallback ke empty array biar page ga nge-blank
+        setRequests([]); 
       }
     } catch (error) {
       console.error("Gagal ambil data izin bray:", error);
-      setRequests([]); // Kalo network error, tetep aman state-nya jadi array kosong
+      setRequests([]); 
     } finally {
       setLoading(false);
     }
@@ -141,11 +137,9 @@ export default function IzinPage() {
     }
   };
 
-  // 🔥 LOGIC FILTER GABUNGAN (STATUS, DIVISI, NAMA) 🔥
   const filteredRequests = requests.filter(req => {
     const matchStatus = filterStatus === "ALL" ? true : req.status === filterStatus;
-    // Notes: Pastiin property divisi di user itu namanya "jabatan" ngikutin schema lu bray
-    const matchDivisi = filterDivisi === "ALL" ? true : req.user.jabatan === filterDivisi;
+    const matchDivisi = filterDivisi === "ALL" ? true : req.user.divisi === filterDivisi;
     const matchName = req.user.name.toLowerCase().includes(searchName.toLowerCase());
     return matchStatus && matchDivisi && matchName;
   });
@@ -214,9 +208,7 @@ export default function IzinPage() {
           <p className="text-slate-500 dark:text-gray-400">Validasi pengajuan izin sakit atau cuti magang.</p>
         </div>
         
-        {/* BARISAN FILTER: DIVISI, STATUS, PENCARIAN BRAY */}
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-            
             {/* 1. FILTER DIVISI */}
             <div className="w-full sm:w-[180px] shrink-0">
                 <Select value={filterDivisi} onValueChange={setFilterDivisi}>
@@ -294,13 +286,12 @@ export default function IzinPage() {
                                         {req.status === "REJECTED" && <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 text-[10px]">Ditolak</Badge>}
                                     </CardTitle>
                                     
-                                    {/* MENAMPILKAN DIVISI DI SINI */}
                                     <div className="flex flex-col gap-1 mt-1">
                                         <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-gray-300">
                                             <User className="h-3.5 w-3.5" /> {req.user.name} 
                                         </div>
                                         <div className="text-[11px] flex items-center gap-1.5 font-bold text-[#99775C] dark:text-[#d6bba0] uppercase tracking-wide">
-                                            <Briefcase className="h-3 w-3" /> {req.user.jabatan || "Tanpa Divisi"}
+                                            <Briefcase className="h-3 w-3" /> {req.user.divisi || "Tanpa Divisi"}
                                         </div>
                                     </div>
                                 </div>

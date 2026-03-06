@@ -63,7 +63,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     email: user.email || "", 
     image: user.image || "",
     nip: user.nomorInduk || "",
-    jabatan: user.divisi || ""
+    divisi: user.divisi || ""
   });
 
   const [opsSettings, setOpsSettings] = useState<any>(null);
@@ -133,8 +133,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
      return fileToUpload !== null || 
             (user.image && !profileData.image && user.image !== "") ||
             (profileData.name !== user.name) ||
-            (profileData.nip !== (user.nip || "")) ||
-            (profileData.jabatan !== (user.jabatan || ""));
+            (profileData.nip !== (user.nomorInduk || "")) ||
+            (profileData.divisi !== (user.divisi || ""));
   };
 
   const handleNavigation = (e: React.MouseEvent, path: string) => {
@@ -163,8 +163,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
         name: user.name || "", 
         email: user.email || "", 
         image: user.image || "", 
-        nip: user.nip || "",
-        jabatan: user.jabatan || ""
+        nip: user.nomorInduk || "",
+        divisi: user.divisi || ""
     });
     if (pendingPath) router.push(pendingPath); 
     else if (pendingTab) setActiveTab(pendingTab);
@@ -397,7 +397,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         <div className="relative z-10 text-center md:text-left text-white space-y-3 flex-1 pt-2">
                             <div>
                                 <h2 className="text-3xl md:text-5xl font-black tracking-tight drop-shadow-sm">{user.name}</h2>
-                                <p className="text-[#EAE7DD] text-lg font-medium opacity-90 mt-1 uppercase tracking-widest">{user.jabatan || "Peserta Magang"}</p>
+                                <p className="text-[#EAE7DD] text-lg font-medium opacity-90 mt-1 uppercase tracking-widest">{user.divisi || "Peserta Magang"}</p>
                             </div>
                             <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
                                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-sm font-medium shadow-sm"><Mail className="h-4 w-4 text-yellow-300" /> {user.email}</div>
@@ -512,7 +512,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                                         <Label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1">Divisi / Penempatan</Label>
                                         <div className="relative">
                                             <Input 
-                                                value={profileData.jabatan || "Belum ditentukan"} 
+                                                value={profileData.divisi || "Belum ditentukan"} 
                                                 disabled 
                                                 className="h-12 rounded-2xl bg-slate-100/60 dark:bg-black/40 border-dashed border-slate-200 dark:border-white/10 text-slate-400 cursor-not-allowed pr-12 font-normal" 
                                             />

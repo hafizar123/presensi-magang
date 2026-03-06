@@ -62,7 +62,7 @@ export default function LoginPage() {
         }
 
         toast.success("Login Berhasil");
-        router.push("/");
+        router.push("/dashboard");
         router.refresh();
       }
     } catch (error) {
