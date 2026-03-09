@@ -83,7 +83,7 @@ export default function SelesaiMagangPage() {
         </div>
         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
             <h4 className="text-xs font-semibold text-[#8a6b52] dark:text-[#99775C] uppercase tracking-wider mb-2 px-2">Menu Utama</h4>
-            <Link href="/" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 rounded-xl font-medium transition-all group">
+            <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 rounded-xl font-medium transition-all group">
                 <LayoutDashboard className="h-5 w-5" /> Dashboard
             </Link>
             <Link href="/riwayat" className="flex items-center gap-3 px-4 py-3 text-[#5c4a3d] dark:text-[#EAE7DD] hover:bg-white/50 dark:hover:bg-[#1c1917]/50 rounded-xl font-medium transition-all group">
@@ -175,7 +175,7 @@ export default function SelesaiMagangPage() {
                         </div>
                         <h2 className="text-3xl md:text-4xl font-black tracking-tight">Penyelesaian Masa Magang</h2>
                         <p className="text-[#EAE7DD]/90 text-sm md:text-base leading-relaxed">
-                            Selamat telah menyelesaikan masa magang Anda. Silakan lengkapi laporan akhir di bawah ini untuk proses penilaian dan penerbitan Surat Keterangan Magang resmi dari Disdikpora DIY.
+                            Selamat telah menyelesaikan masa magang Anda. Silakan lengkapi formulir di bawah ini untuk proses penilaian dan penerbitan Surat Keterangan selesai magang dari Disdikpora DIY.
                         </p>
                     </div>
                 </div>
@@ -243,7 +243,7 @@ export default function SelesaiMagangPage() {
                                         </div>
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Penilaian Selesai</h3>
                                         <p className="text-sm text-slate-500 mt-2 px-2 leading-relaxed">
-                                            Laporan Anda telah dinilai oleh Admin Divisi. Surat Keterangan Magang resmi sedang diproses oleh <b>Sub Bagian Kepegawaian</b>. Silakan hubungi admin terkait untuk proses pengambilan berkas.
+                                            Hasil magang Anda telah dinilai oleh Admin Divisi. Surat Keterangan selesai magang sedang diproses oleh <b>Sub Bagian Kepegawaian</b>. 
                                         </p>
                                     </div>
                                 ) : status === "PENDING" ? (
@@ -260,7 +260,7 @@ export default function SelesaiMagangPage() {
                                             <FileText className="h-10 w-10 text-slate-400" />
                                         </div>
                                         <h3 className="text-lg font-bold text-slate-400">Belum Mengajukan</h3>
-                                        <p className="text-xs text-slate-400 mt-2 px-2">Kirim laporan terlebih dahulu agar Admin Divisi dapat melakukan penilaian.</p>
+                                        <p className="text-xs text-slate-400 mt-2 px-2">Lengkapi formulir dibawah ini terlebih dahulu agar Admin Divisi dapat melakukan penilaian.</p>
                                     </div>
                                 )}
                             </CardContent>

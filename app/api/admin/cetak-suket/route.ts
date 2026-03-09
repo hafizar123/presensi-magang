@@ -6,118 +6,128 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 
+// Helper Ambil Settings
+function getSettings() {
+  const configPath = path.join(process.cwd(), "settings.json");
+  if (!fs.existsSync(configPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  } catch (err) {
+    return {};
+  }
+}
+
+// Helper Format Tanggal
+const formatTanggal = (date: Date | string | null) => {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(date));
+};
+
+// --- FUNGSI SAKTI WRAPPER TEKS ---
+const wrapText = (text: string, maxWidth: number, font: any, size: number) => {
+  const words = text.split(' ');
+  let lines = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const width = font.widthOfTextAtSize(currentLine + ' ' + word, size);
+    if (width < maxWidth) {
+      currentLine += ' ' + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  lines.push(currentLine);
+  return lines;
+};
+
 export async function GET(req: Request) {
   try {
-    // 1. Cek Autentikasi Admin
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
-      return new NextResponse("Akses Ditolak. Khusus Admin.", { status: 401 });
+      return new NextResponse("Akses Ditolak", { status: 401 });
     }
 
-    // 2. Ambil parameter userId dari URL (?userId=cuid...)
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
+    if (!userId) return new NextResponse("User ID Kosong", { status: 400 });
 
-    if (!userId) {
-      return new NextResponse("User ID tidak ditemukan", { status: 400 });
-    }
-
-    // 3. Ambil data User beserta profil dan nilainya
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { 
-        internProfile: true,
-        finalEvaluation: true
-      }
+      include: { internProfile: true, finalEvaluation: true }
     });
 
-    if (!user || !user.finalEvaluation || user.finalEvaluation.status !== "GRADED") {
-      return new NextResponse("Data penilaian belum lengkap atau user tidak ditemukan.", { status: 400 });
-    }
+    if (!user || !user.finalEvaluation) return new NextResponse("Data Tidak Ditemukan", { status: 404 });
 
     const evalData = user.finalEvaluation;
     const profile = user.internProfile;
+    const appSettings = getSettings();
 
-    // 4. Load Template PDF dari folder public
+    const finalKadis = evalData.customKepalaDinas || appSettings.kepalaDinasName || "-";
+    const finalLamaHari = evalData.customLamaHari || "-";
+    const finalTanggal = evalData.customTanggalPelaksanaan || "-";
+
     const templatePath = path.join(process.cwd(), "public", "SUKET MAGANG_DRAFT APLIKASI.pdf");
-    
-    if (!fs.existsSync(templatePath)) {
-      return new NextResponse("Template PDF tidak ditemukan di server.", { status: 404 });
-    }
-
     const existingPdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const firstPage = pdfDoc.getPages()[0]; 
     
-    // Kita main di halaman pertama
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0]; 
-    
-    // Load Font standar
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    const textColor = rgb(0, 0, 0); // Warna Hitam
-
-    // 1. NOMOR SURAT
-    firstPage.drawText(evalData.nomorSurat || "", {
-        x: 286, 
-        y: 765.5, 
-        size: 12, 
-        font: fontRegular, 
-        color: textColor,
-    });
-
-    // 2. DATA DIRI PESERTA 
-    // X: 228
+    // 1. DATA HEADER & DIRI (Koordinat Base Lu)
+    firstPage.drawText(finalKadis, { x: 265.5, y: 700, size: 12, font: fontRegular });
+    firstPage.drawText(evalData.nomorSurat || "", { x: 286, y: 765.5, size: 12, font: fontRegular });
+    
     const startXData = 265.5; 
     const lineSpacing = 16; 
     const dataYStart = 641;   
-    
     firstPage.drawText(user.name, { x: startXData, y: dataYStart, size: 12, font: fontRegular }); 
     firstPage.drawText(user.nomorInduk || "-", { x: startXData, y: dataYStart - lineSpacing, size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.instansi || "-", { x: startXData, y: dataYStart - (lineSpacing * 2), size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.jurusan || "-", { x: startXData, y: dataYStart - (lineSpacing * 3), size: 12, font: fontRegular }); 
     firstPage.drawText(user.divisi || "-", { x: startXData, y: dataYStart - (lineSpacing * 4), size: 12, font: fontRegular }); 
+    firstPage.drawText(finalLamaHari, { x: startXData, y: dataYStart - (lineSpacing * 5) - 3, size: 12, font: fontRegular });
+    firstPage.drawText(finalTanggal, { x: startXData, y: dataYStart - (lineSpacing * 6) - 3, size: 12, font: fontRegular });
 
-    // 3. ASPEK PENILAIAN DI TABEL 
-    // Sesuaikan X agar center di kolom nilai (biasanya antara 360-380)
+    // 2. TABEL NILAI
     const startXNilai = 372; 
     const tableStartY = 428; 
     const tableSpacing = 18.5; 
-
     firstPage.drawText(String(evalData.nilaiSikap || 0), { x: startXNilai, y: tableStartY, size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: startXNilai, y: tableStartY - tableSpacing, size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 2), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 3), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 4), size: 12, font: fontBold }); 
-
-    // 4. RATA-RATA (Baris bawah tabel)
     firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 366, y: 333, size: 11, font: fontBold }); 
 
-    // 5. OUTPUT MAGANG
-    firstPage.drawText(evalData.pekerjaan || "-", { 
-        x: 80, 
-        y: 285, 
-        size: 9, 
-        font: fontRegular, 
-        maxWidth: 460, 
-        lineHeight: 14 
+    // 3. OUTPUT MAGANG (DENGAN WRAPPER OTOMATIS)
+    const teksPekerjaan = (evalData.pekerjaan || "-").replace(/\n/g, ' ');
+    const wrappedLines = wrapText(teksPekerjaan, 420, fontRegular, 9);
+
+    wrappedLines.forEach((line, index) => {
+        firstPage.drawText(line, {
+            x: 80,
+            y: 285 - (index * 12), // Nurunin 12pt tiap baris
+            size: 9,
+            font: fontRegular,
+        });
     });
 
-    // 5. Simpan PDF
-    const pdfBytes = await pdfDoc.save();
+    // 4. TANDA TANGAN
+    const tglTTD = `Yogyakarta, ${formatTanggal(new Date())}`; 
+    firstPage.drawText(tglTTD, { x: 380, y: 160, size: 11, font: fontRegular });
+    firstPage.drawText(finalKadis, { x: 380, y: 80, size: 11, font: fontBold });
 
-    // FIX ERROR: Bungkus pake Buffer.from()
+    const pdfBytes = await pdfDoc.save();
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="Suket_Magang_${user.name}.pdf"`, 
-      },
+      headers: { "Content-Type": "application/pdf" },
     });
 
   } catch (error) {
-    console.error("Error Generate PDF:", error);
-    return new NextResponse("Terjadi kesalahan saat mencetak PDF", { status: 500 });
+    return new NextResponse("Error", { status: 500 });
   }
 }

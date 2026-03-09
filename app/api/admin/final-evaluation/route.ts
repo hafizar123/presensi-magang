@@ -40,19 +40,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    
+    // --- 1. TANGKAP PEKERJAAN & PREVIEW DATA DARI FRONTEND ---
     const { 
       id, n1, n2, n3, n4, n5, nomorSurat, 
-      userData, userId 
+      userData, userId,
+      pekerjaan, previewData
     } = body; 
 
     if (!userId) {
         return NextResponse.json({ message: "User ID tidak ditemukan" }, { status: 400 });
     }
 
-    // 1. Hitung Rata-Rata
+    // Hitung Rata-Rata
     const rataRata = ((n1 || 0) + (n2 || 0) + (n3 || 0) + (n4 || 0) + (n5 || 0)) / 5;
 
-    // 2. LOGIC FIX: Update User & Upsert InternProfile
+    // LOGIC FIX: Update User & Upsert InternProfile
     // Pake upsert supaya kalau record profilnya belum ada, dia otomatis create
     await prisma.user.update({
       where: { id: userId },
@@ -78,7 +81,6 @@ export async function POST(req: Request) {
     });
 
     // 3. Update Penilaian di tabel FinalEvaluation
-    // Sesuaikan n1-n5 dengan field schema lu (nilaiSikap, nilaiDisiplin, dll)
     await prisma.finalEvaluation.update({
       where: { id },
       data: {
@@ -89,7 +91,15 @@ export async function POST(req: Request) {
         nilaiInisiatif: n4, 
         rataRata,
         nomorSurat: nomorSurat || undefined,
-        status: "GRADED"
+        status: "GRADED",
+        
+        // --- 2. UPDATE TEXT LAPORAN LUARAN (PEKERJAAN) ---
+        pekerjaan: pekerjaan !== undefined ? pekerjaan : undefined,
+
+        // --- 3. UPDATE DATA CUSTOM CETAK PDF DARI ADMIN ---
+        customKepalaDinas: previewData?.kepalaDinas,
+        customLamaHari: previewData?.lamaHari,
+        customTanggalPelaksanaan: previewData?.tanggalPelaksanaan,
       }
     });
 

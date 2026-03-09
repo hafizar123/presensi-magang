@@ -10,5 +10,6 @@
   "opStartFri": "07:30",
   "opEndFri": "14:30",
   "attendanceStart": "06:00",
-  "attendanceLimit": "07:30"
+  "attendanceLimit": "07:30",
+  "kepalaDinasName": "Drs. Suhirman, M.Pd"
 }

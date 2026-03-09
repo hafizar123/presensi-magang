@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { 
   User, Shield, MapPin, Save, AlertCircle, 
-  CheckCircle2, Eye, EyeOff, Lock, Loader2, XCircle, Clock, CalendarDays, MousePointerClick
+  CheckCircle2, Eye, EyeOff, Lock, Loader2, XCircle, Clock, CalendarDays, MousePointerClick,
+  FileText
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,10 +22,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // <-- TAMBAHAN IMPORT SELECT
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
-// <-- TAMBAHAN: Daftar Divisi
 const DIVISI_OPTIONS = [
     "Sub Bagian Keuangan",
     "Sub Bagian Kepegawaian",
@@ -50,7 +50,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // 1. Data Profil (UPDATE: nip -> nomorInduk, jabatan -> divisi)
+  // 1. Data Profil
   const [profileData, setProfileData] = useState({
     name: user.name || "",
     email: user.email || "",
@@ -58,7 +58,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
     divisi: user.divisi || "" 
   });
 
-  // 2. Data Pengaturan
+  // 2. Data Pengaturan (Ada kepalaDinasName)
   const [settingsData, setSettingsData] = useState({
     latitude: "",
     longitude: "",
@@ -69,6 +69,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
     opEndFri: "14:30",
     attendanceStart: "06:00",
     attendanceLimit: "07:30",
+    kepalaDinasName: "", 
   });
 
   // 3. Data Keamanan
@@ -90,8 +91,8 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 ...prev,
                 name: data.name || prev.name,
                 email: data.email || prev.email,
-                nomorInduk: data.nomorInduk || "", // UPDATE
-                divisi: data.divisi || ""          // UPDATE
+                nomorInduk: data.nomorInduk || "", 
+                divisi: data.divisi || ""          
             }));
         }
       })
@@ -106,7 +107,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
   }, []);
 
   // --- HANDLERS ---
-
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
@@ -115,8 +115,8 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: profileData.name,
-                nomorInduk: profileData.nomorInduk, // UPDATE
-                divisi: profileData.divisi          // UPDATE
+                nomorInduk: profileData.nomorInduk, 
+                divisi: profileData.divisi          
             })
         });
 
@@ -145,7 +145,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             body: JSON.stringify(settingsData)
         });
         if(res.ok) {
-            setSuccessMessage("Pengaturan sistem berhasil disimpan.");
+            setSuccessMessage("Pengaturan sistem dan master data berhasil disimpan.");
             setShowSuccess(true);
         } else {
             setErrorMessage("Gagal menyimpan pengaturan sistem.");
@@ -238,14 +238,17 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
       {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Pengaturan Sistem</h1>
-        <p className="text-slate-500 dark:text-gray-400">Kelola profil administrator, jam operasional, dan geofencing.</p>
+        <p className="text-slate-500 dark:text-gray-400">Kelola profil administrator, jam operasional, geofencing, dan master data.</p>
       </div>
 
-      {/* TABS */}
+      {/* TABS - Default ke Profil */}
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524] mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-slate-100 dark:bg-[#1c1917] p-1 rounded-xl h-auto border dark:border-[#292524] mb-6">
           <TabsTrigger value="profile" className="py-2.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm data-[state=active]:text-[#99775C] transition-all">
             <User className="h-4 w-4 mr-2" /> Profil Admin
+          </TabsTrigger>
+          <TabsTrigger value="surat" className="py-2.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm data-[state=active]:text-[#99775C] transition-all">
+            <FileText className="h-4 w-4 mr-2" /> Data Surat
           </TabsTrigger>
           <TabsTrigger value="time" className="py-2.5 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-[#292524] data-[state=active]:shadow-sm data-[state=active]:text-[#99775C] transition-all">
             <Clock className="h-4 w-4 mr-2" /> Waktu & Presensi
@@ -283,7 +286,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                     <Input value={profileData.nomorInduk} onChange={(e) => setProfileData({...profileData, nomorInduk: e.target.value})} className="h-11 border-slate-200 focus-visible:ring-[#99775C]" placeholder="Masukkan Nomor Induk" />
                 </div>
                 
-                {/* UPDATE: Divisi Input diubah jadi Dropdown Select */}
                 <div className="space-y-2">
                     <Label className="font-bold text-slate-700 dark:text-slate-300">Divisi / Penempatan</Label>
                     <Select value={profileData.divisi} onValueChange={(val) => setProfileData({...profileData, divisi: val})}>
@@ -308,7 +310,35 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
           </Card>
         </TabsContent>
 
-        {/* --- 2. TAB WAKTU & PRESENSI --- */}
+        {/* --- 2. TAB DATA SURAT --- */}
+        <TabsContent value="surat" className="space-y-6">
+          <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
+            <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
+              <CardTitle className="text-slate-900 dark:text-[#EAE7DD] flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#99775C]" /> Master Data Instansi
+              </CardTitle>
+              <CardDescription>Atur data pejabat yang akan digunakan sebagai penanda tangan otomatis di Surat Keterangan Magang.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="space-y-2 max-w-xl">
+                  <Label className="font-bold text-slate-700 dark:text-slate-300">Nama Kepala Dinas</Label>
+                  <Input 
+                      value={settingsData.kepalaDinasName || ""} 
+                      onChange={(e) => setSettingsData({...settingsData, kepalaDinasName: e.target.value})} 
+                      className="h-11 focus-visible:ring-[#99775C]" 
+                  />
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 italic">Nama ini akan tercetak otomatis pada cetakan Surat Keterangan Selesai Magang PDF.</p>
+              </div>
+            </CardContent>
+            <CardFooter className="bg-slate-50 dark:bg-[#292524]/30 border-t border-slate-100 dark:border-[#292524] px-6 py-4 flex justify-end">
+                <Button onClick={handleSaveSettings} disabled={loading} className="bg-[#99775C] hover:bg-[#86664d] text-white shadow-md active:scale-95 transition-all">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Simpan Master Data
+                </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* --- 3. TAB WAKTU & PRESENSI --- */}
         <TabsContent value="time" className="space-y-6">
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
@@ -318,7 +348,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                     <CardDescription>Atur jam kerja institusi untuk hari biasa dan khusus hari Jumat.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                    {/* Senin - Kamis */}
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
                             <CalendarDays className="h-4 w-4 text-blue-500" /> Senin - Kamis
@@ -337,7 +366,6 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
 
                     <Separator className="bg-slate-100 dark:bg-[#292524]" />
 
-                    {/* Jumat */}
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
                             <CalendarDays className="h-4 w-4 text-green-500" /> Khusus Jumat
@@ -401,7 +429,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
             </Card>
         </TabsContent>
 
-        {/* --- 3. TAB LOKASI KANTOR --- */}
+        {/* --- 4. TAB LOKASI KANTOR --- */}
         <TabsContent value="location" className="space-y-6">
           <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
             <CardHeader className="border-b border-slate-100 dark:border-[#292524]">
@@ -437,7 +465,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
           </Card>
         </TabsContent>
 
-        {/* --- 4. TAB KEAMANAN --- */}
+        {/* --- 5. TAB KEAMANAN --- */}
         <TabsContent value="security" className="space-y-6">
             <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917]">
                 <CardHeader className="border-b border-slate-100 dark:border-[#292524]">

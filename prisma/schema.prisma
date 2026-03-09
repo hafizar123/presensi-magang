@@ -88,6 +88,9 @@ model FinalEvaluation {
   pekerjaan           String   @db.Text 
   deskripsi           String   @db.Text 
   nomorSurat          String?
+  customKepalaDinas        String?
+  customLamaHari           String?
+  customTanggalPelaksanaan String?
   
   nilaiSikap          Int?
   nilaiDisiplin       Int?

@@ -6,7 +6,7 @@ import {
   Loader2, Star, UserCheck, Search, 
   ChevronRight, ClipboardList, Award, TrendingUp, Printer,
   User, School, BookOpen, Briefcase, Hash, FileText, CheckCircle2,
-  LayoutDashboard, Clock
+  LayoutDashboard, Clock, FileBadge
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,18 +25,40 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const DIVISI_OPTIONS = [
-  "Sub Bagian Keuangan",
-  "Sub Bagian Kepegawaian",
-  "Sub Bagian Umum",
-  "Bidang Perencanaan dan Pengembangan Mutu Pendidikan, Pemuda, dan Olahraga",
-  "Bidang Pembinaan Sekolah Menengah Atas",
-  "Bidang Pembinaan Sekolah Menengah Kejuruan",
-  "Bidang Pendidikan Khusus dan Layanan Khusus",
+    "Sub Bagian Keuangan",
+    "Sub Bagian Kepegawaian",
+    "Sub Bagian Umum",
+    "Bidang Perencanaan dan Pengembangan Mutu Pendidikan, Pemuda, dan Olahraga",
+    "Bidang Pembinaan Sekolah Menengah Atas",
+    "Bidang Pembinaan Sekolah Menengah Kejuruan",
+    "Bidang Pendidikan Khusus dan Layanan Khusus",
 ];
+
+// --- HELPER UNTUK PREVIEW CROSSCHECK ---
+const formatTanggal = (dateString: any) => {
+    if (!dateString) return "-";
+    return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(dateString));
+};
+
+const hitungHariKerja = (start: any, end: any) => {
+    if (!start || !end) return 0;
+    const d1 = new Date(start);
+    const d2 = new Date(end);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+
+    let count = 0;
+    let curDate = new Date(d1);
+    while (curDate <= d2) {
+        const dayOfWeek = curDate.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+        curDate.setDate(curDate.getDate() + 1);
+    }
+    return count;
+};
 
 export default function AdminPenilaianPage() {
   const { data: session } = useSession();
@@ -48,10 +70,23 @@ export default function AdminPenilaianPage() {
   const [selectedEval, setSelectedEval] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   
+  // State global
+  const [globalKadis, setGlobalKadis] = useState("Memuat...");
+
   const [nilai, setNilai] = useState({ n1: 0, n2: 0, n3: 0, n4: 0, n5: 0 });
   const [nomorSurat, setNomorSurat] = useState("");
   const [editDataDiri, setEditDataDiri] = useState({
     name: "", nomorInduk: "", instansi: "", jurusan: "", divisi: ""
+  });
+
+  // --- STATE BARU BUAT NAMPUNG HASIL EDITAN PDF (+ Tanggal Split & Teks Cetak) ---
+  const [editPreview, setEditPreview] = useState({
+    kepalaDinas: "",
+    lamaHari: "",
+    tanggalPelaksanaan: "", 
+    tglMulai: "", 
+    tglSelesai: "",
+    teksCetakPekerjaan: "" // <-- STATE BARU: Teks override buat cetakan
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -67,28 +102,56 @@ export default function AdminPenilaianPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchEvals(); }, []);
+  const fetchSettings = () => {
+      fetch("/api/admin/settings")
+        .then(res => res.json())
+        .then(data => setGlobalKadis(data.kepalaDinasName || "Belum Diatur"))
+        .catch(() => setGlobalKadis("Gagal Memuat Data"));
+  };
+
+  useEffect(() => { 
+      fetchEvals(); 
+      fetchSettings();
+  }, []);
+
+  // --- LOGIC AUTO-UPDATE SAAT KALENDER DIUBAH ---
+  const handleCustomDateChange = (start: string, end: string) => {
+      const rawHari = hitungHariKerja(start, end);
+      const rawTanggal = start && end ? `${formatTanggal(start)} s.d ${formatTanggal(end)}` : "-";
+      
+      setEditPreview(prev => ({
+          ...prev,
+          tglMulai: start,
+          tglSelesai: end,
+          lamaHari: `${rawHari} Hari Kerja`,
+          tanggalPelaksanaan: rawTanggal
+      }));
+  };
 
   const handleGrade = async () => {
     if (Object.values(nilai).some(v => v < 0 || v > 100)) {
       return toast.error("Validasi Gagal", { description: "Nilai harus antara 0 - 100." });
     }
     
+    // ERROR HANDLING MAKSIMAL KARAKTER OUTPUT KERJA
+    if (editPreview.teksCetakPekerjaan.length > 300) {
+        return toast.error("Teks Terlalu Panjang", { description: "Laporan Keluaran Magang maksimal 300 karakter."});
+    }
+
     setSubmitting(true);
     try {
-      // PASTIKAN SEMUA FIELD TERKIRIM KE BACKEND
       const payload = { 
           id: selectedEval?.id, 
-          userId: selectedEval?.user?.id, // ID USER PENTING MEK!
-          ...nilai, 
+          ...nilai,
           nomorSurat: isKepegawaian ? nomorSurat : selectedEval?.nomorSurat,
-          userData: {
-            name: editDataDiri.name,
-            nomorInduk: editDataDiri.nomorInduk,
-            instansi: editDataDiri.instansi,
-            jurusan: editDataDiri.jurusan,
-            divisi: editDataDiri.divisi
-          }
+          userData: editDataDiri,
+          userId: selectedEval?.user.id,
+          pekerjaan: editPreview.teksCetakPekerjaan, // Teks yang beneran dicetak nimpa DB `pekerjaan`
+          previewData: {
+              kepalaDinas: editPreview.kepalaDinas,
+              lamaHari: editPreview.lamaHari,
+              tanggalPelaksanaan: editPreview.tanggalPelaksanaan 
+          } 
       };
 
       const res = await fetch("/api/admin/final-evaluation", {
@@ -96,16 +159,13 @@ export default function AdminPenilaianPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
       if (res.ok) {
-        toast.success("Berhasil", { description: "Data penilaian dan profil tersimpan." });
+        toast.success("Berhasil", { description: "Penilaian dan profil telah diperbarui." });
         fetchEvals();
         setIsDialogOpen(false);
-      } else {
-        toast.error("Gagal menyimpan data ke server.");
       }
     } catch (err) {
-      toast.error("Terjadi kesalahan koneksi.");
+      toast.error("Terjadi Kesalahan", { description: "Gagal menyimpan data." });
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +177,7 @@ export default function AdminPenilaianPage() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER SECTION - Konsisten Tema */}
+      {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">Penilaian Kelulusan</h2>
@@ -139,12 +199,12 @@ export default function AdminPenilaianPage() {
         </div>
       </div>
 
-      {/* STATS SECTION - Dashboard Style */}
+      {/* STATS SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-            { label: "Total Masuk", val: evals.length, icon: User, color: "text-blue-600", bg: "bg-blue-100", delay: 100 },
-            { label: "Belum Dinilai", val: evals.filter((e) => e.status === "PENDING").length, icon: ClipboardList, color: "text-orange-600", bg: "bg-orange-100", delay: 200 },
-            { label: "Telah Dinilai", val: evals.filter((e) => e.status === "GRADED").length, icon: UserCheck, color: "text-emerald-600", bg: "bg-emerald-100", delay: 300 },
+            { label: "Total Masuk", val: evals.length, icon: User, color: "text-blue-600", bg: "bg-blue-100" },
+            { label: "Belum Dinilai", val: evals.filter((e) => e.status === "PENDING").length, icon: ClipboardList, color: "text-orange-600", bg: "bg-orange-100" },
+            { label: "Telah Dinilai", val: evals.filter((e) => e.status === "GRADED").length, icon: UserCheck, color: "text-emerald-600", bg: "bg-emerald-100" },
         ].map((s, i) => (
             <Card key={i} className="shadow-sm border-slate-200 dark:border-[#292524] bg-white dark:bg-[#1c1917] relative overflow-hidden h-auto flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-md rounded-2xl">
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><s.icon className={`w-20 h-20 ${s.color}`} /></div>
@@ -161,7 +221,7 @@ export default function AdminPenilaianPage() {
         ))}
       </div>
 
-      {/* TABLE SECTION - Brown Header Theme */}
+      {/* TABLE SECTION */}
       <Card className="border-none shadow-sm bg-white dark:bg-[#1c1917] overflow-hidden rounded-2xl">
         <CardHeader className="border-b border-slate-100 dark:border-[#292524] pb-4">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -236,6 +296,22 @@ export default function AdminPenilaianPage() {
                                                     n1: ev.nilaiDisiplin || 0, n2: ev.nilaiTanggungJawab || 0, 
                                                     n3: ev.nilaiKerjasama || 0, n4: ev.nilaiInisiatif || 0, n5: ev.nilaiSikap || 0 
                                                 });
+
+                                                // --- SETUP DEFAULT VALUE & TANGGAL BUAT DIEDIT ---
+                                                const defStart = ev.user?.internProfile?.startDate ? new Date(ev.user.internProfile.startDate).toISOString().split('T')[0] : "";
+                                                const defEnd = ev.user?.internProfile?.endDate ? new Date(ev.user.internProfile.endDate).toISOString().split('T')[0] : "";
+                                                const rawHari = hitungHariKerja(defStart, defEnd);
+                                                const rawTanggal = `${formatTanggal(defStart)} s.d ${formatTanggal(defEnd)}`;
+
+                                                setEditPreview({
+                                                    kepalaDinas: ev.customKepalaDinas || globalKadis,
+                                                    lamaHari: ev.customLamaHari || `${rawHari} Hari Kerja`,
+                                                    tanggalPelaksanaan: ev.customTanggalPelaksanaan || rawTanggal,
+                                                    tglMulai: defStart,
+                                                    tglSelesai: defEnd,
+                                                    teksCetakPekerjaan: ev.pekerjaan || "" // Default isinya dr db pekerjaan
+                                                });
+
                                                 setIsDialogOpen(true);
                                             }}
                                         >
@@ -251,9 +327,9 @@ export default function AdminPenilaianPage() {
         </CardContent>
       </Card>
 
-      {/* DIALOG FORM - Clean & Rapi */}
+      {/* DIALOG FORM KELOLA */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl p-0 border-none shadow-2xl bg-white dark:bg-[#0c0a09] scrollbar-hide">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-0 border-none shadow-2xl bg-white dark:bg-[#0c0a09] scrollbar-hide">
             <DialogHeader className="p-8 bg-slate-50 dark:bg-[#1c1917] border-b border-slate-100">
                 <div className="flex justify-between items-center">
                     <div className="space-y-1">
@@ -271,7 +347,8 @@ export default function AdminPenilaianPage() {
             </DialogHeader>
             
             <div className="p-8 space-y-10">
-                {/* 1. NOMOR SURAT SECTION */}
+                
+                {/* 1. NOMOR SURAT */}
                 <div className={`p-6 rounded-2xl border-2 transition-all ${isKepegawaian ? "border-[#99775C] bg-[#99775C]/5" : "border-slate-100 bg-slate-50 opacity-70"}`}>
                     <Label className="text-xs font-bold uppercase text-slate-500 mb-3 flex items-center gap-2 tracking-widest">
                         <Hash className="h-4 w-4 text-[#99775C]" /> Nomor Surat Keterangan
@@ -285,46 +362,83 @@ export default function AdminPenilaianPage() {
                     />
                 </div>
 
-                {/* 2. DATA DIRI SECTION (AUTO-FILL TAPI TETEP BISA DIEDIT) */}
-                <div className="space-y-5">
+                {/* --- SEKSI BARU: PREVIEW DATA CETAK (EDITABLE & DATEPICKER) --- */}
+                <div className="space-y-4">
                     <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                        <User className="h-4 w-4 text-[#99775C]" /> Verifikasi Identitas
+                        <FileBadge className="h-4 w-4 text-[#99775C]" /> Data Surat (Bisa Diedit Manual)
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="space-y-1.5">
-                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Nama Lengkap</Label>
-                            <Input value={editDataDiri.name} onChange={e => setEditDataDiri({...editDataDiri, name: e.target.value})} className="rounded-xl h-11 bg-white font-semibold" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-[11px] font-bold text-slate-400 ml-1">NIM / NIP</Label>
-                            <Input value={editDataDiri.nomorInduk} onChange={e => setEditDataDiri({...editDataDiri, nomorInduk: e.target.value})} className="rounded-xl h-11 bg-white font-semibold" />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-[#292524]">
                         
-                        {/* INI UDAH GUA BALIKIN BIAR BISA DIEDIT TAPI TETEP AUTO-FILL DARI AWAL */}
-                        <div className="space-y-1.5">
-                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Sekolah / Universitas</Label>
+                        <div className="space-y-1.5 md:col-span-2">
+                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Kepala Dinas Penanda Tangan</Label>
                             <Input 
-                                value={editDataDiri.instansi} 
-                                onChange={e => setEditDataDiri({...editDataDiri, instansi: e.target.value})}
-                                className="rounded-xl h-11 bg-white font-semibold" 
+                                value={editPreview.kepalaDinas} 
+                                onChange={e => setEditPreview({...editPreview, kepalaDinas: e.target.value})}
+                                className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold focus-visible:ring-[#99775C]" 
                             />
                         </div>
+                        
                         <div className="space-y-1.5">
-                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Program Studi</Label>
+                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Tanggal Mulai Magang</Label>
                             <Input 
-                                value={editDataDiri.jurusan} 
-                                onChange={e => setEditDataDiri({...editDataDiri, jurusan: e.target.value})}
-                                className="rounded-xl h-11 bg-white font-semibold" 
+                                type="date" 
+                                value={editPreview.tglMulai} 
+                                onChange={e => handleCustomDateChange(e.target.value, editPreview.tglSelesai)} 
+                                className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold focus-visible:ring-[#99775C]" 
+                            />
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Tanggal Selesai Magang</Label>
+                            <Input 
+                                type="date" 
+                                value={editPreview.tglSelesai} 
+                                onChange={e => handleCustomDateChange(editPreview.tglMulai, e.target.value)} 
+                                className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold focus-visible:ring-[#99775C]" 
                             />
                         </div>
 
                         <div className="space-y-1.5 md:col-span-2">
+                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Lama Hari Kerja (Dihitung Otomatis & Bisa Ditulis Manual)</Label>
+                            <Input 
+                                value={editPreview.lamaHari} 
+                                onChange={e => setEditPreview({...editPreview, lamaHari: e.target.value})}
+                                className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold focus-visible:ring-[#99775C]" 
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="h-px w-full bg-slate-200 dark:bg-[#292524]" />
+
+                {/* 2. DATA DIRI SECTION */}
+                <div className="space-y-5">
+                    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                        <User className="h-4 w-4 text-[#99775C]" /> Verifikasi Identitas
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-[#292524]">
+                        <div className="space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Nama Lengkap</Label>
+                            <Input value={editDataDiri.name} onChange={e => setEditDataDiri({...editDataDiri, name: e.target.value})} className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-400 ml-1">NIM / NIP</Label>
+                            <Input value={editDataDiri.nomorInduk} onChange={e => setEditDataDiri({...editDataDiri, nomorInduk: e.target.value})} className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Sekolah / Universitas</Label>
+                            <Input value={editDataDiri.instansi} onChange={e => setEditDataDiri({...editDataDiri, instansi: e.target.value})} className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-400 ml-1">Program Studi</Label>
+                            <Input value={editDataDiri.jurusan} onChange={e => setEditDataDiri({...editDataDiri, jurusan: e.target.value})} className="rounded-xl h-11 bg-white dark:bg-[#1c1917] font-semibold" />
+                        </div>
+                        <div className="space-y-1.5 md:col-span-2">
                             <Label className="text-[11px] font-bold text-slate-400 ml-1">Divisi Penempatan</Label>
                             <Select value={editDataDiri.divisi} onValueChange={(val) => setEditDataDiri({...editDataDiri, divisi: val})}>
-                                <SelectTrigger className="h-11 bg-white border-slate-200 rounded-xl font-semibold">
+                                <SelectTrigger className="h-11 bg-white dark:bg-[#1c1917] border-slate-200 rounded-xl font-semibold">
                                     <SelectValue placeholder="Pilih Divisi" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white">
+                                <SelectContent className="bg-white dark:bg-[#1c1917]">
                                     {DIVISI_OPTIONS.map((divisi) => (
                                         <SelectItem key={divisi} value={divisi}>{divisi}</SelectItem>
                                     ))}
@@ -347,14 +461,14 @@ export default function AdminPenilaianPage() {
                             { label: "Kerjasama Tim", key: "n3" },
                             { label: "Inisiatif & Inovasi", key: "n4" },
                         ].map((f) => (
-                            <div key={f.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <Label className="text-sm font-bold text-slate-700">{f.label}</Label>
+                            <div key={f.key} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-[#292524]">
+                                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">{f.label}</Label>
                                 <Input 
                                     type="number" 
                                     max={100}
                                     value={(nilai as any)[f.key] || ""} 
                                     onChange={e => setNilai({...nilai, [f.key]: +e.target.value})} 
-                                    className="w-16 h-10 text-center rounded-xl border-slate-200 font-black text-base" 
+                                    className="w-16 h-10 text-center rounded-xl border-slate-200 dark:bg-[#1c1917] font-black text-base" 
                                 />
                             </div>
                         ))}
@@ -366,22 +480,48 @@ export default function AdminPenilaianPage() {
                 </div>
 
                 {/* 4. OUTPUT PESERTA SECTION */}
-                <div className="space-y-4 pb-4">
-                    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-[#99775C]" /> Laporan Luaran Magang
-                    </h4>
-                    <div className="p-6 bg-slate-900 text-slate-200 rounded-[1.5rem] text-sm leading-loose italic border-l-8 border-[#99775C]">
-                        "{selectedEval?.pekerjaan || "Peserta tidak mengunggah laporan rincian pekerjaan."}"
-                    </div>
-                </div>
+<div className="space-y-4 pb-4">
+    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+        <FileText className="h-4 w-4 text-[#99775C]" /> Laporan Luaran Magang
+    </h4>
+    <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[1.5rem] border border-slate-100 dark:border-[#292524] space-y-6 overflow-hidden">
+        
+        {/* Teks Asli dari Peserta - FIX: break-words maksa turun kebawah */}
+        <div className="space-y-2 w-full">
+            <Label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Input Asli Peserta (Hanya Referensi)</Label>
+            <div className="p-4 bg-slate-100 dark:bg-black/20 text-slate-500 rounded-xl text-sm leading-loose italic break-words whitespace-normal w-full">
+                "{selectedEval?.pekerjaan || "Peserta tidak mengunggah laporan rincian pekerjaan."}"
+            </div>
+        </div>
+
+        {/* Teks Final (Editable) */}
+        <div className="space-y-2 w-full">
+            <div className="flex justify-between items-end">
+                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 ml-1 uppercase">Teks Final (Akan Dicetak ke PDF)</Label>
+                <span className={`text-[10px] font-bold ${editPreview.teksCetakPekerjaan.length > 300 ? "text-red-500 animate-pulse" : "text-slate-400"}`}>
+                    {editPreview.teksCetakPekerjaan.length} / 300 Karakter
+                </span>
+            </div>
+            <Textarea 
+                value={editPreview.teksCetakPekerjaan}
+                onChange={e => setEditPreview({...editPreview, teksCetakPekerjaan: e.target.value})}
+                className={`rounded-xl min-h-[120px] bg-white dark:bg-[#1c1917] resize-none focus-visible:ring-[#99775C] font-medium leading-relaxed break-words w-full ${editPreview.teksCetakPekerjaan.length > 300 ? "border-red-500" : ""}`}
+                placeholder="Ketikan deskripsi tugas akhir di sini..."
+            />
+            {editPreview.teksCetakPekerjaan.length > 300 && (
+                <p className="text-[10px] text-red-500 font-bold italic">Maksimal 300 karakter Mek!</p>
+            )}
+        </div>
+    </div>
+</div>
             </div>
 
-            <DialogFooter className="p-8 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
+            <DialogFooter className="p-8 bg-slate-50 dark:bg-[#1c1917] border-t border-slate-100 dark:border-[#292524] flex flex-col sm:flex-row gap-3">
                 <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="h-12 px-8 rounded-xl font-bold text-slate-500">Batal</Button>
                 <Button 
-                    className="h-12 flex-1 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white font-black shadow-xl shadow-[#99775C]/20 transition-all active:scale-95"
+                    className="h-12 flex-1 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white font-black shadow-xl shadow-[#99775C]/20 transition-all active:scale-95 disabled:opacity-50"
                     onClick={handleGrade}
-                    disabled={submitting}
+                    disabled={submitting || editPreview.teksCetakPekerjaan.length > 300} // <-- TOMBOL DISABLE KALO KELEBIHAN KARAKTER
                 >
                     {submitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <UserCheck className="mr-2 h-5 w-5" />}
                     SIMPAN & VERIFIKASI

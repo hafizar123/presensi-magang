@@ -277,4 +277,4 @@ function StatsCard({ label, value, icon: Icon, color, desc, delay }: any) {
             <CardContent className="relative z-10 pb-6"><div className="text-3xl font-bold text-slate-900 dark:text-[#EAE7DD]">{value}</div><p className="text-xs text-slate-500 dark:text-gray-500 mt-1">{desc}</p></CardContent>
         </Card>
     )
-}
+} 
