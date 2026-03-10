@@ -18,116 +18,134 @@ function getSettings() {
 }
 
 // Helper Format Tanggal
-const formatTanggal = (date: Date | string | null) => {
+const formatTanggal = (date: any) => {
   if (!date) return "-";
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(date));
 };
 
-// --- FUNGSI SAKTI WRAPPER TEKS ---
-const wrapText = (text: string, maxWidth: number, font: any, size: number) => {
-  const words = text.split(' ');
-  let lines = [];
-  let currentLine = words[0];
+// --- FUNGSI SAKTI PEMOTONG TEKS ANTI-BABLAS ---
+function splitTextIntoLines(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+    if (!text) return [];
+    // Ganti semua jenis enter dengan spasi biar nyambung dan gampang dipotong per lebar kotak
+    const cleanText = text.replace(/[\r\n]+/g, ' '); 
+    // Pisah per kata (berdasarkan spasi) secara dinamis
+    const words = cleanText.split(/\s+/);
+    
+    const lines: string[] = [];
+    let currentLine = words[0] || '';
 
-  for (let i = 1; i < words.length; i++) {
-    const word = words[i];
-    const width = font.widthOfTextAtSize(currentLine + ' ' + word, size);
-    if (width < maxWidth) {
-      currentLine += ' ' + word;
-    } else {
-      lines.push(currentLine);
-      currentLine = word;
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = font.widthOfTextAtSize(currentLine + " " + word, fontSize);
+        if (width < maxWidth) {
+            currentLine += " " + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
     }
-  }
-  lines.push(currentLine);
-  return lines;
-};
+    if (currentLine) lines.push(currentLine);
+    return lines;
+}
 
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
-      return new NextResponse("Akses Ditolak", { status: 401 });
-    }
+    if (!session || session.user.role !== "ADMIN") return new NextResponse("Akses Ditolak", { status: 401 });
 
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const userId = new URL(req.url).searchParams.get("userId");
     if (!userId) return new NextResponse("User ID Kosong", { status: 400 });
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { internProfile: true, finalEvaluation: true }
-    });
-
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { internProfile: true, finalEvaluation: true } });
     if (!user || !user.finalEvaluation) return new NextResponse("Data Tidak Ditemukan", { status: 404 });
 
     const evalData = user.finalEvaluation;
     const profile = user.internProfile;
     const appSettings = getSettings();
 
-    const finalKadis = evalData.customKepalaDinas || appSettings.kepalaDinasName || "-";
-    const finalLamaHari = evalData.customLamaHari || "-";
-    const finalTanggal = evalData.customTanggalPelaksanaan || "-";
+    // Hitung Hari Kerja buat fallback
+    const hitungHariKerja = (start: any, end: any) => {
+        if (!start || !end) return 0;
+        let count = 0; let curDate = new Date(start); const endDate = new Date(end);
+        while (curDate <= endDate) {
+            const day = curDate.getDay();
+            if (day !== 0 && day !== 6) count++;
+            curDate.setDate(curDate.getDate() + 1);
+        }
+        return count;
+    };
 
-    const templatePath = path.join(process.cwd(), "public", "SUKET MAGANG_DRAFT APLIKASI.pdf");
-    const existingPdfBytes = fs.readFileSync(templatePath);
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    const firstPage = pdfDoc.getPages()[0]; 
+    const defStart = profile?.startDate || null;
+    const defEnd = profile?.endDate || null;
     
+    const finalKadis = evalData.customKepalaDinas || appSettings.kepalaDinasName || "-";
+    const finalLamaHari = evalData.customLamaHari || `${hitungHariKerja(defStart, defEnd)} Hari Kerja`;
+    const finalTanggal = evalData.customTanggalPelaksanaan || `${formatTanggal(defStart)} s.d ${formatTanggal(defEnd)}`;
+    
+    // AMBIL DARI CUSTOM PEKERJAAN (Editan Admin), KALO KOSONG BARU PAKE ASLI PESERTA
+    const finalPekerjaan = evalData.customPekerjaan || evalData.pekerjaan || "-";
+
+    const pdfPath = path.join(process.cwd(), "public", "SUKET MAGANG_DRAFT APLIKASI.pdf");
+    if (!fs.existsSync(pdfPath)) return new NextResponse("Template PDF tidak ditemukan", { status: 404 });
+
+    const pdfDoc = await PDFDocument.load(fs.readFileSync(pdfPath));
+    const firstPage = pdfDoc.getPages()[0]; 
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const textColor = rgb(0, 0, 0);
 
-    // 1. DATA HEADER & DIRI (Koordinat Base Lu)
-    firstPage.drawText(finalKadis, { x: 265.5, y: 700, size: 12, font: fontRegular });
-    firstPage.drawText(evalData.nomorSurat || "", { x: 286, y: 765.5, size: 12, font: fontRegular });
+    // 1. HEADER & DATA DIRI
+    firstPage.drawText(finalKadis, { x: 265.5, y: 720, size: 12, font: fontRegular, color: textColor });
+    firstPage.drawText(evalData.nomorSurat || "", { x: 286, y: 765.5, size: 12, font: fontRegular, color: textColor });
     
-    const startXData = 265.5; 
-    const lineSpacing = 16; 
-    const dataYStart = 641;   
-    firstPage.drawText(user.name, { x: startXData, y: dataYStart, size: 12, font: fontRegular }); 
-    firstPage.drawText(user.nomorInduk || "-", { x: startXData, y: dataYStart - lineSpacing, size: 12, font: fontRegular }); 
-    firstPage.drawText(profile?.instansi || "-", { x: startXData, y: dataYStart - (lineSpacing * 2), size: 12, font: fontRegular }); 
-    firstPage.drawText(profile?.jurusan || "-", { x: startXData, y: dataYStart - (lineSpacing * 3), size: 12, font: fontRegular }); 
-    firstPage.drawText(user.divisi || "-", { x: startXData, y: dataYStart - (lineSpacing * 4), size: 12, font: fontRegular }); 
-    firstPage.drawText(finalLamaHari, { x: startXData, y: dataYStart - (lineSpacing * 5) - 3, size: 12, font: fontRegular });
-    firstPage.drawText(finalTanggal, { x: startXData, y: dataYStart - (lineSpacing * 6) - 3, size: 12, font: fontRegular });
+    firstPage.drawText(user.name, { x: 265.5, y: 641, size: 12, font: fontRegular }); 
+    firstPage.drawText(user.nomorInduk || "-", { x: 265.5, y: 624, size: 12, font: fontRegular }); 
+    firstPage.drawText(profile?.instansi || "-", { x: 265.5, y: 609, size: 12, font: fontRegular }); 
+    firstPage.drawText(profile?.jurusan || "-", { x: 265.5, y: 593, size: 12, font: fontRegular }); 
+    firstPage.drawText(user.divisi || "-", { x: 265.5, y: 576, size: 12, font: fontRegular }); 
+    firstPage.drawText(finalLamaHari, { x: 265.5, y: 511, size: 12, font: fontRegular });
+    firstPage.drawText(finalTanggal, { x: 265.5, y: 495, size: 12, font: fontRegular });
 
     // 2. TABEL NILAI
-    const startXNilai = 372; 
-    const tableStartY = 428; 
-    const tableSpacing = 18.5; 
-    firstPage.drawText(String(evalData.nilaiSikap || 0), { x: startXNilai, y: tableStartY, size: 12, font: fontBold }); 
-    firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: startXNilai, y: tableStartY - tableSpacing, size: 12, font: fontBold }); 
-    firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 2), size: 12, font: fontBold }); 
-    firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 3), size: 12, font: fontBold }); 
-    firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: startXNilai, y: tableStartY - (tableSpacing * 4), size: 12, font: fontBold }); 
+    const nx = 372; const ny = 428; const nls = 18.5; 
+    firstPage.drawText(String(evalData.nilaiSikap || 0), { x: nx, y: ny, size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: nx, y: ny - nls, size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: nx, y: ny - (nls*2), size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: nx, y: ny - (nls*3), size: 12, font: fontBold }); 
+    firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: nx, y: ny - (nls*4), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 366, y: 333, size: 11, font: fontBold }); 
 
-    // 3. OUTPUT MAGANG (DENGAN WRAPPER OTOMATIS)
-    const teksPekerjaan = (evalData.pekerjaan || "-").replace(/\n/g, ' ');
-    const wrappedLines = wrapText(teksPekerjaan, 420, fontRegular, 9);
+    // ==========================================================
+    // 3. CETAK OUTPUT PEKERJAAN (UDAH DIPOTONG OTOMATIS)
+    // ==========================================================
+    const fontSizePekerjaan = 9;
+    const maxWidthKotak = 400; // Dibikin bener-bener presisi biar ga nabrak margin kanan
+    const barisTeks = splitTextIntoLines(finalPekerjaan, maxWidthKotak, fontRegular, fontSizePekerjaan);
 
-    wrappedLines.forEach((line, index) => {
-        firstPage.drawText(line, {
+    // Looping nge-print tiap baris, turun 13 point setiap enter
+    barisTeks.forEach((baris, index) => {
+        firstPage.drawText(baris, {
             x: 80,
-            y: 285 - (index * 12), // Nurunin 12pt tiap baris
-            size: 9,
+            y: 285 - (index * 13), 
+            size: fontSizePekerjaan,
             font: fontRegular,
         });
     });
 
     // 4. TANDA TANGAN
-    const tglTTD = `Yogyakarta, ${formatTanggal(new Date())}`; 
-    firstPage.drawText(tglTTD, { x: 380, y: 160, size: 11, font: fontRegular });
+    firstPage.drawText(`Yogyakarta, ${formatTanggal(new Date())}`, { x: 380, y: 160, size: 11, font: fontRegular });
     firstPage.drawText(finalKadis, { x: 380, y: 80, size: 11, font: fontBold });
 
     const pdfBytes = await pdfDoc.save();
-    return new NextResponse(Buffer.from(pdfBytes), {
-      status: 200,
-      headers: { "Content-Type": "application/pdf" },
+    return new NextResponse(Buffer.from(pdfBytes), { 
+        status: 200, 
+        headers: { 
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `inline; filename="Suket_Magang_${user.name}.pdf"`, 
+        } 
     });
-
-  } catch (error) {
-    return new NextResponse("Error", { status: 500 });
+  } catch (error) { 
+    console.error(error);
+    return new NextResponse("Error generate PDF", { status: 500 }); 
   }
 }

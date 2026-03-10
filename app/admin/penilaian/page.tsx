@@ -86,7 +86,7 @@ export default function AdminPenilaianPage() {
     tanggalPelaksanaan: "", 
     tglMulai: "", 
     tglSelesai: "",
-    teksCetakPekerjaan: "" // <-- STATE BARU: Teks override buat cetakan
+    teksCetakPekerjaan: "" 
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -146,11 +146,12 @@ export default function AdminPenilaianPage() {
           nomorSurat: isKepegawaian ? nomorSurat : selectedEval?.nomorSurat,
           userData: editDataDiri,
           userId: selectedEval?.user.id,
-          pekerjaan: editPreview.teksCetakPekerjaan, // Teks yang beneran dicetak nimpa DB `pekerjaan`
+          // FIX: Jangan simpan di 'pekerjaan' agar input user tidak tertimpa
           previewData: {
               kepalaDinas: editPreview.kepalaDinas,
               lamaHari: editPreview.lamaHari,
-              tanggalPelaksanaan: editPreview.tanggalPelaksanaan 
+              tanggalPelaksanaan: editPreview.tanggalPelaksanaan,
+              customPekerjaan: editPreview.teksCetakPekerjaan // FIX: Arahkan ke customPekerjaan
           } 
       };
 
@@ -194,7 +195,7 @@ export default function AdminPenilaianPage() {
                 />
             </div>
             <Button onClick={fetchEvals} variant="outline" className="h-10 rounded-xl border-slate-200 bg-white">
-                <TrendingUp className="h-4 w-4 mr-2 text-[#99775C]" /> Refresh
+                <TrendingUp className="h-4 w-4 mr-2 text-[#99775C]" /> Segarkan
             </Button>
         </div>
       </div>
@@ -271,7 +272,7 @@ export default function AdminPenilaianPage() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="outline" className={`font-bold px-2.5 py-0.5 rounded-lg border-2 ${ev.status === 'GRADED' ? 'border-emerald-100 text-emerald-600 bg-emerald-50' : 'border-orange-100 text-orange-600 bg-orange-50 animate-pulse'}`}>
-                                            {ev.status === 'GRADED' ? 'DINILAI' : 'PENDING'}
+                                            {ev.status === 'GRADED' ? 'DINILAI' : 'MENUNGGU'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-center font-bold text-[#99775C]">
@@ -309,7 +310,8 @@ export default function AdminPenilaianPage() {
                                                     tanggalPelaksanaan: ev.customTanggalPelaksanaan || rawTanggal,
                                                     tglMulai: defStart,
                                                     tglSelesai: defEnd,
-                                                    teksCetakPekerjaan: ev.pekerjaan || "" // Default isinya dr db pekerjaan
+                                                    // FIX: Ambil dari customPekerjaan, kalo belum ada baru pake pekerjaan asli
+                                                    teksCetakPekerjaan: ev.customPekerjaan || ev.pekerjaan || "" 
                                                 });
 
                                                 setIsDialogOpen(true);
@@ -336,7 +338,7 @@ export default function AdminPenilaianPage() {
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <Award className="h-6 w-6 text-[#99775C]" /> Lembar Evaluasi
                         </DialogTitle>
-                        <DialogDescription>Input penilaian akhir dan verifikasi profil peserta.</DialogDescription>
+                        <DialogDescription>Masukkan penilaian akhir dan verifikasi profil peserta.</DialogDescription>
                     </div>
                     {selectedEval?.status === "GRADED" && isKepegawaian && (
                         <Button variant="outline" size="sm" onClick={() => window.open(`/api/admin/cetak-suket?userId=${selectedEval.user.id}`, '_blank')} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 h-10 px-4 rounded-xl font-bold">
@@ -365,7 +367,7 @@ export default function AdminPenilaianPage() {
                 {/* --- SEKSI BARU: PREVIEW DATA CETAK (EDITABLE & DATEPICKER) --- */}
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                        <FileBadge className="h-4 w-4 text-[#99775C]" /> Data Surat (Bisa Diedit Manual)
+                        <FileBadge className="h-4 w-4 text-[#99775C]" /> Data Surat (Dapat Diubah)
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-[#292524]">
                         
@@ -399,7 +401,7 @@ export default function AdminPenilaianPage() {
                         </div>
 
                         <div className="space-y-1.5 md:col-span-2">
-                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Lama Hari Kerja (Dihitung Otomatis & Bisa Ditulis Manual)</Label>
+                            <Label className="text-[11px] font-bold text-slate-500 ml-1">Total Hari Kerja</Label>
                             <Input 
                                 value={editPreview.lamaHari} 
                                 onChange={e => setEditPreview({...editPreview, lamaHari: e.target.value})}
@@ -479,41 +481,42 @@ export default function AdminPenilaianPage() {
                     </div>
                 </div>
 
-                {/* 4. OUTPUT PESERTA SECTION */}
-<div className="space-y-4 pb-4">
-    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-        <FileText className="h-4 w-4 text-[#99775C]" /> Laporan Luaran Magang
-    </h4>
-    <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[1.5rem] border border-slate-100 dark:border-[#292524] space-y-6 overflow-hidden">
-        
-        {/* Teks Asli dari Peserta - FIX: break-words maksa turun kebawah */}
-        <div className="space-y-2 w-full">
-            <Label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Input Asli Peserta (Hanya Referensi)</Label>
-            <div className="p-4 bg-slate-100 dark:bg-black/20 text-slate-500 rounded-xl text-sm leading-loose italic break-words whitespace-normal w-full">
-                "{selectedEval?.pekerjaan || "Peserta tidak mengunggah laporan rincian pekerjaan."}"
-            </div>
-        </div>
+                {/* 4. OUTPUT PESERTA SECTION (FIXED HORIZONTAL SCROLL) */}
+                <div className="space-y-4 pb-4">
+                    <h4 className="text-xs font-bold uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-[#99775C]" /> Laporan Luaran Magang
+                    </h4>
+                    
+                    <div className="flex flex-col gap-6 p-6 bg-slate-50 dark:bg-white/5 rounded-[1.5rem] border border-slate-100 dark:border-[#292524] w-full overflow-hidden">
+                        
+                        {/* Teks Asli dari Peserta - Scroll vertikal, max height 120px */}
+                        <div className="space-y-2 w-full flex flex-col">
+                            <Label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Input Asli Peserta (Sebagai Referensi)</Label>
+                            <div className="p-4 bg-slate-200/50 dark:bg-black/20 text-slate-500 rounded-xl text-sm leading-relaxed italic w-full max-h-[120px] overflow-y-auto overflow-x-hidden break-words break-all whitespace-pre-wrap">
+                                "{selectedEval?.pekerjaan || "Peserta tidak mengunggah laporan rincian pekerjaan."}"
+                            </div>
+                        </div>
 
-        {/* Teks Final (Editable) */}
-        <div className="space-y-2 w-full">
-            <div className="flex justify-between items-end">
-                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 ml-1 uppercase">Teks Final (Akan Dicetak ke PDF)</Label>
-                <span className={`text-[10px] font-bold ${editPreview.teksCetakPekerjaan.length > 300 ? "text-red-500 animate-pulse" : "text-slate-400"}`}>
-                    {editPreview.teksCetakPekerjaan.length} / 300 Karakter
-                </span>
-            </div>
-            <Textarea 
-                value={editPreview.teksCetakPekerjaan}
-                onChange={e => setEditPreview({...editPreview, teksCetakPekerjaan: e.target.value})}
-                className={`rounded-xl min-h-[120px] bg-white dark:bg-[#1c1917] resize-none focus-visible:ring-[#99775C] font-medium leading-relaxed break-words w-full ${editPreview.teksCetakPekerjaan.length > 300 ? "border-red-500" : ""}`}
-                placeholder="Ketikan deskripsi tugas akhir di sini..."
-            />
-            {editPreview.teksCetakPekerjaan.length > 300 && (
-                <p className="text-[10px] text-red-500 font-bold italic">Maksimal 300 karakter Mek!</p>
-            )}
-        </div>
-    </div>
-</div>
+                        {/* Teks Final (Editable) */}
+                        <div className="space-y-2 w-full flex flex-col">
+                            <div className="flex justify-between items-end">
+                                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 ml-1 uppercase">Teks Final (Akan Dicetak pada Surat)</Label>
+                                <span className={`text-[10px] font-bold ${editPreview.teksCetakPekerjaan.length > 300 ? "text-red-500 animate-pulse" : "text-slate-400"}`}>
+                                    {editPreview.teksCetakPekerjaan.length} / 300 Karakter
+                                </span>
+                            </div>
+                            <Textarea 
+                                value={editPreview.teksCetakPekerjaan}
+                                onChange={e => setEditPreview({...editPreview, teksCetakPekerjaan: e.target.value})}
+                                className={`rounded-xl min-h-[120px] max-h-[200px] overflow-y-auto bg-white dark:bg-[#1c1917] resize-none focus-visible:ring-[#99775C] font-medium leading-relaxed w-full break-words whitespace-pre-wrap ${editPreview.teksCetakPekerjaan.length > 300 ? "border-red-500 ring-1 ring-red-500" : ""}`}
+                                placeholder="Masukkan deskripsi keluaran magang di sini..."
+                            />
+                            {editPreview.teksCetakPekerjaan.length > 300 && (
+                                <p className="text-[10px] text-red-500 font-bold italic mt-1 ml-1">Maksimal 300 karakter.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <DialogFooter className="p-8 bg-slate-50 dark:bg-[#1c1917] border-t border-slate-100 dark:border-[#292524] flex flex-col sm:flex-row gap-3">
@@ -521,7 +524,7 @@ export default function AdminPenilaianPage() {
                 <Button 
                     className="h-12 flex-1 rounded-xl bg-[#99775C] hover:bg-[#7a5e48] text-white font-black shadow-xl shadow-[#99775C]/20 transition-all active:scale-95 disabled:opacity-50"
                     onClick={handleGrade}
-                    disabled={submitting || editPreview.teksCetakPekerjaan.length > 300} // <-- TOMBOL DISABLE KALO KELEBIHAN KARAKTER
+                    disabled={submitting || editPreview.teksCetakPekerjaan.length > 300} 
                 >
                     {submitting ? <Loader2 className="animate-spin mr-2 h-5 w-5" /> : <UserCheck className="mr-2 h-5 w-5" />}
                     SIMPAN & VERIFIKASI

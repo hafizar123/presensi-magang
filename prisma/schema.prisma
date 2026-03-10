@@ -91,6 +91,7 @@ model FinalEvaluation {
   customKepalaDinas        String?
   customLamaHari           String?
   customTanggalPelaksanaan String?
+  customPekerjaan          String?  @db.Text
   
   nilaiSikap          Int?
   nilaiDisiplin       Int?
