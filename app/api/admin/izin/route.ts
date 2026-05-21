@@ -32,6 +32,15 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, status } = body; 
 
+    if (!id || !status) {
+      return NextResponse.json({ message: "ID dan status wajib diisi." }, { status: 400 });
+    }
+
+    const validStatuses = ["APPROVED", "REJECTED"];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ message: "Status tidak valid." }, { status: 400 });
+    }
+
     const updatedRequest = await prisma.leaveRequest.update({
       where: { id },
       data: { status },

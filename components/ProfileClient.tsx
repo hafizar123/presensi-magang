@@ -248,6 +248,8 @@ export default function ProfileClient({ user }: ProfileClientProps) {
 
   const calculateProgress = () => {
     if (!user.internProfile?.startDate || !user.internProfile?.endDate) return 0;
+    // Cek sentinel date (belum diatur admin)
+    if (new Date(user.internProfile.startDate).getFullYear() === new Date("1970-01-01").getFullYear()) return 0;
     const start = new Date(user.internProfile.startDate).getTime();
     const end = new Date(user.internProfile.endDate).getTime();
     const today = new Date().getTime();
@@ -255,9 +257,17 @@ export default function ProfileClient({ user }: ProfileClientProps) {
     if (today > end) return 100;
     return Math.round(((today - start) / (end - start)) * 100);
   };
+
+  // Cek apakah periode magang sudah diatur admin
+  const isPeriodSet = !!(
+    user.internProfile?.startDate &&
+    user.internProfile?.endDate &&
+    new Date(user.internProfile.startDate).getFullYear() !== new Date("1970-01-01").getFullYear()
+  );
   
   const formatDate = (date: Date | string) => {
     if (!date) return "-";
+    if (new Date(date).getFullYear() === new Date("1970-01-01").getFullYear()) return "Belum diatur";
     return new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   };
 
@@ -410,9 +420,32 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                         <Card className="rounded-[2rem] border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-[#1c1917] hover:-translate-y-1 transition-transform duration-300">
                             <CardContent className="p-6">
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Progres Magang</p>
-                                <div className="flex items-center justify-between mb-4"><span className="text-3xl font-black text-slate-800 dark:text-[#EAE7DD]">{progressValue}%</span>{progressValue >= 100 ? (<Badge className="bg-blue-100 text-blue-700 border-none font-bold px-3 py-1">Selesai</Badge>) : (<Badge className="bg-green-100 text-green-700 border-none font-bold px-3 py-1 animate-pulse">Aktif</Badge>)}</div>
-                                <Progress value={progressValue} className="h-2.5 bg-slate-100 dark:bg-[#292524]" indicatorClassName="bg-[#99775C]" />
-                                <p className="text-xs text-slate-500 mt-4 font-medium flex justify-between"><span>Start: {user.internProfile ? formatDate(user.internProfile.startDate) : "-"}</span><span>End: {user.internProfile ? formatDate(user.internProfile.endDate) : "-"}</span></p>
+                                {isPeriodSet ? (
+                                    <>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className="text-3xl font-black text-slate-800 dark:text-[#EAE7DD]">{progressValue}%</span>
+                                            {progressValue >= 100 ? (
+                                                <Badge className="bg-blue-100 text-blue-700 border-none font-bold px-3 py-1">Selesai</Badge>
+                                            ) : (
+                                                <Badge className="bg-green-100 text-green-700 border-none font-bold px-3 py-1 animate-pulse">Aktif</Badge>
+                                            )}
+                                        </div>
+                                        <Progress value={progressValue} className="h-2.5 bg-slate-100 dark:bg-[#292524]" indicatorClassName="bg-[#99775C]" />
+                                        <p className="text-xs text-slate-500 mt-4 font-medium flex justify-between">
+                                            <span>Start: {formatDate(user.internProfile.startDate)}</span>
+                                            <span>End: {formatDate(user.internProfile.endDate)}</span>
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className="text-3xl font-black text-slate-400">--%</span>
+                                            <Badge className="bg-yellow-100 text-yellow-700 border-none font-bold px-3 py-1">Pending</Badge>
+                                        </div>
+                                        <Progress value={0} className="h-2.5 bg-slate-100 dark:bg-[#292524]" indicatorClassName="bg-slate-300" />
+                                        <p className="text-xs text-slate-400 mt-4 font-medium italic">Periode magang belum diatur oleh admin.</p>
+                                    </>
+                                )}
                             </CardContent>
                         </Card>
                         <Card className="rounded-[2rem] border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-[#1c1917] hover:-translate-y-1 transition-transform duration-300">
@@ -431,12 +464,16 @@ export default function ProfileClient({ user }: ProfileClientProps) {
                             <CardContent className="p-6">
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Status Akun</p>
                                 <div className="flex items-center gap-3">
-                                    <div className={`p-3 rounded-2xl ${user.internProfile ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                                    <div className={`p-3 rounded-2xl ${isPeriodSet ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
                                         <CheckCircle2 className="h-6 w-6" />
                                     </div>
                                     <div>
-                                        <div className="text-lg font-black text-slate-800 dark:text-[#EAE7DD] leading-tight">{user.internProfile ? "Verified Account" : "Unverified"}</div>
-                                        <p className="text-xs text-slate-500 font-medium mt-1">Database SIP-MAGANG</p>
+                                        <div className="text-lg font-black text-slate-800 dark:text-[#EAE7DD] leading-tight">
+                                            {isPeriodSet ? "Verified Account" : "Menunggu Admin"}
+                                        </div>
+                                        <p className="text-xs text-slate-500 font-medium mt-1">
+                                            {isPeriodSet ? "Database SIP-MAGANG" : "Periode belum dikonfirmasi"}
+                                        </p>
                                     </div>
                                 </div>
                             </CardContent>

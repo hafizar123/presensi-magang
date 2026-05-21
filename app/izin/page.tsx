@@ -1,22 +1,14 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import IzinClient from "@/components/IzinClient";
-
-const prisma = new PrismaClient();
 
 async function getLeaveRequests(userId: string) {
   const data = await prisma.leaveRequest.findMany({
-    where: {
-      userId: userId,
-    },
-    orderBy: {
-      createdAt: "desc", // Yang baru di atas
-    },
+    where: { userId },
+    orderBy: { createdAt: "desc" },
   });
-  
-  // JSON Parse trick biar tanggal aman
   return JSON.parse(JSON.stringify(data));
 }
 
@@ -26,11 +18,17 @@ export default async function IzinPage() {
   if (!session) redirect("/login");
   if (session.user.role === "ADMIN") redirect("/admin");
 
-  const requests = await getLeaveRequests(session.user.id);
+  const [requests, userFromDb] = await Promise.all([
+    getLeaveRequests(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, name: true, email: true, image: true, divisi: true, nomorInduk: true }
+    })
+  ]);
 
   return (
     <IzinClient 
-        user={session.user} 
+        user={userFromDb || session.user} 
         requests={requests} 
     />
   );

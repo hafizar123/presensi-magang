@@ -195,7 +195,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
                 <div className="hidden md:flex flex-col items-end">
                     <span className="text-sm font-bold group-hover:text-[#EAE7DD] transition-colors">{user.name}</span>
                     {/* 🔥 FIX: Otomatis nampilin divisi usernya, ga cuma "Peserta Magang" doang */}
-                    <span className="text-[10px] text-[#EAE7DD]/80 font-medium">{user.divisi || "Peserta Magang"}</span>
+                    <span className="text-[10px] text-[#EAE7DD]/80 font-medium">Peserta Magang</span>
                 </div>
                 <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
                     <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">

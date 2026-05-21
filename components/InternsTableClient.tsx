@@ -59,10 +59,19 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
     const matchesDivisi = filterDivisi === "ALL" ? true : intern.divisi === filterDivisi;
 
     const hasProfile = !!intern.internProfile;
+
+    // Cek apakah periode sudah benar-benar diatur admin
+    // Sentinel date "1970-01-01" berarti belum diatur
+    const SENTINEL = new Date("1970-01-01").getFullYear();
+    const isPeriodSet = hasProfile &&
+        intern.internProfile.startDate &&
+        intern.internProfile.endDate &&
+        new Date(intern.internProfile.startDate).getFullYear() !== SENTINEL &&
+        new Date(intern.internProfile.endDate).getFullYear() !== SENTINEL;
     
-    // Logic Auto-Alumni (H+2)
+    // Logic Auto-Alumni (H+2) — hanya berlaku kalau periode sudah diatur
     let isAutoAlumni = false;
-    if (hasProfile && intern.internProfile.endDate) {
+    if (isPeriodSet) {
         const endMagang = new Date(intern.internProfile.endDate);
         const today = new Date();
         const limitAlumni = new Date(endMagang);
@@ -72,9 +81,11 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
     let matchesStatus = true;
     if (statusFilter === "ACTIVE") {
-        matchesStatus = hasProfile && !isAutoAlumni && intern.role !== "ALUMNI";
+        // Aktif: periode sudah diatur, belum lewat batas alumni, bukan alumni manual
+        matchesStatus = isPeriodSet && !isAutoAlumni && intern.role !== "ALUMNI";
     } else if (statusFilter === "PENDING") {
-        matchesStatus = !hasProfile;
+        // Pending: belum ada profile ATAU periode belum diatur admin
+        matchesStatus = !isPeriodSet && intern.role !== "ALUMNI";
     } else if (statusFilter === "ALUMNI") {
         matchesStatus = isAutoAlumni || intern.role === "ALUMNI";
     }
@@ -92,10 +103,16 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
   const openEditModal = (user: any) => {
     setSelectedIntern(user);
     setDivisi(user.divisi || ""); 
-    if (user.internProfile) {
+
+    const SENTINEL_YEAR = new Date("1970-01-01").getFullYear();
+    const hasPeriod = user.internProfile &&
+        new Date(user.internProfile.startDate).getFullYear() !== SENTINEL_YEAR;
+
+    if (hasPeriod) {
         setStartDate(new Date(user.internProfile.startDate).toISOString().split("T")[0]);
         setEndDate(new Date(user.internProfile.endDate).toISOString().split("T")[0]);
     } else {
+        // Sentinel date atau belum ada profile — kosongkan input
         setStartDate("");
         setEndDate("");
     }
@@ -104,6 +121,30 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
   const handleSave = async (manualRole?: string) => {
     if (!selectedIntern) return;
+
+    // Validasi: kalau bukan pindah alumni, tanggal wajib diisi
+    if (!manualRole) {
+        if (!startDate || !endDate) {
+            toast.error("Tanggal mulai dan selesai wajib diisi.");
+            return;
+        }
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (end <= start) {
+            toast.error("Tanggal selesai harus setelah tanggal mulai.");
+            return;
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (start < today) {
+            toast.error("Tanggal mulai tidak boleh di masa lalu.");
+            return;
+        }
+        if (end < today) {
+            toast.error("Tanggal selesai tidak boleh di masa lalu.");
+            return;
+        }
+    }
     setIsSaving(true);
     try {
         const payload: any = {
@@ -141,50 +182,93 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
       
       {/* MODAL EDIT */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-2xl">
+        <DialogContent className="sm:max-w-[420px] w-[calc(100vw-2rem)] overflow-hidden bg-white dark:bg-[#1c1917] border-slate-200 dark:border-[#292524] rounded-2xl">
             <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Atur Data Magang</DialogTitle>
-                <DialogDescription>
-                    Update data atau status untuk <b>{selectedIntern?.name}</b>.
+                <DialogTitle className="text-lg font-bold">Atur Data Magang</DialogTitle>
+                <DialogDescription className="text-sm">
+                    Update data untuk <b>{selectedIntern?.name}</b>.
                 </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-5 py-4">
-                <div className="grid gap-2">
-                    <Label className="font-bold text-xs uppercase text-slate-400">Divisi</Label>
+
+            <div className="flex flex-col gap-4 py-2 w-full">
+                {/* DIVISI */}
+                <div className="flex flex-col gap-1.5 w-full">
+                    <Label className="font-bold text-xs uppercase text-slate-400 tracking-wider">Divisi</Label>
                     <Select value={divisi} onValueChange={setDivisi}>
-                        <SelectTrigger className="rounded-xl h-11">
+                        <SelectTrigger className="rounded-xl h-10 text-sm w-full">
                             <SelectValue placeholder="Pilih Divisi" />
                         </SelectTrigger>
-                        <SelectContent>
-                            {DIVISI_OPTIONS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                        <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                            {DIVISI_OPTIONS.map(d => (
+                                <SelectItem key={d} value={d} className="text-sm whitespace-normal leading-snug py-2.5">
+                                    {d}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                        <Label className="font-bold text-xs uppercase text-slate-400">Mulai</Label>
-                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-xl" />
+                {/* PERIODE */}
+                <div className="flex flex-col gap-1.5">
+                    <Label className="font-bold text-xs uppercase text-slate-400 tracking-wider">Periode Magang</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider ml-0.5">Mulai</span>
+                            <Input
+                                type="date"
+                                value={startDate}
+                                min={new Date().toISOString().split("T")[0]}
+                                onChange={(e) => {
+                                    setStartDate(e.target.value);
+                                    if (endDate && e.target.value >= endDate) setEndDate("");
+                                }}
+                                className="rounded-xl h-10 text-sm w-full"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider ml-0.5">Selesai</span>
+                            <Input
+                                type="date"
+                                value={endDate}
+                                min={startDate
+                                    ? (() => { const d = new Date(startDate); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()
+                                    : (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()
+                                }
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="rounded-xl h-10 text-sm w-full"
+                            />
+                        </div>
                     </div>
-                    <div className="grid gap-2">
-                        <Label className="font-bold text-xs uppercase text-slate-400">Selesai</Label>
-                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded-xl" />
-                    </div>
+                    {startDate && endDate && new Date(endDate) <= new Date(startDate) && (
+                        <p className="text-xs text-red-500 font-medium mt-0.5">
+                            Tanggal selesai harus setelah tanggal mulai.
+                        </p>
+                    )}
                 </div>
 
+                {/* TOMBOL ALUMNI */}
                 {selectedIntern?.role !== "ALUMNI" && (
-                    <Button 
-                        variant="outline" 
-                        className="w-full border-orange-200 text-orange-600 hover:bg-orange-50 rounded-xl h-11 font-bold"
-                        onClick={() => handleSave("ALUMNI")}
-                    >
-                        <GraduationCap className="h-4 w-4 mr-2" /> Pindahkan ke Alumni
-                    </Button>
+                    <div className="pt-1 border-t border-slate-100 dark:border-[#292524]">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full border border-orange-200 text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/20 rounded-xl h-9 font-semibold text-xs"
+                            onClick={() => handleSave("ALUMNI")}
+                            disabled={isSaving}
+                        >
+                            <GraduationCap className="h-3.5 w-3.5 mr-1.5" /> Pindahkan ke Alumni
+                        </Button>
+                    </div>
                 )}
             </div>
-            <DialogFooter className="gap-2">
-                <Button variant="ghost" onClick={() => setIsEditOpen(false)}>Batal</Button>
-                <Button onClick={() => handleSave()} disabled={isSaving} className="bg-[#99775C] hover:bg-[#7a5e48] text-white rounded-xl flex-1">
+
+            <DialogFooter className="gap-2 pt-2">
+                <Button variant="ghost" onClick={() => setIsEditOpen(false)} className="rounded-xl h-10">Batal</Button>
+                <Button
+                    onClick={() => handleSave()}
+                    disabled={isSaving}
+                    className="bg-[#99775C] hover:bg-[#7a5e48] text-white rounded-xl flex-1 h-10"
+                >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan"}
                 </Button>
             </DialogFooter>
@@ -294,7 +378,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             </TableCell>
 
                             <TableCell>
-                                {intern.internProfile ? (
+                                {intern.internProfile && new Date(intern.internProfile.startDate).getFullYear() !== new Date("1970-01-01").getFullYear() ? (
                                     <div className="flex items-center gap-2">
                                         <div className="text-[11px] font-bold px-2 py-1 bg-slate-100 dark:bg-[#292524] rounded-lg border border-slate-200 text-slate-600">
                                             {new Date(intern.internProfile.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}

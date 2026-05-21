@@ -17,11 +17,49 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Akses Ditolak" }, { status: 401 });
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
+
+    // === INTERN: Kirim / Update laporan akhir ===
+    if (session.user.role !== "ADMIN") {
+      const { pekerjaan, deskripsi } = body;
+
+      if (!pekerjaan?.trim() || !deskripsi?.trim()) {
+        return NextResponse.json({ message: "Semua kolom laporan wajib diisi." }, { status: 400 });
+      }
+
+      const existing = await prisma.finalEvaluation.findUnique({
+        where: { userId: session.user.id },
+      });
+
+      if (existing) {
+        // Sudah pernah kirim — update, tapi hanya kalau belum dinilai
+        if (existing.status === "GRADED") {
+          return NextResponse.json({ message: "Laporan sudah dinilai, tidak dapat diubah." }, { status: 400 });
+        }
+        await prisma.finalEvaluation.update({
+          where: { userId: session.user.id },
+          data: { pekerjaan, deskripsi, status: "PENDING" },
+        });
+      } else {
+        // Pertama kali kirim
+        await prisma.finalEvaluation.create({
+          data: {
+            userId: session.user.id,
+            pekerjaan,
+            deskripsi,
+            status: "PENDING",
+          },
+        });
+      }
+
+      return NextResponse.json({ success: true, message: "Laporan berhasil dikirim." });
+    }
+
+    // === ADMIN: Beri penilaian ===
     const { 
       id, n1, n2, n3, n4, n5, nomorSurat, 
       userData, userId, previewData 
@@ -44,8 +82,8 @@ export async function POST(req: Request) {
             create: {
               instansi: userData.instansi,
               jurusan: userData.jurusan,
-              startDate: new Date(), 
-              endDate: new Date(),   
+              startDate: new Date("1970-01-01"),
+              endDate: new Date("1970-01-01"),
             },
             update: {
               instansi: userData.instansi,
@@ -69,7 +107,6 @@ export async function POST(req: Request) {
         customKepalaDinas: previewData?.kepalaDinas,
         customLamaHari: previewData?.lamaHari,
         customTanggalPelaksanaan: previewData?.tanggalPelaksanaan,
-        // ----------------------------------
         status: "GRADED"
       }
     });

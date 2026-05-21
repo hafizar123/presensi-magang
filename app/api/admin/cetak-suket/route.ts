@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+aimport { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
@@ -99,21 +99,25 @@ export async function GET(req: Request) {
     firstPage.drawText(evalData.nomorSurat || "", { x: 286, y: 765.5, size: 12, font: fontRegular, color: textColor });
     
     firstPage.drawText(user.name, { x: 265.5, y: 641, size: 12, font: fontRegular }); 
-    firstPage.drawText(user.nomorInduk || "-", { x: 265.5, y: 624, size: 12, font: fontRegular }); 
+    firstPage.drawText(user.nomorInduk || "-", { x: 265, y: 624, size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.instansi || "-", { x: 265.5, y: 609, size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.jurusan || "-", { x: 265.5, y: 593, size: 12, font: fontRegular }); 
-    firstPage.drawText(user.divisi || "-", { x: 265.5, y: 576, size: 12, font: fontRegular }); 
+    // Divisi bisa 2 baris kalau namanya panjang
+    const divisiLines = splitTextIntoLines(user.divisi || "-", 260, fontRegular, 12);
+    divisiLines.forEach((line, i) => {
+        firstPage.drawText(line, { x: 265.5, y: 576 - (i * 14), size: 12, font: fontRegular });
+    });
     firstPage.drawText(finalLamaHari, { x: 265.5, y: 511, size: 12, font: fontRegular });
     firstPage.drawText(finalTanggal, { x: 265.5, y: 495, size: 12, font: fontRegular });
 
     // 2. TABEL NILAI
-    const nx = 372; const ny = 428; const nls = 18.5; 
+    const nx = 379; const ny = 395; const nls = 18.5; 
     firstPage.drawText(String(evalData.nilaiSikap || 0), { x: nx, y: ny, size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiDisiplin || 0), { x: nx, y: ny - nls, size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiTanggungJawab || 0), { x: nx, y: ny - (nls*2), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: nx, y: ny - (nls*3), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: nx, y: ny - (nls*4), size: 12, font: fontBold }); 
-    firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 366, y: 333, size: 11, font: fontBold }); 
+    firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 372, y: 301, size: 11, font: fontBold }); 
 
     // ==========================================================
     // 3. CETAK OUTPUT PEKERJAAN (UDAH DIPOTONG OTOMATIS)
@@ -125,16 +129,16 @@ export async function GET(req: Request) {
     // Looping nge-print tiap baris, turun 13 point setiap enter
     barisTeks.forEach((baris, index) => {
         firstPage.drawText(baris, {
-            x: 80,
-            y: 285 - (index * 13), 
+            x: 83,
+            y: 253 - (index * 13), 
             size: fontSizePekerjaan,
             font: fontRegular,
         });
     });
 
     // 4. TANDA TANGAN
-    firstPage.drawText(`Yogyakarta, ${formatTanggal(new Date())}`, { x: 380, y: 160, size: 11, font: fontRegular });
-    firstPage.drawText(finalKadis, { x: 380, y: 80, size: 11, font: fontBold });
+    firstPage.drawText(`Yogyakarta, ${formatTanggal(new Date())}`, { x: 347, y: 134, size: 11, font: fontRegular });
+    firstPage.drawText(finalKadis, { x: 347, y: 35, size: 11, font: fontBold });
 
     const pdfBytes = await pdfDoc.save();
     return new NextResponse(Buffer.from(pdfBytes), { 

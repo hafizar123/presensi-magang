@@ -1,22 +1,14 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import RiwayatClient from "@/components/RiwayatClient";
-
-const prisma = new PrismaClient();
 
 async function getAttendanceLogs(userId: string) {
   const data = await prisma.attendance.findMany({
-    where: {
-      userId: userId,
-    },
-    orderBy: {
-      date: "desc", 
-    },
+    where: { userId },
+    orderBy: { date: "desc" },
   });
-
-  // JURUS FIX: Convert Date object jadi String biar kebaca di Client
   return JSON.parse(JSON.stringify(data));
 }
 
@@ -26,11 +18,17 @@ export default async function RiwayatPage() {
   if (!session) redirect("/login");
   if (session.user.role === "ADMIN") redirect("/admin");
 
-  const logs = await getAttendanceLogs(session.user.id);
+  const [logs, userFromDb] = await Promise.all([
+    getAttendanceLogs(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, name: true, email: true, image: true, divisi: true, nomorInduk: true }
+    })
+  ]);
 
   return (
     <RiwayatClient 
-        user={session.user} 
+        user={userFromDb || session.user} 
         logs={logs} 
     />
   );

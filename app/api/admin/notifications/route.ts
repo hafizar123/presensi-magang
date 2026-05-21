@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 // 1. GET: Ambil Notifikasi (Yang belum di-dismiss)
 export async function GET() {
@@ -20,7 +18,11 @@ export async function GET() {
     const newUsers = await prisma.user.findMany({
       where: { 
         role: "INTERN",
-        internProfile: null 
+        OR: [
+          { internProfile: null },
+          // Tangkap user yang punya internProfile tapi periode belum diatur (sentinel date 1970)
+          { internProfile: { startDate: new Date("1970-01-01") } }
+        ]
       },
       orderBy: { createdAt: "desc" },
     });

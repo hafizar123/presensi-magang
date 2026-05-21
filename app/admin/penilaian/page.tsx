@@ -61,8 +61,8 @@ const hitungHariKerja = (start: any, end: any) => {
 };
 
 export default function AdminPenilaianPage() {
-  const { data: session } = useSession();
-  const isKepegawaian = session?.user?.divisi === "Sub Bagian Kepegawaian"; 
+  const { data: session, status: sessionStatus } = useSession();
+  const isKepegawaian = sessionStatus === "authenticated" && session?.user?.divisi === "Sub Bagian Kepegawaian";
 
   const [evals, setEvals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,7 +182,12 @@ export default function AdminPenilaianPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-[#EAE7DD]">Penilaian Kelulusan</h2>
-            <p className="text-slate-500 dark:text-gray-400">Verifikasi laporan akhir dan pemberian skor kinerja peserta.</p>
+            <p className="text-slate-500 dark:text-gray-400">
+              {isKepegawaian
+                ? "Verifikasi laporan akhir dan pemberian skor kinerja peserta — semua divisi."
+                : <>Menampilkan peserta di divisi <span className="font-semibold text-[#99775C]">{session?.user?.divisi || "-"}</span>.</>
+              }
+            </p>
         </div>
         <div className="flex items-center gap-2">
             <div className="relative group">
@@ -255,8 +260,8 @@ export default function AdminPenilaianPage() {
                                     <TableCell className="px-6 py-4">
                                         <div className="flex items-center gap-3 whitespace-nowrap">
                                             <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
-                                                <AvatarImage src={`https://ui-avatars.com/api/?name=${ev.user?.name}`} />
-                                                <AvatarFallback>U</AvatarFallback>
+                                                <AvatarImage src={ev.user?.image || `https://ui-avatars.com/api/?name=${ev.user?.name}`} />
+                                                <AvatarFallback className="bg-slate-100 text-[#99775C] font-bold">{ev.user?.name?.[0] || "U"}</AvatarFallback>
                                             </Avatar>
                                             <span className="font-bold text-slate-800 dark:text-[#EAE7DD]">{ev.user?.name}</span>
                                         </div>
@@ -279,11 +284,22 @@ export default function AdminPenilaianPage() {
                                         {ev.rataRata ? ev.rataRata.toFixed(1) : "-"}
                                     </TableCell>
                                     <TableCell className="text-right px-6">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm"
-                                            className="text-blue-600 hover:text-blue-700 font-bold"
-                                            onClick={() => {
+                                        <div className="flex items-center justify-end gap-2">
+                                            {isKepegawaian && ev.status === "GRADED" && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => window.open(`/api/admin/cetak-suket?userId=${ev.user.id}`, '_blank')}
+                                                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 rounded-xl font-bold h-9 px-3"
+                                                >
+                                                    <Printer className="h-3.5 w-3.5 mr-1.5" /> Cetak
+                                                </Button>
+                                            )}
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm"
+                                                className="text-blue-600 hover:text-blue-700 font-bold"
+                                                onClick={() => {
                                                 setSelectedEval(ev);
                                                 setNomorSurat(ev.nomorSurat || "");
                                                 setEditDataDiri({
@@ -318,7 +334,8 @@ export default function AdminPenilaianPage() {
                                             }}
                                         >
                                             Kelola <ChevronRight className="ml-1 h-4 w-4" />
-                                        </Button>
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

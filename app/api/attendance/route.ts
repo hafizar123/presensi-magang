@@ -135,6 +135,12 @@ export async function POST(req: Request) {
     startDate.setHours(0,0,0,0);
     endDate.setHours(0,0,0,0);
 
+    // Cek sentinel date — periode belum diatur admin
+    const SENTINEL_YEAR = new Date("1970-01-01").getFullYear();
+    if (startDate.getFullYear() === SENTINEL_YEAR) {
+        return NextResponse.json({ message: "Periode magang belum diatur oleh admin." }, { status: 403 });
+    }
+
     if (today < startDate) return NextResponse.json({ message: "Periode belum dimulai." }, { status: 403 });
     if (today > endDate) return NextResponse.json({ message: "Periode sudah selesai." }, { status: 403 });
 

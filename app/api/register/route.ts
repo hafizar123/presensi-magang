@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -12,14 +10,14 @@ export async function POST(request: Request) {
 
     if (!name || !email || !password || !nip || !instansi || !jurusan) {
       return NextResponse.json(
-        { message: "Data belum lengkap ngab!" },
+        { message: "Semua field wajib diisi." },
         { status: 400 }
       );
     }
 
     if (password.length < 6) {
       return NextResponse.json(
-        { message: "Password minimal 6 karakter!" },
+        { message: "Password minimal 6 karakter." },
         { status: 400 }
       );
     }
@@ -37,21 +35,24 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Bikin User sekalian nge-create InternProfile-nya biar otomatis ke-link
+    // Bikin User dulu, InternProfile (termasuk periode magang) akan diisi admin nanti
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         role: "INTERN", 
-        nomorInduk: nip, // Di schema lu namanya nomorInduk ngab
+        nomorInduk: nip,
+        // Simpan instansi & jurusan di internProfile tapi TANPA startDate/endDate
+        // Admin yang akan mengisi periode magang via halaman manajemen peserta
         internProfile: {
             create: {
                 instansi,
                 jurusan,
-                // Kasih dummy date dulu karena di register page belum ada input tanggal
-                startDate: new Date(),
-                endDate: new Date(),
+                // startDate & endDate wajib di schema, kasih nilai sentinel yang jelas
+                // menandakan "belum diatur" — admin harus update ini
+                startDate: new Date("1970-01-01"),
+                endDate: new Date("1970-01-01"),
             }
         }
       },

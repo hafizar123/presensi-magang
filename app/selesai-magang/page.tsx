@@ -32,9 +32,16 @@ export default function SelesaiMagangPage() {
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState({ pekerjaan: "", deskripsi: "" });
   const [status, setStatus] = useState<string | null>(null);
+  const [userImage, setUserImage] = useState<string>("");
 
   useEffect(() => {
     setStartAnimation(true);
+    // Fetch foto profil terbaru dari DB (bukan dari session JWT yang stale)
+    fetch("/api/profile")
+      .then(res => res.json())
+      .then(d => { if (d?.image) setUserImage(d.image); })
+      .catch(() => {});
+
     fetch("/api/final-evaluation")
       .then((res) => res.json())
       .then((d) => {
@@ -140,7 +147,7 @@ export default function SelesaiMagangPage() {
                 </div>
                 <div className={`transition-all duration-1000 delay-100 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${startAnimation ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
                     <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:scale-105 transition-transform">
-                        <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
+                        <AvatarImage src={userImage || user.image || `https://ui-avatars.com/api/?name=${user.name}`} />
                         <AvatarFallback className="bg-[#5c4a3d] text-white">U</AvatarFallback>
                     </Avatar>
                 </div>

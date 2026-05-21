@@ -58,12 +58,20 @@ export default function DashboardClient({
 
   const isWorkTimeOver = checkIsWorkTimeOver();
 
-  let periodStatus = user.internProfile ? "ACTIVE" : "UNVERIFIED"; 
+  const SENTINEL_YEAR = new Date("1970-01-01").getFullYear();
+
+  const isPeriodSet = !!(
+    user.internProfile?.startDate &&
+    user.internProfile?.endDate &&
+    new Date(user.internProfile.startDate).getFullYear() !== SENTINEL_YEAR
+  );
+
+  let periodStatus = isPeriodSet ? "ACTIVE" : "UNVERIFIED";
   let periodMessage = "";
 
   if (periodStatus === "UNVERIFIED") {
-      periodMessage = "Akun Belum Diatur Admin";
-  } else if (user.internProfile) {
+      periodMessage = "Periode Belum Diatur Admin";
+  } else if (isPeriodSet) {
       const today = new Date(); today.setHours(0,0,0,0);
       const start = new Date(user.internProfile.startDate); start.setHours(0,0,0,0);
       const end = new Date(user.internProfile.endDate); end.setHours(0,0,0,0);
