@@ -1,39 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Presensi Magang
 
-## Getting Started
+Sistem manajemen presensi untuk peserta magang - dibangun dengan teknologi modern dan performa tinggi.
 
-First, run the development server:
+## 📋 Deskripsi
 
+**Presensi Magang** adalah aplikasi web untuk mengelola dan mencatat kehadiran peserta magang. Platform ini menyediakan fitur tracking presensi yang user-friendly dan efisien untuk institusi atau perusahaan yang menyelenggarakan program magang.
+
+## 🚀 Teknologi
+
+Proyek ini dibangun menggunakan:
+
+- **[Next.js](https://nextjs.org)** - React framework untuk production
+- **TypeScript** - Static typing untuk JavaScript
+- **Modern Web Standards** - Best practices untuk development web
+
+Komposisi bahasa:
+- TypeScript: 99%
+- Other: 1%
+
+## 🛠️ Memulai
+
+### Prerequisites
+- Node.js (versi terbaru)
+- npm, yarn, pnpm, atau bun
+
+### Installation
+
+1. Clone repository:
+```bash
+git clone https://github.com/hafizar123/presensi-magang.git
+cd presensi-magang
+```
+
+2. Install dependencies:
+```bash
+npm install
+# atau
+yarn install
+# atau
+pnpm install
+# atau
+bun install
+```
+
+3. Jalankan development server:
 ```bash
 npm run dev
-# or
+# atau
 yarn dev
-# or
+# atau
 pnpm dev
-# or
+# atau
 bun dev
 ```
-dsadsad
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. Buka browser dan akses [http://localhost:3000](http://localhost:3000)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📝 Pengembangan
 
-## Learn More
+- Edit halaman dengan memodifikasi `app/page.tsx`
+- Halaman akan auto-update seiring perubahan file
+- Project menggunakan [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) untuk optimasi font dengan [Geist](https://vercel.com/font)
 
-To learn more about Next.js, take a look at the following resources:
+## 📚 Resources
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Untuk mempelajari lebih lanjut:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs) - Pelajari fitur Next.js
+- [Learn Next.js](https://nextjs.org/learn) - Tutorial interaktif Next.js
+- [Next.js GitHub Repository](https://github.com/vercel/next.js) - Berikan feedback dan kontribusi
 
-## Deploy on Vercel
+## 🚢 Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deploy di Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cara termudah untuk deploy Next.js app adalah menggunakan [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app).
 
+Lihat [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) untuk detail lebih lanjut.
 
-KWKWKWKWKWKWK
+## 📊 Informasi Repository
+
+- **Created**: 8 Januari 2026
+- **Language**: TypeScript
+- **License**: -
+- **Stars**: 0
+- **Open Issues**: 0
+
+## 📄 Lisensi
+
+Project ini tidak memiliki lisensi yang ditentukan. Silakan hubungi maintainer untuk informasi lisensi.
+
+## 👤 Author
+
+**hafizar123**
+
+---
+
+Made with ❤️
