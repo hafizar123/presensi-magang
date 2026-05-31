@@ -73,7 +73,7 @@ export default function AttendanceButton({ todayLog }: AttendanceButtonProps) {
       },
       (error) => {
         setStep("ERROR");
-        setErrorMessage(error.code === 1 ? "Izin lokasi ditolak!" : "Gagal ambil lokasi.");
+        setErrorMessage(error.code === 1 ? "Izin akses lokasi ditolak." : "Gagal mendapatkan lokasi.");
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
@@ -162,7 +162,7 @@ export default function AttendanceButton({ todayLog }: AttendanceButtonProps) {
                     onClick={() => setStep("IDLE")} 
                     className="w-full h-10 sm:h-12 rounded-xl border-[#99775C]/30 text-[#99775C] text-xs sm:text-sm font-bold hover:bg-[#99775C]/5 active:scale-95"
                    >
-                    Coba Lagi
+                    Ulangi
                    </Button>
                  )}
               </DialogFooter>

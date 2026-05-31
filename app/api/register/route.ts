@@ -5,19 +5,19 @@ import bcrypt from "bcryptjs";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    // Tarik instansi sama jurusan dari request bray
+    // Ambil instansi dan jurusan dari request
     const { name, email, password, nip, instansi, jurusan } = body;
 
     if (!name || !email || !password || !nip || !instansi || !jurusan) {
       return NextResponse.json(
-        { message: "Semua field wajib diisi." },
+        { message: "Semua kolom wajib diisi." },
         { status: 400 }
       );
     }
 
     if (password.length < 6) {
       return NextResponse.json(
-        { message: "Password minimal 6 karakter." },
+        { message: "Kata sandi minimal 6 karakter." },
         { status: 400 }
       );
     }
@@ -28,14 +28,14 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "Email sudah terdaftar!" },
+        { message: "Email sudah terdaftar." },
         { status: 400 }
       );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Bikin User dulu, InternProfile (termasuk periode magang) akan diisi admin nanti
+    // Buat User terlebih dahulu, InternProfile (termasuk periode magang) akan diisi admin nanti
     const user = await prisma.user.create({
       data: {
         name,
@@ -43,14 +43,14 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: "INTERN", 
         nomorInduk: nip,
-        // Simpan instansi & jurusan di internProfile tapi TANPA startDate/endDate
+        // Simpan instansi dan jurusan di internProfile tanpa startDate/endDate
         // Admin yang akan mengisi periode magang via halaman manajemen peserta
         internProfile: {
             create: {
                 instansi,
                 jurusan,
-                // startDate & endDate wajib di schema, kasih nilai sentinel yang jelas
-                // menandakan "belum diatur" — admin harus update ini
+                // startDate & endDate wajib di schema, gunakan nilai sentinel
+                // yang menandakan "belum dikonfigurasi" — admin harus memperbarui ini
                 startDate: new Date("1970-01-01"),
                 endDate: new Date("1970-01-01"),
             }
@@ -59,13 +59,13 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { message: "Akun berhasil dibuat!", user },
+      { message: "Akun berhasil dibuat.", user },
       { status: 201 }
     );
 
   } catch (error) {
     return NextResponse.json(
-      { message: "Internal server error!", error },
+      { message: "Terjadi kesalahan pada server.", error },
       { status: 500 }
     );
   }

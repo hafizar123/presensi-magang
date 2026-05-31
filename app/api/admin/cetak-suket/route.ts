@@ -1,4 +1,4 @@
-aimport { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
@@ -17,34 +17,64 @@ function getSettings() {
   }
 }
 
-// Helper Format Tanggal
 const formatTanggal = (date: any) => {
   if (!date) return "-";
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(date));
 };
 
-// --- FUNGSI SAKTI PEMOTONG TEKS ANTI-BABLAS ---
 function splitTextIntoLines(text: string, maxWidth: number, font: any, fontSize: number): string[] {
     if (!text) return [];
-    // Ganti semua jenis enter dengan spasi biar nyambung dan gampang dipotong per lebar kotak
-    const cleanText = text.replace(/[\r\n]+/g, ' '); 
-    // Pisah per kata (berdasarkan spasi) secara dinamis
-    const words = cleanText.split(/\s+/);
-    
-    const lines: string[] = [];
-    let currentLine = words[0] || '';
 
-    for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const width = font.widthOfTextAtSize(currentLine + " " + word, fontSize);
-        if (width < maxWidth) {
-            currentLine += " " + word;
-        } else {
-            lines.push(currentLine);
-            currentLine = word;
+    // Pisah dulu berdasarkan newline asli dari input user
+    const paragraphs = text.split(/\r?\n/);
+    const lines: string[] = [];
+
+    for (const paragraph of paragraphs) {
+        if (paragraph.trim() === "") {
+            lines.push("");
+            continue;
         }
+
+        const words = paragraph.trim().split(/\s+/);
+        let currentLine = "";
+
+        for (const word of words) {
+            const testLine = currentLine ? currentLine + " " + word : word;
+            const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+            if (testWidth <= maxWidth) {
+                // Muat dalam satu baris
+                currentLine = testLine;
+            } else {
+                // Tidak muat — simpan baris sebelumnya dulu
+                if (currentLine) lines.push(currentLine);
+
+                // Cek apakah kata itu sendiri lebih panjang dari maxWidth
+                // (misal teks tanpa spasi seperti "aaaaaaa...")
+                let remaining = word;
+                while (font.widthOfTextAtSize(remaining, fontSize) > maxWidth) {
+                    // Potong karakter per karakter sampai pas
+                    let chunk = "";
+                    let i = 0;
+                    while (i < remaining.length) {
+                        const next = chunk + remaining[i];
+                        if (font.widthOfTextAtSize(next, fontSize) <= maxWidth) {
+                            chunk = next;
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                    lines.push(chunk);
+                    remaining = remaining.slice(chunk.length);
+                }
+                currentLine = remaining;
+            }
+        }
+
+        if (currentLine) lines.push(currentLine);
     }
-    if (currentLine) lines.push(currentLine);
+
     return lines;
 }
 
@@ -82,7 +112,7 @@ export async function GET(req: Request) {
     const finalLamaHari = evalData.customLamaHari || `${hitungHariKerja(defStart, defEnd)} Hari Kerja`;
     const finalTanggal = evalData.customTanggalPelaksanaan || `${formatTanggal(defStart)} s.d ${formatTanggal(defEnd)}`;
     
-    // AMBIL DARI CUSTOM PEKERJAAN (Editan Admin), KALO KOSONG BARU PAKE ASLI PESERTA
+    // AMBIL DARI CUSTOM PEKERJAAN
     const finalPekerjaan = evalData.customPekerjaan || evalData.pekerjaan || "-";
 
     const pdfPath = path.join(process.cwd(), "public", "SUKET MAGANG_DRAFT APLIKASI.pdf");
@@ -102,7 +132,7 @@ export async function GET(req: Request) {
     firstPage.drawText(user.nomorInduk || "-", { x: 265, y: 624, size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.instansi || "-", { x: 265.5, y: 609, size: 12, font: fontRegular }); 
     firstPage.drawText(profile?.jurusan || "-", { x: 265.5, y: 593, size: 12, font: fontRegular }); 
-    // Divisi bisa 2 baris kalau namanya panjang
+
     const divisiLines = splitTextIntoLines(user.divisi || "-", 260, fontRegular, 12);
     divisiLines.forEach((line, i) => {
         firstPage.drawText(line, { x: 265.5, y: 576 - (i * 14), size: 12, font: fontRegular });
@@ -118,12 +148,12 @@ export async function GET(req: Request) {
     firstPage.drawText(String(evalData.nilaiKerjasama || 0), { x: nx, y: ny - (nls*3), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.nilaiInisiatif || 0), { x: nx, y: ny - (nls*4), size: 12, font: fontBold }); 
     firstPage.drawText(String(evalData.rataRata?.toFixed(2) || 0), { x: 372, y: 301, size: 11, font: fontBold }); 
-
+  
     // ==========================================================
-    // 3. CETAK OUTPUT PEKERJAAN (UDAH DIPOTONG OTOMATIS)
+    // 3. CETAK OUTPUT PEKERJAAN 
     // ==========================================================
     const fontSizePekerjaan = 9;
-    const maxWidthKotak = 400; // Dibikin bener-bener presisi biar ga nabrak margin kanan
+    const maxWidthKotak = 340; // Lebar efektif kotak keluaran di template PDF
     const barisTeks = splitTextIntoLines(finalPekerjaan, maxWidthKotak, fontRegular, fontSizePekerjaan);
 
     // Looping nge-print tiap baris, turun 13 point setiap enter
@@ -152,4 +182,4 @@ export async function GET(req: Request) {
     console.error(error);
     return new NextResponse("Error generate PDF", { status: 500 }); 
   }
-}
+} 

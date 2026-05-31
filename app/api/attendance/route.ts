@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     });
 
     if (!user || !user.internProfile) {
-        return NextResponse.json({ message: "Akun belum diatur admin." }, { status: 403 });
+        return NextResponse.json({ message: "Akun belum dikonfigurasi oleh admin." }, { status: 403 });
     }
 
     const today = getTodayDateWIB();
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
     const { type, latitude, longitude } = await req.json();
     
     if (!latitude || !longitude) {
-        return NextResponse.json({ message: "Lokasi tidak terdeteksi. Aktifkan GPS!" }, { status: 400 });
+        return NextResponse.json({ message: "Lokasi tidak terdeteksi. Aktifkan GPS terlebih dahulu." }, { status: 400 });
     }
 
     // --- AMBIL SETTINGAN ADMIN ---
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 
         if (distance > settings.radius) {
             return NextResponse.json({ 
-                message: `Jarak terlalu jauh (${distance.toFixed(0)}m). Masuk area kantor (${settings.radius}m) untuk absen.`,
+                message: `Jarak terlalu jauh (${distance.toFixed(0)}m). Masuk ke area kantor (${settings.radius}m) untuk melakukan presensi.`,
                 distance: distance 
             }, { status: 400 });
         }
@@ -202,7 +202,7 @@ export async function POST(req: Request) {
 
     // === IN ===
     if (type === "IN") {
-        if (existingLog) return NextResponse.json({ message: "Anda sudah absen masuk." }, { status: 400 });
+        if (existingLog) return NextResponse.json({ message: "Anda sudah melakukan presensi masuk." }, { status: 400 });
 
         const status = timeToMinutes(timeNow) > timeToMinutes(batasMasuk) ? "TELAT" : "HADIR";
 
@@ -215,20 +215,20 @@ export async function POST(req: Request) {
             }
         });
 
-        return NextResponse.json({ message: "Berhasil Absen Masuk!", time: timeNow, status });
+        return NextResponse.json({ message: "Presensi masuk berhasil dicatat.", time: timeNow, status });
     } 
     
     // === OUT ===
     else if (type === "OUT") {
-        if (!existingLog) return NextResponse.json({ message: "Anda belum absen masuk!" }, { status: 400 });
-        if (existingLog.timeOut) return NextResponse.json({ message: "Anda sudah absen pulang." }, { status: 400 });
+        if (!existingLog) return NextResponse.json({ message: "Anda belum melakukan presensi masuk." }, { status: 400 });
+        if (existingLog.timeOut) return NextResponse.json({ message: "Anda sudah melakukan presensi pulang." }, { status: 400 });
 
         const currentMins = timeToMinutes(timeNow);
         const limitMins = timeToMinutes(batasPulang);
 
         if (limitMins > 0 && currentMins < limitMins) {
             return NextResponse.json({ 
-                message: `Belum jam pulang! Tunggu sampai jam ${batasPulang} WIB.` 
+                message: `Belum waktunya pulang. Tunggu sampai pukul ${batasPulang} WIB.` 
             }, { status: 400 });
         }
 
@@ -237,10 +237,10 @@ export async function POST(req: Request) {
             data: { timeOut: timeNow }
         });
 
-        return NextResponse.json({ message: "Berhasil Absen Pulang!", time: timeNow });
+        return NextResponse.json({ message: "Presensi pulang berhasil dicatat.", time: timeNow });
     }
 
-    return NextResponse.json({ message: "Invalid type" }, { status: 400 });
+    return NextResponse.json({ message: "Tipe permintaan tidak valid." }, { status: 400 });
 
   } catch (error) {
     console.error("Error presensi:", error);

@@ -134,16 +134,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
             toast.error("Tanggal selesai harus setelah tanggal mulai.");
             return;
         }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (start < today) {
-            toast.error("Tanggal mulai tidak boleh di masa lalu.");
-            return;
-        }
-        if (end < today) {
-            toast.error("Tanggal selesai tidak boleh di masa lalu.");
-            return;
-        }
     }
     setIsSaving(true);
     try {
@@ -217,7 +207,6 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                             <Input
                                 type="date"
                                 value={startDate}
-                                min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {
                                     setStartDate(e.target.value);
                                     if (endDate && e.target.value >= endDate) setEndDate("");
@@ -232,7 +221,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                 value={endDate}
                                 min={startDate
                                     ? (() => { const d = new Date(startDate); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()
-                                    : (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()
+                                    : undefined
                                 }
                                 onChange={(e) => setEndDate(e.target.value)}
                                 className="rounded-xl h-10 text-sm w-full"
@@ -339,41 +328,56 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
 
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-              <Table className="min-w-[1100px]">
+              <Table className="min-w-[1200px]">
                 <TableHeader className="bg-[#99775C]">
                   <TableRow className="hover:bg-[#99775C] border-none">
-                    <TableHead className="text-white font-bold pl-8 py-4">Nama Lengkap</TableHead>
+                    <TableHead className="text-white font-bold pl-6 py-4 w-[50px] text-center">No</TableHead>
+                    <TableHead className="text-white font-bold">Nama Lengkap</TableHead>
+                    <TableHead className="text-white font-bold">Email</TableHead>
                     <TableHead className="text-white font-bold">Divisi</TableHead>
+                    <TableHead className="text-white font-bold">Instansi / Jurusan</TableHead>
                     <TableHead className="text-white font-bold">Periode</TableHead>
                     <TableHead className="text-white font-bold text-center">Status</TableHead>
-                    <TableHead className="text-white font-bold text-right pr-8">Aksi</TableHead>
+                    <TableHead className="text-white font-bold text-right pr-6">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedInterns.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={5} className="h-32 text-center text-slate-500 font-medium italic">Data tidak ditemukan.</TableCell>
+                        <TableCell colSpan={8} className="h-32 text-center text-slate-500 font-medium italic">Data tidak ditemukan.</TableCell>
                     </TableRow>
                   ) : (
-                    paginatedInterns.map((intern) => (
+                    paginatedInterns.map((intern, index) => (
                         <TableRow key={intern.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-slate-50/50 transition-colors">
-                            <TableCell className="pl-8 py-4">
-                                <div className="flex items-center gap-4">
-                                    <Avatar className="h-10 w-10 border-2 border-white">
+                            <TableCell className="pl-6 text-center font-medium text-slate-400 text-sm">
+                                {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                            </TableCell>
+
+                            <TableCell className="py-4">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-9 w-9 border-2 border-white shrink-0">
                                         <AvatarImage src={intern.image} />
                                         <AvatarFallback className="bg-slate-100 text-[#99775C] font-bold">{intern.name[0]}</AvatarFallback>
                                     </Avatar>
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-slate-800 dark:text-[#EAE7DD]">{intern.name}</span>
-                                        <span className="text-[11px] text-slate-400 font-medium">{intern.email}</span>
-                                    </div>
+                                    <span className="font-bold text-slate-800 dark:text-[#EAE7DD] whitespace-nowrap">{intern.name}</span>
+                                </div>
+                            </TableCell>
+
+                            <TableCell className="text-sm text-slate-500 dark:text-slate-400">
+                                {intern.email}
+                            </TableCell>
+
+                            <TableCell>
+                                <div className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400">
+                                    <Briefcase className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                                    <span className="line-clamp-2 leading-snug">{intern.divisi || "-"}</span>
                                 </div>
                             </TableCell>
 
                             <TableCell>
-                                <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-400">
-                                    <Briefcase className="h-3.5 w-3.5 text-slate-300" />
-                                    {intern.divisi || "-"}
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{intern.internProfile?.instansi || "-"}</span>
+                                    <span className="text-xs text-slate-400">{intern.internProfile?.jurusan || "-"}</span>
                                 </div>
                             </TableCell>
 
@@ -381,11 +385,11 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                 {intern.internProfile && new Date(intern.internProfile.startDate).getFullYear() !== new Date("1970-01-01").getFullYear() ? (
                                     <div className="flex items-center gap-2">
                                         <div className="text-[11px] font-bold px-2 py-1 bg-slate-100 dark:bg-[#292524] rounded-lg border border-slate-200 text-slate-600">
-                                            {new Date(intern.internProfile.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                            {new Date(intern.internProfile.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })}
                                         </div>
                                         <ArrowRight className="h-3 w-3 text-slate-300" />
                                         <div className="text-[11px] font-bold px-2 py-1 bg-slate-100 dark:bg-[#292524] rounded-lg border border-slate-200 text-slate-600">
-                                            {new Date(intern.internProfile.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                            {new Date(intern.internProfile.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })}
                                         </div>
                                     </div>
                                 ) : (
@@ -409,7 +413,7 @@ export default function InternsTableClient({ interns }: InternsTableProps) {
                                 )}
                             </TableCell>
 
-                            <TableCell className="text-right pr-8">
+                            <TableCell className="text-right pr-6">
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 

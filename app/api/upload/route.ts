@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const type = data.get("type") as string || "general"; // 'profile' | 'izin' | 'general'
 
     if (!file) {
-      return NextResponse.json({ success: false, message: "No file uploaded" });
+      return NextResponse.json({ success: false, message: "Tidak ada file yang diunggah." });
     }
 
     const bytes = await file.arrayBuffer();
@@ -45,6 +45,6 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ success: false, message: "Internal Server Error" });
+    return NextResponse.json({ success: false, message: "Terjadi kesalahan pada server." });
   }
 }

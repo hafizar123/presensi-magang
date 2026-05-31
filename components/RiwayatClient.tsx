@@ -65,7 +65,7 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
       Hari: new Date(log.date).toLocaleDateString('id-ID', { weekday: 'long' }),
       Tanggal: new Date(log.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       "Jam Masuk": `${log.time} WIB`,
-      "Jam Pulang": log.timeOut ? `${log.timeOut} WIB` : "Belum Absen",
+      "Jam Pulang": log.timeOut ? `${log.timeOut} WIB` : "Belum Melakukan Absensi Pulang",
       Status: log.status
     }));
 
@@ -312,7 +312,7 @@ export default function RiwayatClient({ user, logs }: RiwayatClientProps) {
                                             </TableCell>
                                             <TableCell>{log.timeOut ? <div className="font-mono font-medium">{log.timeOut} WIB</div> : <span className="text-slate-400 italic">-</span>}</TableCell>
                                             <TableCell className="text-right pr-6">
-                                                {log.status === "IZIN" ? <Badge variant="outline" className="text-blue-500 border-blue-200">Izin</Badge> : log.timeOut ? <Badge className="bg-purple-100 text-purple-700 border-none">Selesai</Badge> : <Badge variant="outline" className="text-slate-500 border-slate-200">Belum Pulang</Badge>}
+                                                {log.status === "IZIN" ? <Badge variant="outline" className="text-blue-500 border-blue-200">Izin</Badge> : log.timeOut ? <Badge className="bg-purple-100 text-purple-700 border-none">Selesai</Badge> : <Badge variant="outline" className="text-slate-500 border-slate-200">Belum Absen Pulang</Badge>}
                                             </TableCell>
                                         </TableRow>
                                     ))}

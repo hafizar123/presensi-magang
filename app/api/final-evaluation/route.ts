@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     } = body; 
 
     if (!userId) {
-        return NextResponse.json({ message: "User ID tidak ditemukan" }, { status: 400 });
+        return NextResponse.json({ message: "User ID tidak ditemukan." }, { status: 400 });
     }
 
     const rataRata = ((n1 || 0) + (n2 || 0) + (n3 || 0) + (n4 || 0) + (n5 || 0)) / 5;
@@ -111,9 +111,9 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, message: "Berhasil disimpan." });
+    return NextResponse.json({ success: true, message: "Data berhasil disimpan." });
   } catch (error) {
     console.error("Error saving:", error);
-    return NextResponse.json({ message: "Gagal menyimpan." }, { status: 500 });
+    return NextResponse.json({ message: "Gagal menyimpan data." }, { status: 500 });
   }
 }

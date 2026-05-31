@@ -229,7 +229,7 @@ export default function AdminSettingsClient({ user }: AdminSettingsClientProps) 
                 <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Peringatan</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm">{errorMessage}</p>
                 <Button onClick={() => setShowError(false)} className="mt-6 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl shadow-md transition-all active:scale-95">
-                    Coba Lagi
+                    Ulangi
                 </Button>
             </div>
         </DialogContent>

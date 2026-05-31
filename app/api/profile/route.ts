@@ -81,12 +81,12 @@ export async function PUT(request: Request) {
 
     if (newPassword && newPassword.trim() !== "") {
         if (!oldPassword) {
-            return NextResponse.json({ message: "Password lama harus diisi." }, { status: 400 });
+            return NextResponse.json({ message: "Kata sandi lama harus diisi." }, { status: 400 });
         }
 
         const isMatch = await bcrypt.compare(oldPassword, currentUser?.password || "");
         if (!isMatch) {
-            return NextResponse.json({ message: "Password lama yang Anda masukkan salah." }, { status: 400 });
+            return NextResponse.json({ message: "Kata sandi lama yang Anda masukkan salah." }, { status: 400 });
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);

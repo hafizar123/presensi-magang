@@ -52,9 +52,10 @@ const DIVISI_OPTIONS = [
 
 type AttendanceLog = {
   id: string;
-  user: { name: string; email: string; image?: string; jabatan?: string }; 
+  user: { name: string; email: string; image?: string; divisi?: string }; 
   date: string;
   time: string;
+  timeOut?: string | null;
   status: string;
 };
 
@@ -63,7 +64,7 @@ export default function RekapAbsensiPage() {
   const [loading, setLoading] = useState(true);
   
   const [searchName, setSearchName] = useState("");
-  // STATE BARU BUAT MODE SEMUA HARI NIH Morns! 👇
+  // State untuk mode tampilkan semua hari
   const [isAllDays, setIsAllDays] = useState(false); 
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
   
@@ -73,7 +74,7 @@ export default function RekapAbsensiPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      // Kalo isAllDays true, kita tembak parameter "ALL" ke API
+      // Jika isAllDays true, kirim parameter "ALL" ke API
       const queryDate = isAllDays ? "ALL" : filterDate;
       const res = await fetch(`/api/admin/rekap?date=${queryDate}`);
       const data = await res.json();
@@ -85,7 +86,7 @@ export default function RekapAbsensiPage() {
     }
   };
 
-  // Jangan lupa masukin isAllDays ke dependency array biar auto-refresh pas diklik
+  // isAllDays dimasukkan ke dependency array agar auto-refresh saat diubah
   useEffect(() => {
     fetchLogs();
   }, [filterDate, isAllDays]); 
@@ -93,19 +94,19 @@ export default function RekapAbsensiPage() {
   const filteredLogs = logs.filter((log) => {
     const matchName = log.user.name.toLowerCase().includes(searchName.toLowerCase());
     const matchStatus = filterStatus === "ALL" ? true : log.status === filterStatus;
-    const matchDivisi = filterDivisi === "ALL" ? true : log.user.jabatan === filterDivisi;
+    const matchDivisi = filterDivisi === "ALL" ? true : log.user.divisi === filterDivisi;
     return matchName && matchStatus && matchDivisi;
   });
 
   const handleExportExcel = () => {
     const dataToExport = filteredLogs.map((log, index) => ({
       "No": index + 1,
-      // Pake log.date aja biar excel-nya sesuai tanggal asli data itu dibikin
       "Tanggal": format(new Date(log.date), "dd MMMM yyyy", { locale: id }),
       "Nama Peserta": log.user.name,
       "Email": log.user.email,
-      "Divisi": log.user.jabatan || "-",
-      "Waktu Absen": `${log.time} WIB`,
+      "Divisi": log.user.divisi || "-",
+      "Jam Masuk": `${log.time} WIB`,
+      "Jam Pulang": log.timeOut ? `${log.timeOut} WIB` : "-",
       "Status Kehadiran": log.status === "TELAT" ? "Terlambat" : log.status,
       "Keterangan Lokasi": log.status === "IZIN" ? "Izin/Sakit" : "Kantor Dinas Disdikpora"
     }));
@@ -113,7 +114,7 @@ export default function RekapAbsensiPage() {
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     
     const columnWidths = [
-        { wch: 5 }, { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 25 }
+        { wch: 5 }, { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }
     ];
     worksheet['!cols'] = columnWidths;
 
@@ -132,7 +133,7 @@ export default function RekapAbsensiPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-[#EAE7DD]">Rekap Absensi</h1>
-          <p className="text-slate-500 dark:text-gray-400">Pantau kedatangan dan kepulangan anak magang.</p>
+          <p className="text-slate-500 dark:text-gray-400">Pantau kehadiran dan kepulangan peserta magang.</p>
         </div>
         
         <Button 
@@ -162,7 +163,7 @@ export default function RekapAbsensiPage() {
                         {isAllDays ? "Filter Per Tanggal" : "Tampilkan Semua Hari"}
                     </Button>
                     
-                    {/* Date picker disembunyiin kalo mode "Semua Hari" lagi nyala */}
+                    {/* Date picker disembunyikan jika mode "Semua Hari" aktif */}
                     {!isAllDays && (
                         <div className="relative w-full sm:w-[180px]">
                             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#99775C]" />
@@ -233,12 +234,13 @@ export default function RekapAbsensiPage() {
                 <TableHeader className="bg-[#99775C]">
                   <TableRow className="border-none hover:bg-[#99775C]">
                     <TableHead className="w-[50px] text-white font-bold text-center pl-4">No</TableHead>
-                    {/* TAMBAHAN KOLOM TANGGAL BIAR JELAS KALO MODE SEMUA HARI */}
-                    <TableHead className="text-white font-bold min-w-[150px]">Tanggal</TableHead>
+                    {/* Kolom tanggal ditampilkan pada mode semua hari */}
+                    <TableHead className="text-white font-bold min-w-[130px]">Tanggal</TableHead>
                     <TableHead className="text-white font-bold min-w-[200px]">Nama Peserta</TableHead>
                     <TableHead className="text-white font-bold min-w-[200px]">Email</TableHead>
                     <TableHead className="text-white font-bold min-w-[200px]">Divisi</TableHead>
-                    <TableHead className="text-white font-bold text-center">Waktu Absen</TableHead>
+                    <TableHead className="text-white font-bold text-center min-w-[120px]">Jam Masuk</TableHead>
+                    <TableHead className="text-white font-bold text-center min-w-[120px]">Jam Pulang</TableHead>
                     <TableHead className="text-white font-bold text-center">Status</TableHead>
                     <TableHead className="text-white font-bold text-right pr-6">Lokasi</TableHead>
                   </TableRow>
@@ -249,13 +251,13 @@ export default function RekapAbsensiPage() {
                       <TableCell colSpan={8} className="h-32 text-center">
                         <div className="flex justify-center items-center gap-2 text-slate-500">
                           <Loader2 className="animate-spin h-5 w-5 text-[#99775C]" /> 
-                          <span className="dark:text-gray-400">Menarik data absensi...</span>
+                          <span className="dark:text-gray-400">Memuat data presensi...</span>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : filteredLogs.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center text-slate-500 dark:text-gray-400">
+                        <TableCell colSpan={9} className="h-32 text-center text-slate-500 dark:text-gray-400">
                             {isAllDays ? "Belum ada satupun data absensi." : "Tidak ada data absen yang sesuai filter."}
                         </TableCell>
                     </TableRow>
@@ -264,7 +266,7 @@ export default function RekapAbsensiPage() {
                       <TableRow key={log.id} className="border-b border-slate-100 dark:border-[#292524] hover:bg-[#EAE7DD]/30 dark:hover:bg-[#292524] transition-colors group">
                         <TableCell className="text-center font-medium text-slate-500 pl-4">{index + 1}</TableCell>
                         
-                        {/* INI DATA TANGGALNYA BRAY */}
+                    {/* Kolom tanggal untuk mode semua hari */}
                         <TableCell className="whitespace-nowrap font-bold text-slate-600 dark:text-slate-400 text-sm">
                             {format(new Date(log.date), "dd MMM yyyy", { locale: id })}
                         </TableCell>
@@ -284,7 +286,7 @@ export default function RekapAbsensiPage() {
                         <TableCell className="whitespace-nowrap">
                             <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                                 <Briefcase className="h-3.5 w-3.5 text-slate-500" />
-                                {log.user.jabatan || "-"}
+                                {log.user.divisi || "-"}
                             </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -292,6 +294,16 @@ export default function RekapAbsensiPage() {
                                 <Clock className="h-3.5 w-3.5 text-[#99775C]" />
                                 <span className="font-bold text-xs">{log.time} WIB</span>
                             </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            {log.timeOut ? (
+                                <div className="inline-flex items-center gap-2 text-slate-700 dark:text-gray-300 bg-slate-100 dark:bg-[#292524] px-3 py-1 rounded-lg border border-slate-200 dark:border-none">
+                                    <Clock className="h-3.5 w-3.5 text-orange-500" />
+                                    <span className="font-bold text-xs">{log.timeOut} WIB</span>
+                                </div>
+                            ) : (
+                                <span className="text-xs text-slate-300 italic">-</span>
+                            )}
                         </TableCell>
                         <TableCell className="text-center">
                             {log.status === "HADIR" && (

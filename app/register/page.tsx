@@ -21,8 +21,8 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [nip, setNip] = useState("");
   const [email, setEmail] = useState("");
-  const [instansi, setInstansi] = useState(""); // STATE BARU BRAY
-  const [jurusan, setJurusan] = useState("");   // STATE BARU BRAY
+  const [instansi, setInstansi] = useState("");
+  const [jurusan, setJurusan] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
@@ -33,12 +33,12 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (password.length < 6) {
-      toast.error("Validasi Gagal", { description: "Password minimal 6 karakter!" });
+      toast.error("Validasi Gagal", { description: "Kata sandi minimal 6 karakter." });
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Validasi Gagal", { description: "Konfirmasi kata sandi tidak cocok!" });
+      toast.error("Validasi Gagal", { description: "Konfirmasi kata sandi tidak cocok." });
       return;
     }
 
@@ -48,7 +48,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, nip, email, password, instansi, jurusan }), // SELIPIN DISINI
+        body: JSON.stringify({ name, nip, email, password, instansi, jurusan }),
       });
 
       const data = await res.json();
@@ -57,7 +57,7 @@ export default function RegisterPage() {
         throw new Error(data.message || "Gagal mendaftar");
       }
 
-      toast.success("Registrasi Berhasil", { description: "Akun lu udah jadi bray. Silakan masuk." });
+      toast.success("Registrasi Berhasil", { description: "Akun Anda telah berhasil dibuat. Silakan masuk." });
       router.push("/login");
     } catch (error: any) {
       toast.error("Gagal Mendaftar", { description: error.message });
@@ -236,9 +236,9 @@ export default function RegisterPage() {
 
                 <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#292524] text-center">
                     <p className="text-sm text-slate-500 dark:text-gray-400">
-                        Sudah punya akun?{' '}
+                        Sudah memiliki akun?{' '}
                         <Link href="/login" className="font-bold text-[#99775C] hover:text-[#7a5e48] transition-colors">
-                            Masuk Disini
+                            Masuk di Sini
                         </Link>
                     </p>
                 </div>

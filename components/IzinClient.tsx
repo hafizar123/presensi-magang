@@ -65,7 +65,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
 
     try {
         const res = await fetch("/api/upload", { method: "POST", body: uploadData });
-        if (!res.ok) throw new Error("Gagal upload");
+        if (!res.ok) throw new Error("Gagal mengunggah file");
         
         const data = await res.json();
         
@@ -78,7 +78,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
 
     } catch (error) {
         console.error(error);
-        toast.error("Gagal Upload", { description: "Coba lagi atau gunakan file lain." });
+        toast.error("Gagal Mengunggah", { description: "Silakan coba lagi atau gunakan file lain." });
         if (fileInputRef.current) fileInputRef.current.value = ""; 
     } finally {
         setIsUploading(false);
@@ -89,7 +89,7 @@ export default function IzinClient({ user, requests }: IzinClientProps) {
     e.preventDefault();
     
     if (!formData.date || !formData.reason) {
-        toast.warning("Data Belum Lengkap", { description: "Tanggal dan alasan wajib diisi." });
+        toast.warning("Data Tidak Lengkap", { description: "Tanggal dan alasan wajib diisi." });
         return;
     }
 

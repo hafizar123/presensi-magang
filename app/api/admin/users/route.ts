@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const { name, email, password, role, nomorInduk, divisi } = body;
 
     if (!name || !email || !password || !role) {
-      return NextResponse.json({ message: "Nama, email, password, dan role wajib diisi." }, { status: 400 });
+      return NextResponse.json({ message: "Nama, email, kata sandi, dan peran wajib diisi." }, { status: 400 });
     }
 
     if (password && password.length < 6) {
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ message: "Email sudah terdaftar" }, { status: 400 });
+      return NextResponse.json({ message: "Email sudah terdaftar." }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newUser);
   } catch (error) {
-    return NextResponse.json({ message: "Gagal menambah pengguna" }, { status: 500 });
+    return NextResponse.json({ message: "Gagal menambah pengguna." }, { status: 500 });
   }
 }
 
@@ -128,7 +128,6 @@ export async function PUT(req: Request) {
         if (end <= start) {
           return NextResponse.json({ message: "Tanggal selesai harus setelah tanggal mulai." }, { status: 400 });
         }
-
         dataToUpdate.internProfile = {
             upsert: {
                 create: {

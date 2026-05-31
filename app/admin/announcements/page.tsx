@@ -84,15 +84,15 @@ export default function AnnouncementPage() {
       });
 
       if (res.ok) {
-        setSuccessMsg(isEditing ? "Pengumuman berhasil diupdate!" : "Broadcast berhasil terkirim!");
+        setSuccessMsg(isEditing ? "Pengumuman berhasil diperbarui." : "Pengumuman berhasil dikirim.");
         setShowSuccess(true);
         fetchAnnouncements();
         resetForm();
       } else {
-        alert("Gagal proses data");
+        console.error("Gagal memproses data pengumuman.");
       }
     } catch (error) {
-      alert("Error server");
+      console.error("Terjadi kesalahan pada server.");
     } finally {
       setLoading(false);
     }
@@ -110,7 +110,7 @@ export default function AnnouncementPage() {
         fetchAnnouncements();
       }
     } catch (error) {
-      alert("Gagal hapus");
+      console.error("Gagal menghapus pengumuman.");
     }
   };
 
@@ -129,7 +129,7 @@ export default function AnnouncementPage() {
             fetchAnnouncements();
         }
     } catch (error) {
-        console.error("Gagal ganti status");
+        console.error("Gagal mengubah status pengumuman.");
     }
   };
 
@@ -157,7 +157,7 @@ export default function AnnouncementPage() {
                 <div className="h-20 w-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-5 shadow-sm">
                     <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400 animate-bounce" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil!</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD]">Berhasil</h2>
                 <p className="text-slate-500 dark:text-gray-400 mt-2 text-sm leading-relaxed max-w-[250px]">
                     {successMsg}
                 </p>
@@ -177,7 +177,7 @@ export default function AnnouncementPage() {
         <div className="lg:col-span-2 space-y-6">
           <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-[#EAE7DD]">Kelola Pengumuman</h1>
-              <p className="text-slate-500 dark:text-gray-400">Buat info baru atau edit yang lama.</p>
+              <p className="text-slate-500 dark:text-gray-400">Buat pengumuman baru atau ubah yang sudah ada.</p>
           </div>
 
           <Card className={`border-slate-200 dark:border-[#292524] shadow-sm transition-colors ${isEditing ? "border-[#99775C] dark:border-[#99775C] ring-1 ring-[#99775C]/20" : "bg-white dark:bg-[#1c1917]"}`}>
@@ -216,7 +216,7 @@ export default function AnnouncementPage() {
                       <div className="space-y-2">
                           <Label className="text-slate-700 dark:text-slate-300">Isi Konten</Label>
                           <Textarea 
-                              placeholder="Tulis detailnya disini..." 
+                              placeholder="Tulis isi pengumuman di sini..." 
                               className="min-h-[150px] bg-slate-50 dark:bg-[#292524] border-slate-200 dark:border-[#3f3f3f] text-slate-900 dark:text-[#EAE7DD] focus-visible:ring-[#99775C]"
                               value={formData.content}
                               onChange={(e) => setFormData({...formData, content: e.target.value})}
@@ -241,7 +241,7 @@ export default function AnnouncementPage() {
                             disabled={loading}
                         >
                             {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : isEditing ? <RefreshCcw className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                            {isEditing ? "Update Data" : "Broadcast"}
+                            {isEditing ? "Perbarui Data" : "Kirim Pengumuman"}
                         </Button>
                       </div>
                   </form>
@@ -253,7 +253,7 @@ export default function AnnouncementPage() {
         <div className="lg:col-span-3 space-y-6">
           <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD] hidden lg:block">Riwayat Broadcast</h1>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-[#EAE7DD] hidden lg:block">Riwayat Pengumuman</h1>
                 <p className="text-slate-500 dark:text-gray-400 hidden lg:block">Daftar pengumuman yang pernah dibuat.</p>
               </div>
               <Badge variant="outline" className="h-fit border-[#99775C] text-[#99775C] dark:text-[#EAE7DD]">
